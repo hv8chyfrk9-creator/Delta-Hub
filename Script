@@ -1,8 +1,9 @@
--- Servicios necesarios
+-- Servicios necesarios para delta hub
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
@@ -95,7 +96,7 @@ MaximizeBtn.MouseButton1Click:Connect(function()
     MaximizeBtn.Visible = false
 end)
 
--- Contenedor General (Debajo del Header)
+-- Contenedor General
 local Container = Instance.new("Frame")
 Container.Name = "Container"
 Container.Parent = MainFrame
@@ -157,7 +158,7 @@ ConfigPage.Parent = PagesFrame
 ConfigPage.BackgroundTransparency = 1
 ConfigPage.Position = UDim2.new(0, 10, 0, 10)
 ConfigPage.Size = UDim2.new(1, -20, 1, -20)
-ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 350)
+ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 450)
 ConfigPage.ScrollBarThickness = 4
 
 local UIListConfig = Instance.new("UIListLayout")
@@ -172,7 +173,7 @@ GamePage.Parent = PagesFrame
 GamePage.BackgroundTransparency = 1
 GamePage.Position = UDim2.new(0, 10, 0, 10)
 GamePage.Size = UDim2.new(1, -20, 1, -20)
-GamePage.CanvasSize = UDim2.new(0, 0, 0, 950)
+GamePage.CanvasSize = UDim2.new(0, 0, 0, 1150)
 GamePage.ScrollBarThickness = 4
 GamePage.Visible = false
 
@@ -208,6 +209,7 @@ local currentSpeed = 16
 local jumpEnabled = false
 local currentJump = 50
 local noClipEnabled = false
+local infiniteJumpEnabled = false
 
 local function createLabel(parent, text)
     local lbl = Instance.new("TextLabel")
@@ -222,13 +224,13 @@ local function createLabel(parent, text)
     return lbl
 end
 
-createLabel(ConfigPage, "Velocidad (1 - 500):")
+createLabel(ConfigPage, "Velocidad Normal:")
 local speedBox = Instance.new("TextBox")
 speedBox.Parent = ConfigPage
 speedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 speedBox.Size = UDim2.new(1, 0, 0, 30)
 speedBox.Font = Enum.Font.Gotham
-speedBox.PlaceholderText = "Ej. 100"
+speedBox.PlaceholderText = "Ej. 16"
 speedBox.Text = ""
 speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedBox.TextSize = 12
@@ -238,8 +240,6 @@ speedBox.FocusLost:Connect(function()
     local val = tonumber(speedBox.Text)
     if val then
         currentSpeed = math.clamp(val, 1, 500)
-        speedBox.Text = tostring(currentSpeed)
-    else
         speedBox.Text = tostring(currentSpeed)
     end
 end)
@@ -273,7 +273,7 @@ jumpBox.Parent = ConfigPage
 jumpBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 jumpBox.Size = UDim2.new(1, 0, 0, 30)
 jumpBox.Font = Enum.Font.Gotham
-jumpBox.PlaceholderText = "Ej. 100"
+jumpBox.PlaceholderText = "Ej. 50"
 jumpBox.Text = ""
 jumpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 jumpBox.TextSize = 12
@@ -307,6 +307,42 @@ jumpToggle.MouseButton1Click:Connect(function()
         jumpToggle.Text = "Activar Salto: OFF"
         jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
+-- Salto Infinito (Infinite Jump)
+local infJumpToggle = Instance.new("TextButton")
+infJumpToggle.Parent = ConfigPage
+infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+infJumpToggle.Size = UDim2.new(1, 0, 0, 30)
+infJumpToggle.Font = Enum.Font.GothamBold
+infJumpToggle.Text = "Salto Infinito: OFF"
+infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+infJumpToggle.TextSize = 12
+Instance.new("UICorner", infJumpToggle).CornerRadius = UDim.new(0, 4)
+
+infJumpToggle.MouseButton1Click:Connect(function()
+    infiniteJumpEnabled = not infiniteJumpEnabled
+    if infiniteJumpEnabled then
+        infJumpToggle.Text = "Salto Infinito: ON"
+        infJumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        infJumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+    else
+        infJumpToggle.Text = "Salto Infinito: OFF"
+        infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if infiniteJumpEnabled then
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
     end
 end)
 
@@ -355,7 +391,6 @@ end)
 -- FUNCIONES APARTADO 2: GAMEPLAY (GRABADOR Y WINS)
 ----------------------------------------------------
 
--- Base de datos con los recorridos del 1 al 6
 _G.RecordedPaths = _G.RecordedPaths or {
     ["Win-block-1"] = {
         Vector3.new(-1455.18, -159.04, -999.85),
@@ -466,7 +501,6 @@ _G.RecordedPaths = _G.RecordedPaths or {
     }
 }
 
--- Mini apartado "Wins" con menú desplegable (Sidebar de Checkpoints)
 local winsContainer = Instance.new("Frame")
 winsContainer.Parent = GamePage
 winsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
@@ -495,7 +529,6 @@ winsArrowBtn.Text = ">"
 winsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 winsArrowBtn.TextSize = 14
 
--- Sidebar Desplegable de Checkpoints (Wins)
 local winsSidebar = Instance.new("ScrollingFrame")
 winsSidebar.Parent = GamePage
 winsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
@@ -567,39 +600,73 @@ winsArrowBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-createLabel(GamePage, "Velocidad del recorrido (1 - 300):")
+local playbackSpeedLimit = 200 -- Límite seguro predeterminado para el recorrido
+
+local playbackSpeedLabel = createLabel(GamePage, "Velocidad del recorrido (Max: 200):")
 local playbackSpeedBox = Instance.new("TextBox")
 playbackSpeedBox.Parent = GamePage
 playbackSpeedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 playbackSpeedBox.Size = UDim2.new(1, 0, 0, 30)
 playbackSpeedBox.Font = Enum.Font.Gotham
-playbackSpeedBox.Text = "50"
+playbackSpeedBox.Text = "100"
 playbackSpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 playbackSpeedBox.TextSize = 12
 Instance.new("UICorner", playbackSpeedBox).CornerRadius = UDim.new(0, 4)
 
-local playbackSpeedValue = 50
+local playbackSpeedValue = 100
 playbackSpeedBox.FocusLost:Connect(function()
     local val = tonumber(playbackSpeedBox.Text)
     if val then
-        playbackSpeedValue = math.clamp(val, 1, 300)
+        playbackSpeedValue = math.clamp(val, 1, playbackSpeedLimit)
+        playbackSpeedBox.Text = tostring(playbackSpeedValue)
+    else
         playbackSpeedBox.Text = tostring(playbackSpeedValue)
     end
 end)
 
--- NUEVO: Delay (0 a 10 segundos)
+-- Botón Modo Extremo (400 Max) exclusivo para el recorrido
+local safeSpeedToggle = Instance.new("TextButton")
+safeSpeedToggle.Parent = GamePage
+safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+safeSpeedToggle.Size = UDim2.new(1, 0, 0, 30)
+safeSpeedToggle.Font = Enum.Font.GothamBold
+safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
+safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+safeSpeedToggle.TextSize = 11
+Instance.new("UICorner", safeSpeedToggle).CornerRadius = UDim.new(0, 4)
+
+safeSpeedToggle.MouseButton1Click:Connect(function()
+    if playbackSpeedLimit == 200 then
+        playbackSpeedLimit = 400
+        safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): ON"
+        safeSpeedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 400):"
+    else
+        playbackSpeedLimit = 200
+        safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
+        safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 200):"
+        if playbackSpeedValue > 200 then
+            playbackSpeedValue = 200
+            playbackSpeedBox.Text = "200"
+        end
+    end
+end)
+
 createLabel(GamePage, "Delay entre recorridos (0 - 10 seg):")
 local delayBox = Instance.new("TextBox")
 delayBox.Parent = GamePage
 delayBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
 delayBox.Size = UDim2.new(1, 0, 0, 30)
 delayBox.Font = Enum.Font.Gotham
-delayBox.Text = "0"
+delayBox.Text = "2"
 delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 delayBox.TextSize = 12
 Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 4)
 
-local delayValue = 0
+local delayValue = 2
 delayBox.FocusLost:Connect(function()
     local val = tonumber(delayBox.Text)
     if val then
@@ -610,7 +677,6 @@ delayBox.FocusLost:Connect(function()
     end
 end)
 
--- NUEVO: Botón de Correr Indefinidamente (Loop)
 local loopToggle = Instance.new("TextButton")
 loopToggle.Parent = GamePage
 loopToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -635,8 +701,95 @@ loopToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+----------------------------------------------------
+-- AUTO SUMMER COINS (CON RETORNO SEGURO AL SPAWN)
+----------------------------------------------------
+local autoCoinsToggle = Instance.new("TextButton")
+autoCoinsToggle.Parent = GamePage
+autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+autoCoinsToggle.Size = UDim2.new(1, 0, 0, 30)
+autoCoinsToggle.Font = Enum.Font.GothamBold
+autoCoinsToggle.Text = "Auto Summer Coins: OFF"
+autoCoinsToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+autoCoinsToggle.TextSize = 12
+Instance.new("UICorner", autoCoinsToggle).CornerRadius = UDim.new(0, 4)
+
+local autoCoinsEnabled = false
+local autoCoinsConnection
+
+autoCoinsToggle.MouseButton1Click:Connect(function()
+    autoCoinsEnabled = not autoCoinsEnabled
+    if autoCoinsEnabled then
+        autoCoinsToggle.Text = "Auto Summer Coins: ON"
+        autoCoinsToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        
+        autoCoinsConnection = task.spawn(function()
+            while autoCoinsEnabled do
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if hrp then
+                    local foundCoin = false
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if not autoCoinsEnabled then break end
+                        local nameLower = string.lower(obj.Name)
+                        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
+                            local targetPart = nil
+                            if obj:IsA("BasePart") then
+                                targetPart = obj
+                            elseif obj:IsA("Model") and obj.PrimaryPart then
+                                targetPart = obj.PrimaryPart
+                            else
+                                targetPart = obj:FindFirstChildOfClass("BasePart")
+                            end
+                            
+                            if targetPart then
+                                foundCoin = true
+                                
+                                -- 1. Teletransporte a la moneda
+                                hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
+                                task.wait(0.3) -- Esperar a que el juego registre la recolección
+                                
+                                -- 2. Retorno seguro al spawn
+                                local spawnPos = Vector3.new(-1455.18, -159.04, -999.85) -- Posición base
+                                if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
+                                    local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
+                                    spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
+                                end
+                                
+                                hrp.CFrame = CFrame.new(spawnPos)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                                
+                                task.wait(0.5) -- Pausa corta de seguridad en el spawn antes de continuar
+                                break
+                            end
+                        end
+                    end
+                    if not foundCoin then
+                        task.wait(1)
+                    end
+                else
+                    task.wait(1)
+                end
+                task.wait(0.1)
+            end
+        end)
+    else
+        autoCoinsToggle.Text = "Auto Summer Coins: OFF"
+        autoCoinsToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        autoCoinsEnabled = false
+    end
+end)
+
+----------------------------------------------------
+-- REPRODUCTOR DE RECORRIDOS (WINS)
+----------------------------------------------------
 local playbackStatus = "STOPPED"
 local autoNoclipConnection
+local customNoclipActive = true
 
 local playBtn = Instance.new("TextButton")
 playBtn.Parent = GamePage
@@ -660,6 +813,7 @@ Instance.new("UICorner", stopRecBtn).CornerRadius = UDim.new(0, 4)
 
 local function stopPlaybackCleanup()
     playbackStatus = "STOPPED"
+    customNoclipActive = true
     if autoNoclipConnection then
         autoNoclipConnection:Disconnect()
         autoNoclipConnection = nil
@@ -681,6 +835,7 @@ local function executePlayback()
     if not pathData or #pathData == 0 then return end
 
     playbackStatus = "PLAYING"
+    customNoclipActive = true
     
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -696,7 +851,7 @@ local function executePlayback()
     task.wait(0.05)
 
     autoNoclipConnection = RunService.Stepped:Connect(function()
-        if playbackStatus == "PLAYING" and char then
+        if playbackStatus == "PLAYING" and char and customNoclipActive then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
@@ -713,26 +868,48 @@ local function executePlayback()
     if hum then hum.PlatformStand = true end
 
     task.spawn(function()
+        local jitterCounter = 0
+
         while playbackStatus == "PLAYING" do
+            jitterCounter = jitterCounter + 1
+            local speedVariation = 0
+            
+            if playbackSpeedValue > 10 then
+                local mod = jitterCounter % 5
+                if mod == 1 then speedVariation = 0
+                elseif mod == 2 then speedVariation = -10
+                elseif mod == 3 then speedVariation = -5
+                elseif mod == 4 then speedVariation = -3
+                else speedVariation = -8 end
+            end
+            
+            local activeSpeed = math.clamp(playbackSpeedValue + speedVariation, 1, playbackSpeedLimit)
+
             local i = 1
             while i <= #pathData and playbackStatus == "PLAYING" do
                 local point = pathData[i]
                 local targetPos = (typeof(point) == "Vector3") and point or point.Position
                 
+                local isLastPoint = (i == #pathData)
+                if isLastPoint then
+                    targetPos = targetPos + Vector3.new(0, 10, 0)
+                end
+                
+                local currentSpeedToUse = activeSpeed
+                
                 if hrp then
                     while playbackStatus == "PLAYING" do
                         local dt = RunService.RenderStepped:Wait()
                         local currentPos = hrp.Position
-                        local distance = (targetPos - currentPos).Magnitude
+                        local distanceToTarget = (targetPos - currentPos).Magnitude
+                        local stepDistance = currentSpeedToUse * dt
                         
-                        local stepDistance = playbackSpeedValue * dt
-                        
-                        if distance <= stepDistance + 0.5 then
+                        if distanceToTarget <= stepDistance + 0.5 then
                             hrp.CFrame = CFrame.new(targetPos)
                             break
                         else
                             local direction = (targetPos - currentPos).Unit
-                            bv.Velocity = direction * playbackSpeedValue
+                            bv.Velocity = direction * currentSpeedToUse
                             hrp.CFrame = CFrame.new(currentPos, targetPos)
                         end
                     end
@@ -740,17 +917,49 @@ local function executePlayback()
                 i = i + 1
             end
 
-            -- Si no está activado el loop, salimos del ciclo principal de repetición
+            if playbackStatus == "PLAYING" then
+                if bv and bv.Parent then bv:Destroy() end
+                customNoclipActive = false
+                if hum then hum.PlatformStand = false end
+
+                if hrp then
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                end
+
+                task.wait(0.5)
+                
+                if playbackStatus == "PLAYING" then
+                    bv = Instance.new("BodyVelocity")
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Velocity = Vector3.new(0, 0, 0)
+                    bv.Parent = hrp
+                    if hum then hum.PlatformStand = true end
+                end
+            end
+
             if not loopEnabled or playbackStatus ~= "PLAYING" then
                 break
             end
 
-            -- Aplicar el delay configurado antes de reiniciar el recorrido
-            if delayValue > 0 then
-                task.wait(delayValue)
-            else
+            if playbackStatus == "PLAYING" then
+                if delayValue > 0 then
+                    task.wait(delayValue)
+                else
+                    task.wait(0.2)
+                end
+                
+                local nextFirstPoint = pathData[1]
+                local nextStartPos = (typeof(nextFirstPoint) == "Vector3") and nextFirstPoint or nextFirstPoint.Position
+                if hrp then
+                    hrp.CFrame = CFrame.new(nextStartPos)
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                end
                 task.wait(0.1)
             end
+            
+            customNoclipActive = true
         end
         stopPlaybackCleanup()
     end)
