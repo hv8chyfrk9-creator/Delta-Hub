@@ -1,9 +1,10 @@
--- Servicios necesarios para delta hub
+-- Servicios necesarios
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 
@@ -158,7 +159,7 @@ ConfigPage.Parent = PagesFrame
 ConfigPage.BackgroundTransparency = 1
 ConfigPage.Position = UDim2.new(0, 10, 0, 10)
 ConfigPage.Size = UDim2.new(1, -20, 1, -20)
-ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 450)
+ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 600)
 ConfigPage.ScrollBarThickness = 4
 
 local UIListConfig = Instance.new("UIListLayout")
@@ -210,6 +211,7 @@ local jumpEnabled = false
 local currentJump = 50
 local noClipEnabled = false
 local infiniteJumpEnabled = false
+local antiLagEnabled = false
 
 local function createLabel(parent, text)
     local lbl = Instance.new("TextLabel")
@@ -369,28 +371,71 @@ noclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-RunService.Stepped:Connect(function()
-    local char = player.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            if speedEnabled then hum.WalkSpeed = currentSpeed end
-            if jumpEnabled then hum.JumpPower = currentJump end
-        end
-        if noClipEnabled then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
+----------------------------------------------------
+-- ANTI-DAÑO (LAVA Y NPC HITBOX)
+----------------------------------------------------
+local antiDamageToggle = Instance.new("TextButton")
+antiDamageToggle.Parent = ConfigPage
+antiDamageToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+antiDamageToggle.Size = UDim2.new(1, 0, 0, 30)
+antiDamageToggle.Font = Enum.Font.GothamBold
+antiDamageToggle.Text = "Anti-Daño (Lava & NPC): OFF"
+antiDamageToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+antiDamageToggle.TextSize = 12
+Instance.new("UICorner", antiDamageToggle).CornerRadius = UDim.new(0, 4)
+
+local antiDamageEnabled = false
+local antiDamageConnection
+
+antiDamageToggle.MouseButton1Click:Connect(function()
+    antiDamageEnabled = not antiDamageEnabled
+    if antiDamageEnabled then
+        antiDamageToggle.Text = "Anti-Daño (Lava & NPC): ON"
+        antiDamageToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        antiDamageToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        
+        -- Ejecución inicial y bucle de protección constante
+        antiDamageConnection = RunService.Stepped:Connect(function()
+            if not antiDamageEnabled then return end
+            
+            -- 1. Eliminar Hitbox del NPC en Workspace
+            local npcFolder = Workspace:FindFirstChild("npc") or Workspace:FindFirstChild("NPC")
+            if npcFolder then
+                for _, obj in pairs(npcFolder:GetDescendants()) do
+                    if string.lower(obj.Name) == "hitbox" then
+                        obj:Destroy()
+                    end
                 end
             end
+            
+            -- 2. Quitar propiedades a cualquier cosa que incluya "lava" en Workspace
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local nameLower = string.lower(obj.Name)
+                if string.find(nameLower, "lava") then
+                    if obj:IsA("BasePart") then
+                        obj.CanTouch = false
+                        obj.CanCollide = false
+                        obj.Transparency = 1
+                    elseif obj:IsA("Script") or obj:IsA("LocalScript") then
+                        obj.Disabled = true
+                    end
+                end
+            end
+        end)
+    else
+        antiDamageToggle.Text = "Anti-Daño (Lava & NPC): OFF"
+        antiDamageToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        antiDamageToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        if antiDamageConnection then
+            antiDamageConnection:Disconnect()
+            antiDamageConnection = nil
         end
     end
 end)
 
 ----------------------------------------------------
--- FUNCIONES APARTADO 2: GAMEPLAY (GRABADOR Y WINS)
+-- APARTADO 2: RECORRIDOS (WINS) Y DATOS GLOBALES
 ----------------------------------------------------
-
 _G.RecordedPaths = _G.RecordedPaths or {
     ["Win-block-1"] = {
         Vector3.new(-1455.18, -159.04, -999.85),
@@ -501,6 +546,175 @@ _G.RecordedPaths = _G.RecordedPaths or {
     }
 }
 
+----------------------------------------------------
+-- ANTI-LAG EXTREMO (TECLAS OCULTAS EXCEPTO A 5 STUDS DE LÍNEAS RECTAS ENTRE CHECKPOINTS)
+----------------------------------------------------
+local antiLagToggle = Instance.new("TextButton")
+antiLagToggle.Parent = ConfigPage
+antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+antiLagToggle.Size = UDim2.new(1, 0, 0, 30)
+antiLagToggle.Font = Enum.Font.GothamBold
+antiLagToggle.Text = "Anti-Lag Extremo (Teclas Optimizadas): OFF"
+antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+antiLagToggle.TextSize = 11
+Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
+
+local originalKeyProps = {}
+local originalMaterials = {}
+local originalReflectance = {}
+local originalLighting = {
+    GlobalShadows = Lighting.GlobalShadows,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd
+}
+
+-- Función matemática para calcular la distancia mínima de un punto a un segmento de recta (línea recta entre dos checkpoints)
+local function getDistanceFromPointToSegment(point, pA, pB)
+    local ab = pB - pA
+    local ap = point - pA
+    local abLenSquared = ab.X * ab.X + ab.Y * ab.Y + ab.Z * ab.Z
+    if abLenSquared == 0 then
+        return (point - pA).Magnitude
+    end
+    local t = (ap.X * ab.X + ap.Y * ab.Y + ap.Z * ab.Z) / abLenSquared
+    t = math.clamp(t, 0, 1)
+    local projection = pA + t * ab
+    return (point - projection).Magnitude
+end
+
+-- Función para verificar si una parte está a menos de 5 studs de cualquiera de las rutas guardadas (líneas rectas entre puntos)
+local function isNearAnyRoute(partPos)
+    for _, pathData in pairs(_G.RecordedPaths) do
+        for i = 1, #pathData - 1 do
+            local pA = (typeof(pathData[i]) == "Vector3") and pathData[i] or pathData[i].Position
+            local pB = (typeof(pathData[i+1]) == "Vector3") and pathData[i+1] or pathData[i+1].Position
+            local dist = getDistanceFromPointToSegment(partPos, pA, pB)
+            if dist <= 5 then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+antiLagToggle.MouseButton1Click:Connect(function()
+    antiLagEnabled = not antiLagEnabled
+    if antiLagEnabled then
+        antiLagToggle.Text = "Anti-Lag Extremo (Teclas Optimizadas): ON"
+        antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        
+        -- Configurar renderizado general seguro para evitar tirones
+        pcall(function()
+            Workspace.StreamingEnabled = false
+            Workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
+            settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+        end)
+        
+        -- Escanear Workspace para optimizar teclas y gráficos
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                local nameLower = string.lower(obj.Name)
+                
+                -- Detectar si el objeto es una tecla (por nombre común o palabra clave)
+                if string.find(nameLower, "key") or string.find(nameLower, "tecla") or string.find(nameLower, "keyboard") then
+                    local pos = obj.Position
+                    if not isNearAnyRoute(pos) then
+                        -- Guardar propiedades originales para restaurar después si se apaga
+                        originalKeyProps[obj] = {
+                            Transparency = obj.Transparency,
+                            CanCollide = obj.CanCollide,
+                            CanTouch = obj.CanTouch
+                        }
+                        -- Ocultar y deshabilitar teclas fuera del radio de 5 studs de los recorridos
+                        obj.Transparency = 1
+                        obj.CanCollide = false
+                        obj.CanTouch = false
+                    end
+                else
+                    -- Optimización general de texturas para teléfonos de 1GB de RAM sin borrar mapa
+                    originalMaterials[obj] = obj.Material
+                    originalReflectance[obj] = obj.Reflectance
+                    obj.Material = Enum.Material.SmoothPlastic
+                    obj.Reflectance = 0
+                    obj.CastShadow = false
+                end
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                obj.Enabled = false
+            end
+        end
+        
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 2
+        Lighting.FogEnd = 100000
+    else
+        antiLagToggle.Text = "Anti-Lag Extremo (Teclas Optimizadas): OFF"
+        antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        
+        pcall(function()
+            Workspace.StreamingEnabled = true
+        end)
+        
+        -- Restaurar teclas ocultas
+        for obj, props in pairs(originalKeyProps) do
+            if obj and obj.Parent then
+                obj.Transparency = props.Transparency
+                obj.CanCollide = props.CanCollide
+                obj.CanTouch = props.CanTouch
+            end
+        end
+        originalKeyProps = {}
+        
+        -- Restaurar materiales
+        for obj, mat in pairs(originalMaterials) do
+            if obj and obj.Parent then
+                obj.Material = mat
+                obj.CastShadow = true
+            end
+        end
+        originalMaterials = {}
+        
+        for obj, ref in pairs(originalReflectance) do
+            if obj and obj.Parent then
+                obj.Reflectance = ref
+            end
+        end
+        originalReflectance = {}
+        
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                obj.Enabled = true
+            end
+        end
+        
+        Lighting.GlobalShadows = originalLighting.GlobalShadows
+        Lighting.Brightness = originalLighting.Brightness
+        Lighting.FogEnd = originalLighting.FogEnd
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if speedEnabled then hum.WalkSpeed = currentSpeed end
+            if jumpEnabled then hum.JumpPower = currentJump end
+        end
+        if noClipEnabled then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end
+end)
+
+----------------------------------------------------
+-- FUNCIONES APARTADO 2: GAMEPLAY (GRABADOR Y WINS)
+----------------------------------------------------
 local winsContainer = Instance.new("Frame")
 winsContainer.Parent = GamePage
 winsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
@@ -600,7 +814,7 @@ winsArrowBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-local playbackSpeedLimit = 200 -- Límite seguro predeterminado para el recorrido
+local playbackSpeedLimit = 200
 
 local playbackSpeedLabel = createLabel(GamePage, "Velocidad del recorrido (Max: 200):")
 local playbackSpeedBox = Instance.new("TextBox")
@@ -624,7 +838,6 @@ playbackSpeedBox.FocusLost:Connect(function()
     end
 end)
 
--- Botón Modo Extremo (400 Max) exclusivo para el recorrido
 local safeSpeedToggle = Instance.new("TextButton")
 safeSpeedToggle.Parent = GamePage
 safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -702,7 +915,7 @@ loopToggle.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- AUTO SUMMER COINS (CON RETORNO SEGURO AL SPAWN)
+-- AUTO SUMMER COINS (BÚSQUEDA A 100 STUDS / VUELO HACIA ELLAS O RETORNO AL SPAWN)
 ----------------------------------------------------
 local autoCoinsToggle = Instance.new("TextButton")
 autoCoinsToggle.Parent = GamePage
@@ -730,7 +943,9 @@ autoCoinsToggle.MouseButton1Click:Connect(function()
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 
                 if hrp then
-                    local foundCoin = false
+                    local closestCoinPart = nil
+                    local shortestDist = 100 -- Radio máximo de búsqueda de 100 studs
+                    
                     for _, obj in pairs(Workspace:GetDescendants()) do
                         if not autoCoinsEnabled then break end
                         local nameLower = string.lower(obj.Name)
@@ -745,30 +960,36 @@ autoCoinsToggle.MouseButton1Click:Connect(function()
                             end
                             
                             if targetPart then
-                                foundCoin = true
-                                
-                                -- 1. Teletransporte a la moneda
-                                hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-                                task.wait(0.3) -- Esperar a que el juego registre la recolección
-                                
-                                -- 2. Retorno seguro al spawn
-                                local spawnPos = Vector3.new(-1455.18, -159.04, -999.85) -- Posición base
-                                if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
-                                    local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
-                                    spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
+                                local dist = (targetPart.Position - hrp.Position).Magnitude
+                                if dist <= shortestDist then
+                                    shortestDist = dist
+                                    closestCoinPart = targetPart
                                 end
-                                
-                                hrp.CFrame = CFrame.new(spawnPos)
-                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                                
-                                task.wait(0.5) -- Pausa corta de seguridad en el spawn antes de continuar
-                                break
                             end
                         end
                     end
-                    if not foundCoin then
-                        task.wait(1)
+                    
+                    if closestCoinPart then
+                        -- Si encontró una moneda en un radio de 100 studs, "volar" suavemente hacia ella
+                        local coinPos = closestCoinPart.Position + Vector3.new(0, 2, 0)
+                        while autoCoinsEnabled and hrp and closestCoinPart and (closestCoinPart.Position - hrp.Position).Magnitude > 3 do
+                            local dt = RunService.RenderStepped:Wait()
+                            local direction = (coinPos - hrp.Position).Unit
+                            hrp.CFrame = hrp.CFrame + (direction * math.min(50 * dt, (coinPos - hrp.Position).Magnitude))
+                        end
+                        task.wait(0.2)
+                    else
+                        -- Si no encuentra ninguna en el radio de 100 studs, vuelve al spawn directamente
+                        local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
+                        if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
+                            local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
+                            spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
+                        end
+                        
+                        hrp.CFrame = CFrame.new(spawnPos)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                        task.wait(1.5)
                     end
                 else
                     task.wait(1)
