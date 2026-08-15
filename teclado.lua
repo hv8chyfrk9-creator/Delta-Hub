@@ -372,7 +372,7 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- ANTI-LAG EXTREMO Y BORRADO DE KEY CAPS ( > 50 )
+-- ANTI-LAG EXTREMO Y BORRADO DE KEY CAPS ( > 50 ) Y FLOATFOLDER
 ----------------------------------------------------
 local antiLagToggle = Instance.new("TextButton")
 antiLagToggle.Parent = ConfigPage
@@ -403,6 +403,14 @@ antiLagToggle.MouseButton1Click:Connect(function()
             Workspace.StreamingEnabled = false
             Workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
             settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
+        end)
+        
+        -- Borrar FloatFolder si existe en Workspace
+        pcall(function()
+            local floatFolder = Workspace:FindFirstChild("FloatFolder")
+            if floatFolder then
+                floatFolder:Destroy()
+            end
         end)
         
         -- Recolectar todos los "key caps" para contar si son más de 50
@@ -481,7 +489,11 @@ RunService.Stepped:Connect(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
             if speedEnabled then hum.WalkSpeed = currentSpeed end
-            if jumpEnabled then hum.JumpPower = currentJump end
+            -- Corregido jumpower por JumpPower
+            if jumpEnabled then 
+                hum.UseJumpPower = true
+                hum.JumpPower = currentJump 
+            end
         end
         if noClipEnabled then
             for _, part in pairs(char:GetDescendants()) do
