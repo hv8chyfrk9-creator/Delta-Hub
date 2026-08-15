@@ -406,7 +406,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
         end)
         
-        -- Recolectar todos los "key caps" para contar si son más de 50
         local keyCapsMatches = {}
         for _, obj in pairs(Workspace:GetDescendants()) do
             local nameLower = string.lower(obj.Name)
@@ -415,7 +414,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Si hay más de 50, se borran (Delete)
         if #keyCapsMatches > 50 then
             for _, obj in ipairs(keyCapsMatches) do
                 pcall(function()
@@ -424,7 +422,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Aplicar optimizaciones generales de Anti-Lag
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj and obj.Parent and obj:IsA("BasePart") then
                 originalMaterials[obj] = obj.Material
@@ -489,7 +486,6 @@ RunService.Stepped:Connect(function()
             end
             if jumpEnabled then
                 hum.UseJumpPower = false
-                -- Conversión matemática para que 100 de JumpPower se sienta igual usando JumpHeight
                 hum.JumpHeight = (currentJump * currentJump) / 200
             end
         end
@@ -504,59 +500,135 @@ RunService.Stepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- APARTADO TP (Estructura de Sidebar y contenedor preparados)
+-- APARTADO TP (Integrado con Mundos y Sidebar)
 ----------------------------------------------------
-local tpContainer = Instance.new("Frame")
-tpContainer.Parent = GamePage
-tpContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-tpContainer.Size = UDim2.new(1, 0, 0, 35)
-tpContainer.BorderSizePixel = 0
-Instance.new("UICorner", tpContainer).CornerRadius = UDim.new(0, 4)
+createLabel(GamePage, "Selecciona el Mundo (Win TP por Coordenadas):")
 
-local tpText = Instance.new("TextLabel")
-tpText.Parent = tpContainer
-tpText.BackgroundTransparency = 1
-tpText.Position = UDim2.new(0, 10, 0, 0)
-tpText.Size = UDim2.new(1, -40, 1, 0)
-tpText.Font = Enum.Font.GothamBold
-tpText.Text = "Opciones de Teleport"
-tpText.TextColor3 = Color3.fromRGB(255, 255, 255)
-tpText.TextSize = 12
-tpText.TextXAlignment = Enum.TextXAlignment.Left
+local winsContainer = Instance.new("Frame")
+winsContainer.Parent = GamePage
+winsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+winsContainer.Size = UDim2.new(1, 0, 0, 35)
+winsContainer.BorderSizePixel = 0
+Instance.new("UICorner", winsContainer).CornerRadius = UDim.new(0, 4)
 
-local tpArrowBtn = Instance.new("TextButton")
-tpArrowBtn.Parent = tpContainer
-tpArrowBtn.BackgroundTransparency = 1
-tpArrowBtn.Position = UDim2.new(1, -30, 0, 0)
-tpArrowBtn.Size = UDim2.new(0, 30, 1, 0)
-tpArrowBtn.Font = Enum.Font.GothamBold
-tpArrowBtn.Text = ">"
-tpArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-tpArrowBtn.TextSize = 14
+local winsText = Instance.new("TextLabel")
+winsText.Parent = winsContainer
+winsText.BackgroundTransparency = 1
+winsText.Position = UDim2.new(0, 10, 0, 0)
+winsText.Size = UDim2.new(1, -40, 1, 0)
+winsText.Font = Enum.Font.GothamBold
+winsText.Text = "Mundos (1 - 5)"
+winsText.TextColor3 = Color3.fromRGB(255, 255, 255)
+winsText.TextSize = 12
+winsText.TextXAlignment = Enum.TextXAlignment.Left
 
-local tpSidebar = Instance.new("ScrollingFrame")
-tpSidebar.Parent = GamePage
-tpSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-tpSidebar.Size = UDim2.new(1, 0, 0, 0)
-tpSidebar.Visible = false
-tpSidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
-tpSidebar.ScrollBarThickness = 4
-Instance.new("UICorner", tpSidebar).CornerRadius = UDim.new(0, 4)
+local winsArrowBtn = Instance.new("TextButton")
+winsArrowBtn.Parent = winsContainer
+winsArrowBtn.BackgroundTransparency = 1
+winsArrowBtn.Position = UDim2.new(1, -30, 0, 0)
+winsArrowBtn.Size = UDim2.new(0, 30, 1, 0)
+winsArrowBtn.Font = Enum.Font.GothamBold
+winsArrowBtn.Text = ">"
+winsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+winsArrowBtn.TextSize = 14
 
-local UIListTpSidebar = Instance.new("UIListLayout")
-UIListTpSidebar.Parent = tpSidebar
-UIListTpSidebar.SortOrder = Enum.SortOrder.LayoutOrder
-UIListTpSidebar.Padding = UDim.new(0, 5)
+local winsSidebar = Instance.new("ScrollingFrame")
+winsSidebar.Parent = GamePage
+winsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+winsSidebar.Visible = false
+winsSidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
+winsSidebar.ScrollBarThickness = 4
+Instance.new("UICorner", winsSidebar).CornerRadius = UDim.new(0, 4)
 
-tpArrowBtn.MouseButton1Click:Connect(function()
-    local isOpen = tpSidebar.Visible
+local UIListWinsSidebar = Instance.new("UIListLayout")
+UIListWinsSidebar.Parent = winsSidebar
+UIListWinsSidebar.SortOrder = Enum.SortOrder.LayoutOrder
+UIListWinsSidebar.Padding = UDim.new(0, 5)
+
+local chosenWorldLabel = Instance.new("TextLabel")
+chosenWorldLabel.Parent = GamePage
+chosenWorldLabel.BackgroundTransparency = 1
+chosenWorldLabel.Size = UDim2.new(1, 0, 0, 20)
+chosenWorldLabel.Font = Enum.Font.GothamSemibold
+chosenWorldLabel.Text = "Mundo seleccionado: Ninguno"
+chosenWorldLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+chosenWorldLabel.TextSize = 12
+chosenWorldLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local mundoCoordinates = {
+    ["Mundo 1"] = CFrame.new(-9459.66, 386.04, -254.67),
+    ["Mundo 2"] = CFrame.new(-3605.38, 151.34, -9378.49),
+    ["Mundo 3"] = CFrame.new(-8077.63, 278.54, 2740.95),
+    ["Mundo 4"] = CFrame.new(-7760.11, 17.50, 5740.95),
+    ["Mundo 5"] = CFrame.new(-1333.16, 22.54, 7561.95)
+}
+
+local selectedCFrame = nil
+
+local function updateWinsSidebarUI()
+    for _, child in pairs(winsSidebar:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    local count = 0
+    for mundoName, _ in pairs(mundoCoordinates) do
+        count = count + 1
+        local btn = Instance.new("TextButton")
+        btn.Parent = winsSidebar
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        btn.Size = UDim2.new(1, -10, 0, 25)
+        btn.Font = Enum.Font.Gotham
+        btn.Text = mundoName
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        btn.TextSize = 11
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+        
+        btn.MouseButton1Click:Connect(function()
+            selectedCFrame = mundoCoordinates[mundoName]
+            chosenWorldLabel.Text = "Mundo seleccionado: " .. mundoName
+            winsSidebar.Visible = false
+            winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+            winsArrowBtn.Text = ">"
+        end)
+    end
+    winsSidebar.CanvasSize = UDim2.new(0, 0, 0, count * 30)
+end
+
+winsArrowBtn.MouseButton1Click:Connect(function()
+    local isOpen = winsSidebar.Visible
     if not isOpen then
-        tpSidebar.Visible = true
-        tpSidebar.Size = UDim2.new(1, 0, 0, 160)
-        tpArrowBtn.Text = "v"
+        updateWinsSidebarUI()
+        winsSidebar.Visible = true
+        winsSidebar.Size = UDim2.new(1, 0, 0, 130)
+        winsArrowBtn.Text = "v"
     else
-        tpSidebar.Visible = false
-        tpSidebar.Size = UDim2.new(1, 0, 0, 0)
-        tpArrowBtn.Text = ">"
+        winsSidebar.Visible = false
+        winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+        winsArrowBtn.Text = ">"
+    end
+end)
+
+local tpWinBtn = Instance.new("TextButton")
+tpWinBtn.Parent = GamePage
+tpWinBtn.BackgroundColor3 = Color3.fromRGB(40, 90, 40)
+tpWinBtn.Size = UDim2.new(1, 0, 0, 40)
+tpWinBtn.Font = Enum.Font.GothamBold
+tpWinBtn.Text = "Hacer TP al Mundo"
+tpWinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tpWinBtn.TextSize = 13
+Instance.new("UICorner", tpWinBtn).CornerRadius = UDim.new(0, 4)
+
+tpWinBtn.MouseButton1Click:Connect(function()
+    if not selectedCFrame then return end
+    
+    local char = player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        hrp.CFrame = selectedCFrame + Vector3.new(0, 5, 0)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
     end
 end)
