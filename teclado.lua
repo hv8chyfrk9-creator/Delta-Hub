@@ -819,7 +819,7 @@ loopToggle.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- AUTO SUMMER COINS (CON RETORNO SEGURO AL SPAWN)
+-- AUTO SUMMER COINS (INTELIGENTE CON REGISTRO DE RUTA)
 ----------------------------------------------------
 local autoCoinsToggle = Instance.new("TextButton")
 autoCoinsToggle.Parent = GamePage
@@ -832,7 +832,47 @@ autoCoinsToggle.TextSize = 12
 Instance.new("UICorner", autoCoinsToggle).CornerRadius = UDim.new(0, 4)
 
 local autoCoinsEnabled = false
-local autoCoinsConnection
+local collectedCoinsPositions = {} -- Almacena las posiciones de las monedas detectadas
+local coinDetectionConnection
+local isCollectingCoinsNow = false
+
+-- Detector pasivo: guarda monedas cercanas mientras juegas o corres el recorrido
+coinDetectionConnection = RunService.Heartbeat:Connect(function()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local nameLower = string.lower(obj.Name)
+        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
+            local targetPart = nil
+            if obj:IsA("BasePart") then
+                targetPart = obj
+            elseif obj:IsA("Model") and obj.PrimaryPart then
+                targetPart = obj.PrimaryPart
+            else
+                targetPart = obj:FindFirstChildOfClass("BasePart")
+            end
+
+            if targetPart then
+                local pos = targetPart.Position
+                -- Verificar si está cerca (ej. a menos de 25 studs) y si no la tenemos guardada aún
+                if (hrp.Position - pos).Magnitude <= 25 then
+                    local alreadySaved = false
+                    for _, savedPos in ipairs(collectedCoinsPositions) do
+                        if (savedPos - pos).Magnitude < 5 then
+                            alreadySaved = true
+                            break
+                        end
+                    end
+                    if not alreadySaved then
+                        table.insert(collectedCoinsPositions, pos)
+                    end
+                end
+            end
+        end
+    end
+end)
 
 autoCoinsToggle.MouseButton1Click:Connect(function()
     autoCoinsEnabled = not autoCoinsEnabled
@@ -840,64 +880,59 @@ autoCoinsToggle.MouseButton1Click:Connect(function()
         autoCoinsToggle.Text = "Auto Summer Coins: ON"
         autoCoinsToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-        
-        autoCoinsConnection = task.spawn(function()
-            while autoCoinsEnabled do
-                local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                
-                if hrp then
-                    local foundCoin = false
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if not autoCoinsEnabled then break end
-                        local nameLower = string.lower(obj.Name)
-                        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
-                            local targetPart = nil
-                            if obj:IsA("BasePart") then
-                                targetPart = obj
-                            elseif obj:IsA("Model") and obj.PrimaryPart then
-                                targetPart = obj.PrimaryPart
-                            else
-                                targetPart = obj:FindFirstChildOfClass("BasePart")
-                            end
-                            
-                            if targetPart then
-                                foundCoin = true
-                                
-                                hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
-                                task.wait(0.3)
-                                
-                                local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
-                                if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
-                                    local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
-                                    spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
-                                end
-                                
-                                hrp.CFrame = CFrame.new(spawnPos)
-                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                                
-                                task.wait(0.5)
-                                break
-                            end
-                        end
-                    end
-                    if not foundCoin then
-                        task.wait(1)
-                    end
-                else
-                    task.wait(1)
-                end
-                task.wait(0.1)
-            end
-        end)
     else
         autoCoinsToggle.Text = "Auto Summer Coins: OFF"
         autoCoinsToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        autoCoinsEnabled = false
+        isCollectingCoinsNow = false
     end
 end)
+
+-- Función interna para ir a farmear las monedas guardadas al terminar un recorrido
+local function processCollectedCoinsQueue()
+    if not autoCoinsEnabled or #collectedCoinsPositions == 0 then return end
+    isCollectingCoinsNow = true
+
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then 
+        isCollectingCoinsNow = false
+        return 
+    end
+
+    -- Ir recolectando una por una las monedas guardadas (se van borrando al ser visitadas)
+    for i = #collectedCoinsPositions, 1, -1 do
+        if not autoCoinsEnabled then break end
+        local coinPos = collectedCoinsPositions[i]
+        
+        if hrp and coinPos then
+            hrp.CFrame = CFrame.new(coinPos + Vector3.new(0, 3, 0))
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            task.wait(0.35)
+            
+            -- Eliminar de la lista la moneda recolectada para que no se repita
+            table.remove(collectedCoinsPositions, i)
+        end
+    end
+
+    -- Regresar al inicio del recorrido o spawn seguro
+    local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
+    if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
+        local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
+        spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
+    end
+
+    if hrp then
+        hrp.CFrame = CFrame.new(spawnPos)
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    end
+    
+    task.wait(0.3)
+    isCollectingCoinsNow = false
+end
+
 
 ----------------------------------------------------
 -- REPRODUCTOR DE RECORRIDOS (WINS)
