@@ -489,7 +489,6 @@ RunService.Stepped:Connect(function()
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
             if speedEnabled then hum.WalkSpeed = currentSpeed end
-            -- Corregido jumpower por JumpPower
             if jumpEnabled then 
                 hum.UseJumpPower = true
                 hum.JumpPower = currentJump 
@@ -856,7 +855,6 @@ coinDetectionConnection = RunService.Heartbeat:Connect(function()
 
             if targetPart then
                 local pos = targetPart.Position
-                -- Verificar si está cerca (ej. a menos de 25 studs) y si no la tenemos guardada aún
                 if (hrp.Position - pos).Magnitude <= 25 then
                     local alreadySaved = false
                     for _, savedPos in ipairs(collectedCoinsPositions) do
@@ -933,7 +931,6 @@ local function processCollectedCoinsQueue()
     isCollectingCoinsNow = false
 end
 
-
 ----------------------------------------------------
 -- REPRODUCTOR DE RECORRIDOS (WINS)
 ----------------------------------------------------
@@ -983,6 +980,9 @@ local function executePlayback()
     if not currentSelectedRecording then return end
     local pathData = _G.RecordedPaths[currentSelectedRecording]
     if not pathData or #pathData == 0 then return end
+
+    -- Limpiar la tabla de monedas guardadas al iniciar un nuevo recorrido
+    collectedCoinsPositions = {}
 
     playbackStatus = "PLAYING"
     customNoclipActive = true
@@ -1079,6 +1079,9 @@ local function executePlayback()
 
                 task.wait(0.5)
                 
+                -- Al terminar el recorrido actual, ir a recolectar las Summer Coins guardadas
+                processCollectedCoinsQueue()
+
                 if playbackStatus == "PLAYING" then
                     bv = Instance.new("BodyVelocity")
                     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
