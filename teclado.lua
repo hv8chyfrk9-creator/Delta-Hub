@@ -204,7 +204,7 @@ GamePage.Parent = PagesFrame
 GamePage.BackgroundTransparency = 1
 GamePage.Position = UDim2.new(0, 10, 0, 10)
 GamePage.Size = UDim2.new(1, -20, 1, -20)
-GamePage.CanvasSize = UDim2.new(0, 0, 0, 1250)
+GamePage.CanvasSize = UDim2.new(0, 0, 0, 1350)
 GamePage.ScrollBarThickness = 4
 GamePage.Visible = false
 
@@ -714,7 +714,6 @@ local function updateWinsSidebarUI()
         
         btn.MouseButton1Click:Connect(function()
             currentSelectedRecording = recName
-            chosenRecLabel.Text = "recorrido escogido: " + recName -- (Mantenido abajo con ..)
             chosenRecLabel.Text = "recorrido escogido: " .. recName
             winsSidebar.Visible = false
             winsSidebar.Size = UDim2.new(1, 0, 0, 0)
@@ -839,9 +838,10 @@ loopToggle.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- SELECTOR DROPDOWN: AUTO ITEMS (Auto Summer Coins / Auto Special Keys)
+-- MULTI-SELECTOR SIDEBAR: AUTO SUMMER COINS / AUTO SPECIAL KEYS
 ----------------------------------------------------
-local selectedAutoItemMode = "Ninguno" -- "Ninguno", "Auto Summer Coins", "Auto Special Keys", "Ambos"
+local autoCoinsSelected = false
+local autoKeysSelected = false
 
 local autoItemsContainer = Instance.new("Frame")
 autoItemsContainer.Parent = GamePage
@@ -856,7 +856,7 @@ autoItemsText.BackgroundTransparency = 1
 autoItemsText.Position = UDim2.new(0, 10, 0, 0)
 autoItemsText.Size = UDim2.new(1, -40, 1, 0)
 autoItemsText.Font = Enum.Font.GothamBold
-autoItemsText.Text = "Modo Auto Items: Ninguno"
+autoItemsText.Text = "Auto Items (Seleccionar)"
 autoItemsText.TextColor3 = Color3.fromRGB(255, 255, 255)
 autoItemsText.TextSize = 12
 autoItemsText.TextXAlignment = Enum.TextXAlignment.Left
@@ -876,7 +876,7 @@ autoItemsSidebar.Parent = GamePage
 autoItemsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
 autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
 autoItemsSidebar.Visible = false
-autoItemsSidebar.CanvasSize = UDim2.new(0, 0, 0, 140)
+autoItemsSidebar.CanvasSize = UDim2.new(0, 0, 0, 70)
 autoItemsSidebar.ScrollBarThickness = 4
 Instance.new("UICorner", autoItemsSidebar).CornerRadius = UDim.new(0, 4)
 
@@ -885,32 +885,51 @@ UIListAutoItems.Parent = autoItemsSidebar
 UIListAutoItems.SortOrder = Enum.SortOrder.LayoutOrder
 UIListAutoItems.Padding = UDim.new(0, 5)
 
-local optionsList = {"Ninguno", "Auto Summer Coins", "Auto Special Keys", "Ambos"}
-for _, optName in ipairs(optionsList) do
-    local optBtn = Instance.new("TextButton")
-    optBtn.Parent = autoItemsSidebar
-    optBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    optBtn.Size = UDim2.new(1, -10, 0, 25)
-    optBtn.Font = Enum.Font.Gotham
-    optBtn.Text = optName
-    optBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    optBtn.TextSize = 11
-    Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
-    
-    optBtn.MouseButton1Click:Connect(function()
-        selectedAutoItemMode = optName
-        autoItemsText.Text = "Modo Auto Items: " .. optName
-        autoItemsSidebar.Visible = false
-        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
-        autoItemsArrowBtn.Text = ">"
-    end)
-end
+-- Botón 1: Auto Summer Coins
+local btnCoins = Instance.new("TextButton")
+btnCoins.Parent = autoItemsSidebar
+btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+btnCoins.Size = UDim2.new(1, -10, 0, 25)
+btnCoins.Font = Enum.Font.Gotham
+btnCoins.Text = "Auto Summer Coins"
+btnCoins.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnCoins.TextSize = 11
+Instance.new("UICorner", btnCoins).CornerRadius = UDim.new(0, 4)
+
+-- Botón 2: Auto Special Keys
+local btnKeys = Instance.new("TextButton")
+btnKeys.Parent = autoItemsSidebar
+btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+btnKeys.Size = UDim2.new(1, -10, 0, 25)
+btnKeys.Font = Enum.Font.Gotham
+btnKeys.Text = "Auto Special Keys"
+btnKeys.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnKeys.TextSize = 11
+Instance.new("UICorner", btnKeys).CornerRadius = UDim.new(0, 4)
+
+btnCoins.MouseButton1Click:Connect(function()
+    autoCoinsSelected = not autoCoinsSelected
+    if autoCoinsSelected then
+        btnCoins.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Gris muy oscuro / casi negro al seleccionar
+    else
+        btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+    end
+end)
+
+btnKeys.MouseButton1Click:Connect(function()
+    autoKeysSelected = not autoKeysSelected
+    if autoKeysSelected then
+        btnKeys.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Gris muy oscuro / casi negro al seleccionar
+    else
+        btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+    end
+end)
 
 autoItemsArrowBtn.MouseButton1Click:Connect(function()
     local isOpen = autoItemsSidebar.Visible
     if not isOpen then
         autoItemsSidebar.Visible = true
-        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 115)
+        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 70)
         autoItemsArrowBtn.Text = "v"
     else
         autoItemsSidebar.Visible = false
@@ -919,14 +938,39 @@ autoItemsArrowBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Botón Global de Estado (Auto: ON / OFF) justo debajo de la sidebar
+local autoGlobalToggle = Instance.new("TextButton")
+autoGlobalToggle.Parent = GamePage
+autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+autoGlobalToggle.Size = UDim2.new(1, 0, 0, 30)
+autoGlobalToggle.Font = Enum.Font.GothamBold
+autoGlobalToggle.Text = "Auto: OFF"
+autoGlobalToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+autoGlobalToggle.TextSize = 12
+Instance.new("UICorner", autoGlobalToggle).CornerRadius = UDim.new(0, 4)
+
+local autoGlobalEnabled = false
+autoGlobalToggle.MouseButton1Click:Connect(function()
+    autoGlobalEnabled = not autoGlobalEnabled
+    if autoGlobalEnabled then
+        autoGlobalToggle.Text = "Auto: ON"
+        autoGlobalToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+    else
+        autoGlobalToggle.Text = "Auto: OFF"
+        autoGlobalToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
 ----------------------------------------------------
--- LÓGICA DE RECOLECCIÓN INTELIGENTE (COINS Y SPECIAL KEYS)
+-- LÓGICA DE RECOLECCIÓN INTELIGENTE (COINS Y CARPETA SPECIALKEYS)
 ----------------------------------------------------
 local collectedCoinsPositions = {}
 local collectedKeysPositions = {}
 local isCollectingItemsNow = false
 
--- Monitoreo y registro de Summer Coins en un radio de 100 studs
+-- Monitoreo y registro de Summer Coins y elementos dentro de carpetas SpecialKeys en el Workspace
 RunService.Heartbeat:Connect(function()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -963,31 +1007,32 @@ RunService.Heartbeat:Connect(function()
         end
     end
 
-    -- Detectar Special Keys (buscando la carpeta SpecialKeys o elementos que contengan specialkey)
+    -- Detectar elementos dentro de cualquier carpeta u objeto llamado "SpecialKeys" (búsqueda estricta por nombre)
     for _, obj in pairs(Workspace:GetDescendants()) do
-        local nameLower = string.lower(obj.Name)
-        if string.find(nameLower, "specialkey") or string.find(nameLower, "special_key") then
-            local targetPart = nil
-            if obj:IsA("BasePart") then
-                targetPart = obj
-            elseif obj:IsA("Model") and obj.PrimaryPart then
-                targetPart = obj.PrimaryPart
-            else
-                targetPart = obj:FindFirstChildOfClass("BasePart")
-            end
+        if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
+            for _, item in pairs(obj:GetDescendants()) do
+                local targetPart = nil
+                if item:IsA("BasePart") then
+                    targetPart = item
+                elseif item:IsA("Model") and item.PrimaryPart then
+                    targetPart = item.PrimaryPart
+                else
+                    targetPart = item:FindFirstChildOfClass("BasePart")
+                end
 
-            if targetPart then
-                local pos = targetPart.Position
-                if (hrp.Position - pos).Magnitude <= 100 then
-                    local alreadySaved = false
-                    for _, savedPos in ipairs(collectedKeysPositions) do
-                        if (savedPos - pos).Magnitude < 5 then
-                            alreadySaved = true
-                            break
+                if targetPart then
+                    local pos = targetPart.Position
+                    if (hrp.Position - pos).Magnitude <= 150 then
+                        local alreadySaved = false
+                        for _, savedPos in ipairs(collectedKeysPositions) do
+                            if (savedPos - pos).Magnitude < 5 then
+                                alreadySaved = true
+                                break
+                            end
                         end
-                    end
-                    if not alreadySaved then
-                        table.insert(collectedKeysPositions, pos)
+                        if not alreadySaved then
+                            table.insert(collectedKeysPositions, pos)
+                        end
                     end
                 end
             end
@@ -1012,7 +1057,7 @@ local function processQueue(positionsList)
     local spawnPos = getSpawnPosition()
 
     for i = #positionsList, 1, -1 do
-        if selectedAutoItemMode == "Ninguno" then break end
+        if not autoGlobalEnabled then break end
         local itemPos = positionsList[i]
         
         if hrp and itemPos then
@@ -1045,11 +1090,9 @@ end
 task.spawn(function()
     while true do
         task.wait(1)
-        if selectedAutoItemMode ~= "Ninguno" and not isCollectingItemsNow then
-            -- Solo actúa si no hay recorrido activo o si el sistema está libre
-            -- (La verificación de recorrido activo se maneja coordinando con el reproductor)
-            local hasCoinsToCollect = (#collectedCoinsPositions > 0) and (selectedAutoItemMode == "Auto Summer Coins" or selectedAutoItemMode == "Ambos")
-            local hasKeysToCollect = (#collectedKeysPositions > 0) and (selectedAutoItemMode == "Auto Special Keys" or selectedAutoItemMode == "Ambos")
+        if autoGlobalEnabled and not isCollectingItemsNow then
+            local hasCoinsToCollect = (#collectedCoinsPositions > 0) and autoCoinsSelected
+            local hasKeysToCollect = (#collectedKeysPositions > 0) and autoKeysSelected
 
             if (hasCoinsToCollect or hasKeysToCollect) and playbackStatus == "STOPPED" then
                 isCollectingItemsNow = true
@@ -1212,9 +1255,9 @@ local function executePlayback()
                 task.wait(0.5)
                 
                 -- Si hay items pendientes y el modo auto está activo, pausamos el bucle de recorrido para recolectar
-                if selectedAutoItemMode ~= "Ninguno" then
-                    local hasCoins = (#collectedCoinsPositions > 0) and (selectedAutoItemMode == "Auto Summer Coins" or selectedAutoItemMode == "Ambos")
-                    local hasKeys = (#collectedKeysPositions > 0) and (selectedAutoItemMode == "Auto Special Keys" or selectedAutoItemMode == "Ambos")
+                if autoGlobalEnabled then
+                    local hasCoins = (#collectedCoinsPositions > 0) and autoCoinsSelected
+                    local hasKeys = (#collectedKeysPositions > 0) and autoKeysSelected
                     
                     if hasCoins or hasKeys then
                         isCollectingItemsNow = true
