@@ -20,14 +20,11 @@ local function applyAntiDamage()
     pcall(function()
         for _, obj in pairs(Workspace:GetDescendants()) do
             local nameLower = string.lower(obj.Name)
-            
-            -- Borrar cualquier cosa que contenga la palabra "lava"
             if string.find(nameLower, "lava") then
                 obj:Destroy()
             end
         end
         
-        -- Buscar carpeta o elementos NPC en Workspace
         local npcFolder = Workspace:FindFirstChild("NPC") or Workspace:FindFirstChild("Npcs")
         if npcFolder then
             for _, npc in pairs(npcFolder:GetDescendants()) do
@@ -37,7 +34,6 @@ local function applyAntiDamage()
             end
         end
         
-        -- Búsqueda general por si la hitbox está suelta bajo algún NPC en Workspace
         for _, obj in pairs(Workspace:GetChildren()) do
             if string.lower(obj.Name):find("npc") then
                 local hitbox = obj:FindFirstChild("Hitbox", true)
@@ -49,7 +45,6 @@ local function applyAntiDamage()
     end)
 end
 
--- Ejecutar Anti-Daño de forma automática al iniciar y mantenerlo vigilado
 applyAntiDamage()
 task.spawn(function()
     while true do
@@ -64,7 +59,6 @@ ScreenGui.Name = "DeltaHubCustom"
 ScreenGui.Parent = CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Botón Flotante para Maximizar (Oculto por defecto)
 local MaximizeBtn = Instance.new("TextButton")
 MaximizeBtn.Name = "MaximizeBtn"
 MaximizeBtn.Parent = ScreenGui
@@ -78,7 +72,6 @@ MaximizeBtn.TextSize = 20
 MaximizeBtn.Visible = false
 Instance.new("UICorner", MaximizeBtn).CornerRadius = UDim.new(1, 0)
 
--- Ventana Principal
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
@@ -93,7 +86,6 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = MainFrame
 
--- Barra Superior (Header)
 local TopBar = Instance.new("Frame")
 TopBar.Name = "TopBar"
 TopBar.Parent = MainFrame
@@ -113,14 +105,13 @@ local Title = Instance.new("TextLabel")
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Size = UDim2.new(0, 250, 1, 0)
 Title.Font = Enum.Font.GothamBold
 Title.Text = "Delta Hub | Escapa del Teclado"
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.TextSize = 14
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Botón Minimizar (-)
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Parent = TopBar
 MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
@@ -142,7 +133,6 @@ MaximizeBtn.MouseButton1Click:Connect(function()
     MaximizeBtn.Visible = false
 end)
 
--- Contenedor General
 local Container = Instance.new("Frame")
 Container.Name = "Container"
 Container.Parent = MainFrame
@@ -150,7 +140,6 @@ Container.BackgroundTransparency = 1
 Container.Position = UDim2.new(0, 0, 0, 35)
 Container.Size = UDim2.new(1, 0, 1, -35)
 
--- Sidebar Izquierda
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
 Sidebar.Parent = Container
@@ -168,7 +157,6 @@ local SidebarPadding = Instance.new("UIPadding")
 SidebarPadding.Parent = Sidebar
 SidebarPadding.PaddingTop = UDim.new(0, 10)
 
--- Botones de la Sidebar
 local Tab1Btn = Instance.new("TextButton")
 Tab1Btn.Parent = Sidebar
 Tab1Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
@@ -189,7 +177,6 @@ Tab2Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
 Tab2Btn.TextSize = 12
 Instance.new("UICorner", Tab2Btn).CornerRadius = UDim.new(0, 4)
 
--- Contenedor de Páginas (Derecha)
 local PagesFrame = Instance.new("Frame")
 PagesFrame.Name = "PagesFrame"
 PagesFrame.Parent = Container
@@ -197,7 +184,6 @@ PagesFrame.BackgroundTransparency = 1
 PagesFrame.Position = UDim2.new(0, 130, 0, 0)
 PagesFrame.Size = UDim2.new(1, -130, 1, 0)
 
--- Apartado 1: Configuración
 local ConfigPage = Instance.new("ScrollingFrame")
 ConfigPage.Name = "ConfigPage"
 ConfigPage.Parent = PagesFrame
@@ -212,14 +198,13 @@ UIListConfig.Parent = ConfigPage
 UIListConfig.SortOrder = Enum.SortOrder.LayoutOrder
 UIListConfig.Padding = UDim.new(0, 10)
 
--- Apartado 2: Gameplay (Grabador)
 local GamePage = Instance.new("ScrollingFrame")
 GamePage.Name = "GamePage"
 GamePage.Parent = PagesFrame
 GamePage.BackgroundTransparency = 1
 GamePage.Position = UDim2.new(0, 10, 0, 10)
 GamePage.Size = UDim2.new(1, -20, 1, -20)
-GamePage.CanvasSize = UDim2.new(0, 0, 0, 1150)
+GamePage.CanvasSize = UDim2.new(0, 0, 0, 1250)
 GamePage.ScrollBarThickness = 4
 GamePage.Visible = false
 
@@ -228,7 +213,6 @@ UIListGame.Parent = GamePage
 UIListGame.SortOrder = Enum.SortOrder.LayoutOrder
 UIListGame.Padding = UDim.new(0, 10)
 
--- Sistema de Pestañas
 Tab1Btn.MouseButton1Click:Connect(function()
     ConfigPage.Visible = true
     GamePage.Visible = false
@@ -248,7 +232,7 @@ Tab2Btn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- FUNCIONES APARTADO 1: CONFIGURACIÓN
+-- CONFIGURACIÓN
 ----------------------------------------------------
 local speedEnabled = false
 local currentSpeed = 16
@@ -357,7 +341,6 @@ jumpToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Salto Infinito (Infinite Jump)
 local infJumpToggle = Instance.new("TextButton")
 infJumpToggle.Parent = ConfigPage
 infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -416,9 +399,6 @@ noclipBtn.MouseButton1Click:Connect(function()
     end
 end)
 
-----------------------------------------------------
--- ANTI-LAG EXTREMO Y BORRADO DE KEY CAPS ( > 50 ) Y FLOATFOLDER
-----------------------------------------------------
 local antiLagToggle = Instance.new("TextButton")
 antiLagToggle.Parent = ConfigPage
 antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -450,7 +430,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
         end)
         
-        -- Borrar FloatFolder si existe en Workspace
         pcall(function()
             local floatFolder = Workspace:FindFirstChild("FloatFolder")
             if floatFolder then
@@ -458,7 +437,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end)
         
-        -- Recolectar todos los "key caps" para contar si son más de 50
         local keyCapsMatches = {}
         for _, obj in pairs(Workspace:GetDescendants()) do
             local nameLower = string.lower(obj.Name)
@@ -467,7 +445,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Si hay más de 50, se borran (Delete)
         if #keyCapsMatches > 50 then
             for _, obj in ipairs(keyCapsMatches) do
                 pcall(function()
@@ -476,7 +453,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end
 
-        -- Aplicar optimizaciones generales de Anti-Lag
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj and obj.Parent and obj:IsA("BasePart") then
                 originalMaterials[obj] = obj.Material
@@ -550,9 +526,8 @@ RunService.Stepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- FUNCIONES APARTADO 2: GAMEPLAY (GRABADOR Y WINS)
+-- GAMEPLAY & REPRODUCTOR DE WINS
 ----------------------------------------------------
-
 _G.RecordedPaths = _G.RecordedPaths or {
     ["Win-block-1"] = {
         Vector3.new(-1455.18, -159.04, -999.85),
@@ -739,6 +714,7 @@ local function updateWinsSidebarUI()
         
         btn.MouseButton1Click:Connect(function()
             currentSelectedRecording = recName
+            chosenRecLabel.Text = "recorrido escogido: " + recName -- (Mantenido abajo con ..)
             chosenRecLabel.Text = "recorrido escogido: " .. recName
             winsSidebar.Visible = false
             winsSidebar.Size = UDim2.new(1, 0, 0, 0)
@@ -863,28 +839,100 @@ loopToggle.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- AUTO SUMMER COINS (INTELIGENTE CON REGISTRO DE RUTA)
+-- SELECTOR DROPDOWN: AUTO ITEMS (Auto Summer Coins / Auto Special Keys)
 ----------------------------------------------------
-local autoCoinsToggle = Instance.new("TextButton")
-autoCoinsToggle.Parent = GamePage
-autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-autoCoinsToggle.Size = UDim2.new(1, 0, 0, 30)
-autoCoinsToggle.Font = Enum.Font.GothamBold
-autoCoinsToggle.Text = "Auto Summer Coins: OFF"
-autoCoinsToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-autoCoinsToggle.TextSize = 12
-Instance.new("UICorner", autoCoinsToggle).CornerRadius = UDim.new(0, 4)
+local selectedAutoItemMode = "Ninguno" -- "Ninguno", "Auto Summer Coins", "Auto Special Keys", "Ambos"
 
-local autoCoinsEnabled = false
+local autoItemsContainer = Instance.new("Frame")
+autoItemsContainer.Parent = GamePage
+autoItemsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+autoItemsContainer.Size = UDim2.new(1, 0, 0, 35)
+autoItemsContainer.BorderSizePixel = 0
+Instance.new("UICorner", autoItemsContainer).CornerRadius = UDim.new(0, 4)
+
+local autoItemsText = Instance.new("TextLabel")
+autoItemsText.Parent = autoItemsContainer
+autoItemsText.BackgroundTransparency = 1
+autoItemsText.Position = UDim2.new(0, 10, 0, 0)
+autoItemsText.Size = UDim2.new(1, -40, 1, 0)
+autoItemsText.Font = Enum.Font.GothamBold
+autoItemsText.Text = "Modo Auto Items: Ninguno"
+autoItemsText.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoItemsText.TextSize = 12
+autoItemsText.TextXAlignment = Enum.TextXAlignment.Left
+
+local autoItemsArrowBtn = Instance.new("TextButton")
+autoItemsArrowBtn.Parent = autoItemsContainer
+autoItemsArrowBtn.BackgroundTransparency = 1
+autoItemsArrowBtn.Position = UDim2.new(1, -30, 0, 0)
+autoItemsArrowBtn.Size = UDim2.new(0, 30, 1, 0)
+autoItemsArrowBtn.Font = Enum.Font.GothamBold
+autoItemsArrowBtn.Text = ">"
+autoItemsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoItemsArrowBtn.TextSize = 14
+
+local autoItemsSidebar = Instance.new("ScrollingFrame")
+autoItemsSidebar.Parent = GamePage
+autoItemsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
+autoItemsSidebar.Visible = false
+autoItemsSidebar.CanvasSize = UDim2.new(0, 0, 0, 140)
+autoItemsSidebar.ScrollBarThickness = 4
+Instance.new("UICorner", autoItemsSidebar).CornerRadius = UDim.new(0, 4)
+
+local UIListAutoItems = Instance.new("UIListLayout")
+UIListAutoItems.Parent = autoItemsSidebar
+UIListAutoItems.SortOrder = Enum.SortOrder.LayoutOrder
+UIListAutoItems.Padding = UDim.new(0, 5)
+
+local optionsList = {"Ninguno", "Auto Summer Coins", "Auto Special Keys", "Ambos"}
+for _, optName in ipairs(optionsList) do
+    local optBtn = Instance.new("TextButton")
+    optBtn.Parent = autoItemsSidebar
+    optBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    optBtn.Size = UDim2.new(1, -10, 0, 25)
+    optBtn.Font = Enum.Font.Gotham
+    optBtn.Text = optName
+    optBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    optBtn.TextSize = 11
+    Instance.new("UICorner", optBtn).CornerRadius = UDim.new(0, 4)
+    
+    optBtn.MouseButton1Click:Connect(function()
+        selectedAutoItemMode = optName
+        autoItemsText.Text = "Modo Auto Items: " .. optName
+        autoItemsSidebar.Visible = false
+        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
+        autoItemsArrowBtn.Text = ">"
+    end)
+end
+
+autoItemsArrowBtn.MouseButton1Click:Connect(function()
+    local isOpen = autoItemsSidebar.Visible
+    if not isOpen then
+        autoItemsSidebar.Visible = true
+        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 115)
+        autoItemsArrowBtn.Text = "v"
+    else
+        autoItemsSidebar.Visible = false
+        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
+        autoItemsArrowBtn.Text = ">"
+    end
+end)
+
+----------------------------------------------------
+-- LÓGICA DE RECOLECCIÓN INTELIGENTE (COINS Y SPECIAL KEYS)
+----------------------------------------------------
 local collectedCoinsPositions = {}
-local coinDetectionConnection
-local isCollectingCoinsNow = false
+local collectedKeysPositions = {}
+local isCollectingItemsNow = false
 
-coinDetectionConnection = RunService.Heartbeat:Connect(function()
+-- Monitoreo y registro de Summer Coins en un radio de 100 studs
+RunService.Heartbeat:Connect(function()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
+    -- Detectar Summer Coins
     for _, obj in pairs(Workspace:GetDescendants()) do
         local nameLower = string.lower(obj.Name)
         if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
@@ -899,7 +947,7 @@ coinDetectionConnection = RunService.Heartbeat:Connect(function()
 
             if targetPart then
                 local pos = targetPart.Position
-                if (hrp.Position - pos).Magnitude <= 25 then
+                if (hrp.Position - pos).Magnitude <= 100 then
                     local alreadySaved = false
                     for _, savedPos in ipairs(collectedCoinsPositions) do
                         if (savedPos - pos).Magnitude < 5 then
@@ -914,67 +962,113 @@ coinDetectionConnection = RunService.Heartbeat:Connect(function()
             end
         end
     end
-end)
 
-autoCoinsToggle.MouseButton1Click:Connect(function()
-    autoCoinsEnabled = not autoCoinsEnabled
-    if autoCoinsEnabled then
-        autoCoinsToggle.Text = "Auto Summer Coins: ON"
-        autoCoinsToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        autoCoinsToggle.Text = "Auto Summer Coins: OFF"
-        autoCoinsToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        autoCoinsToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        isCollectingCoinsNow = false
-    end
-end)
+    -- Detectar Special Keys (buscando la carpeta SpecialKeys o elementos que contengan specialkey)
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local nameLower = string.lower(obj.Name)
+        if string.find(nameLower, "specialkey") or string.find(nameLower, "special_key") then
+            local targetPart = nil
+            if obj:IsA("BasePart") then
+                targetPart = obj
+            elseif obj:IsA("Model") and obj.PrimaryPart then
+                targetPart = obj.PrimaryPart
+            else
+                targetPart = obj:FindFirstChildOfClass("BasePart")
+            end
 
-local function processCollectedCoinsQueue()
-    if not autoCoinsEnabled or #collectedCoinsPositions == 0 then return end
-    isCollectingCoinsNow = true
-
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then 
-        isCollectingCoinsNow = false
-        return 
-    end
-
-    for i = #collectedCoinsPositions, 1, -1 do
-        if not autoCoinsEnabled then break end
-        local coinPos = collectedCoinsPositions[i]
-        
-        if hrp and coinPos then
-            hrp.CFrame = CFrame.new(coinPos + Vector3.new(0, 3, 0))
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.35)
-            
-            table.remove(collectedCoinsPositions, i)
+            if targetPart then
+                local pos = targetPart.Position
+                if (hrp.Position - pos).Magnitude <= 100 then
+                    local alreadySaved = false
+                    for _, savedPos in ipairs(collectedKeysPositions) do
+                        if (savedPos - pos).Magnitude < 5 then
+                            alreadySaved = true
+                            break
+                        end
+                    end
+                    if not alreadySaved then
+                        table.insert(collectedKeysPositions, pos)
+                    end
+                end
+            end
         end
     end
+end)
 
+local function getSpawnPosition()
     local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
     if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
         local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
         spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
     end
+    return spawnPos
+end
 
+local function processQueue(positionsList)
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local spawnPos = getSpawnPosition()
+
+    for i = #positionsList, 1, -1 do
+        if selectedAutoItemMode == "Ninguno" then break end
+        local itemPos = positionsList[i]
+        
+        if hrp and itemPos then
+            -- TP al spawn primero antes de ir al item
+            hrp.CFrame = CFrame.new(spawnPos)
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            task.wait(0.2)
+
+            -- Volar / TP hacia el item
+            hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            task.wait(0.35)
+            
+            table.remove(positionsList, i)
+        end
+    end
+
+    -- Regresar al spawn al terminar
     if hrp then
         hrp.CFrame = CFrame.new(spawnPos)
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
     end
-    
     task.wait(0.3)
-    isCollectingCoinsNow = false
 end
+
+-- Bucle principal gestor de Auto Items de forma pasiva / en esperas
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if selectedAutoItemMode ~= "Ninguno" and not isCollectingItemsNow then
+            -- Solo actúa si no hay recorrido activo o si el sistema está libre
+            -- (La verificación de recorrido activo se maneja coordinando con el reproductor)
+            local hasCoinsToCollect = (#collectedCoinsPositions > 0) and (selectedAutoItemMode == "Auto Summer Coins" or selectedAutoItemMode == "Ambos")
+            local hasKeysToCollect = (#collectedKeysPositions > 0) and (selectedAutoItemMode == "Auto Special Keys" or selectedAutoItemMode == "Ambos")
+
+            if (hasCoinsToCollect or hasKeysToCollect) and playbackStatus == "STOPPED" then
+                isCollectingItemsNow = true
+                if hasCoinsToCollect then
+                    processQueue(collectedCoinsPositions)
+                end
+                if hasKeysToCollect then
+                    processQueue(collectedKeysPositions)
+                end
+                isCollectingItemsNow = false
+            end
+        end
+    end
+end)
 
 ----------------------------------------------------
 -- REPRODUCTOR DE RECORRIDOS (WINS)
 ----------------------------------------------------
-local playbackStatus = "STOPPED"
+playbackStatus = "STOPPED"
 local autoNoclipConnection
 local customNoclipActive = true
 
@@ -1020,8 +1114,6 @@ local function executePlayback()
     if not currentSelectedRecording then return end
     local pathData = _G.RecordedPaths[currentSelectedRecording]
     if not pathData or #pathData == 0 then return end
-
-    collectedCoinsPositions = {}
 
     playbackStatus = "PLAYING"
     customNoclipActive = true
@@ -1116,11 +1208,23 @@ local function executePlayback()
                     hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                 end
 
+                -- 0.5 segundos despues de acabar el recorrido
                 task.wait(0.5)
                 
-                processCollectedCoinsQueue()
+                -- Si hay items pendientes y el modo auto está activo, pausamos el bucle de recorrido para recolectar
+                if selectedAutoItemMode ~= "Ninguno" then
+                    local hasCoins = (#collectedCoinsPositions > 0) and (selectedAutoItemMode == "Auto Summer Coins" or selectedAutoItemMode == "Ambos")
+                    local hasKeys = (#collectedKeysPositions > 0) and (selectedAutoItemMode == "Auto Special Keys" or selectedAutoItemMode == "Ambos")
+                    
+                    if hasCoins or hasKeys then
+                        isCollectingItemsNow = true
+                        if hasCoins then processQueue(collectedCoinsPositions) end
+                        if hasKeys then processQueue(collectedKeysPositions) end
+                        isCollectingItemsNow = false
+                    end
+                end
 
-                if playbackStatus == "PLAYING" then
+                if playbackStatus == "PLAYING" and loopEnabled then
                     bv = Instance.new("BodyVelocity")
                     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                     bv.Velocity = Vector3.new(0, 0, 0)
