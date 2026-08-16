@@ -13,6 +13,51 @@ if CoreGui:FindFirstChild("DeltaHubCustom") then
     CoreGui.DeltaHubCustom:Destroy()
 end
 
+----------------------------------------------------
+-- ANTI-DAÑO AUTOMÁTICO (Lava y NPCs con hitbox)
+----------------------------------------------------
+local function applyAntiDamage()
+    pcall(function()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            local nameLower = string.lower(obj.Name)
+            
+            -- Borrar cualquier cosa que contenga la palabra "lava"
+            if string.find(nameLower, "lava") then
+                obj:Destroy()
+            end
+        end
+        
+        -- Buscar carpeta o elementos NPC en Workspace
+        local npcFolder = Workspace:FindFirstChild("NPC") or Workspace:FindFirstChild("Npcs")
+        if npcFolder then
+            for _, npc in pairs(npcFolder:GetDescendants()) do
+                if string.lower(npc.Name) == "hitbox" then
+                    npc:Destroy()
+                end
+            end
+        end
+        
+        -- Búsqueda general por si la hitbox está suelta bajo algún NPC en Workspace
+        for _, obj in pairs(Workspace:GetChildren()) do
+            if string.lower(obj.Name):find("npc") then
+                local hitbox = obj:FindFirstChild("Hitbox", true)
+                if hitbox then
+                    hitbox:Destroy()
+                end
+            end
+        end
+    end)
+end
+
+-- Ejecutar Anti-Daño de forma automática al iniciar y mantenerlo vigilado
+applyAntiDamage()
+task.spawn(function()
+    while true do
+        task.wait(1)
+        applyAntiDamage()
+    end
+end)
+
 -- Creación de la Interfaz Principal (ScreenGui)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaHubCustom"
@@ -831,11 +876,10 @@ autoCoinsToggle.TextSize = 12
 Instance.new("UICorner", autoCoinsToggle).CornerRadius = UDim.new(0, 4)
 
 local autoCoinsEnabled = false
-local collectedCoinsPositions = {} -- Almacena las posiciones de las monedas detectadas
+local collectedCoinsPositions = {}
 local coinDetectionConnection
 local isCollectingCoinsNow = false
 
--- Detector pasivo: guarda monedas cercanas mientras juegas o corres el recorrido
 coinDetectionConnection = RunService.Heartbeat:Connect(function()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -886,7 +930,6 @@ autoCoinsToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Función interna para ir a farmear las monedas guardadas al terminar un recorrido
 local function processCollectedCoinsQueue()
     if not autoCoinsEnabled or #collectedCoinsPositions == 0 then return end
     isCollectingCoinsNow = true
@@ -898,7 +941,6 @@ local function processCollectedCoinsQueue()
         return 
     end
 
-    -- Ir recolectando una por una las monedas guardadas (se van borrando al ser visitadas)
     for i = #collectedCoinsPositions, 1, -1 do
         if not autoCoinsEnabled then break end
         local coinPos = collectedCoinsPositions[i]
@@ -909,12 +951,10 @@ local function processCollectedCoinsQueue()
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             task.wait(0.35)
             
-            -- Eliminar de la lista la moneda recolectada para que no se repita
             table.remove(collectedCoinsPositions, i)
         end
     end
 
-    -- Regresar al inicio del recorrido o spawn seguro
     local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
     if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
         local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
@@ -981,7 +1021,6 @@ local function executePlayback()
     local pathData = _G.RecordedPaths[currentSelectedRecording]
     if not pathData or #pathData == 0 then return end
 
-    -- Limpiar la tabla de monedas guardadas al iniciar un nuevo recorrido
     collectedCoinsPositions = {}
 
     playbackStatus = "PLAYING"
@@ -1079,7 +1118,6 @@ local function executePlayback()
 
                 task.wait(0.5)
                 
-                -- Al terminar el recorrido actual, ir a recolectar las Summer Coins guardadas
                 processCollectedCoinsQueue()
 
                 if playbackStatus == "PLAYING" then
