@@ -208,7 +208,7 @@ end)
 local speedEnabled = false
 local currentSpeed = 16
 local jumpEnabled = false
-local currentJump = 50 -- Valor base del cajón (equivalente adaptado a JumpHeight)
+local currentJump = 50
 local noClipEnabled = false
 local infiniteJumpEnabled = false
 local antiLagEnabled = false
@@ -312,7 +312,7 @@ jumpToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Salto Infinito (Infinite Jump usando JumpHeight)
+-- Salto Infinito
 local infJumpToggle = Instance.new("TextButton")
 infJumpToggle.Parent = ConfigPage
 infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -373,103 +373,45 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- ANTI-LAG EXTREMO Y BORRADO DE KEY CAPS ( > 50 )
+-- ANTI-LAG
 ----------------------------------------------------
 local antiLagToggle = Instance.new("TextButton")
 antiLagToggle.Parent = ConfigPage
 antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
 antiLagToggle.Size = UDim2.new(1, 0, 0, 30)
 antiLagToggle.Font = Enum.Font.GothamBold
-antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
+antiLagToggle.Text = "Anti-Lag: OFF"
 antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-antiLagToggle.TextSize = 11
+antiLagToggle.TextSize = 12
 Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
 
 local originalMaterials = {}
-local originalReflectance = {}
-local originalLighting = {
-    GlobalShadows = Lighting.GlobalShadows,
-    Brightness = Lighting.Brightness,
-    FogEnd = Lighting.FogEnd
-}
 
 antiLagToggle.MouseButton1Click:Connect(function()
     antiLagEnabled = not antiLagEnabled
     if antiLagEnabled then
-        antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: ON"
+        antiLagToggle.Text = "Anti-Lag: ON"
         antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
         
-        pcall(function()
-            Workspace.StreamingEnabled = false
-            Workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
-            settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
-        end)
-        
-        local keyCapsMatches = {}
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            local nameLower = string.lower(obj.Name)
-            if string.find(nameLower, "key") and string.find(nameLower, "cap") then
-                table.insert(keyCapsMatches, obj)
-            end
-        end
-
-        if #keyCapsMatches > 50 then
-            for _, obj in ipairs(keyCapsMatches) do
-                pcall(function()
-                    obj:Destroy()
-                end)
-            end
-        end
-
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj and obj.Parent and obj:IsA("BasePart") then
                 originalMaterials[obj] = obj.Material
-                originalReflectance[obj] = obj.Reflectance
                 obj.Material = Enum.Material.SmoothPlastic
-                obj.Reflectance = 0
-                obj.CastShadow = false
-            elseif obj and obj.Parent and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles")) then
-                obj.Enabled = false
             end
         end
-        
-        Lighting.GlobalShadows = false
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 100000
     else
-        antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
+        antiLagToggle.Text = "Anti-Lag: OFF"
         antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        
-        pcall(function()
-            Workspace.StreamingEnabled = true
-        end)
         
         for obj, mat in pairs(originalMaterials) do
             if obj and obj.Parent then
                 obj.Material = mat
-                obj.CastShadow = true
             end
         end
-        for obj, ref in pairs(originalReflectance) do
-            if obj and obj.Parent then
-                obj.Reflectance = ref
-            end
-        end
-        
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj and obj.Parent and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles")) then
-                obj.Enabled = true
-            end
-        end
-        
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.Brightness = originalLighting.Brightness
-        Lighting.FogEnd = originalLighting.FogEnd
         
         originalMaterials = {}
-        originalReflectance = {}
     end
 end)
 
