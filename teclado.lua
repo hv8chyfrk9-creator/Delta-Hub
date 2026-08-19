@@ -400,16 +400,8 @@ antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 antiLagToggle.TextSize = 11
 Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
 
--- Tablas de restauración exacta (Puntos 3, 4 y 5)
+-- Tabla de respaldo exclusiva para restauración de materiales
 local originalMaterials = {}
-local originalReflectance = {}
-local originalCastShadows = {}
-local originalVisualsEnabled = {}
-local originalLighting = {
-    GlobalShadows = Lighting.GlobalShadows,
-    Brightness = Lighting.Brightness,
-    FogEnd = Lighting.FogEnd
-}
 
 antiLagToggle.MouseButton1Click:Connect(function()
     antiLagEnabled = not antiLagEnabled
@@ -418,93 +410,35 @@ antiLagToggle.MouseButton1Click:Connect(function()
         antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
         
-        pcall(function()
-            Workspace.StreamingEnabled = false
-            Workspace.LevelOfDetail = Enum.ModelLevelOfDetail.Disabled
-            settings():GetService("RenderSettings").MeshPartDetailLevel = Enum.MeshPartDetailLevel.Level04
-        end)
-        
-        pcall(function()
-            local floatFolder = Workspace:FindFirstChild("FloatFolder")
-            if floatFolder then
-                floatFolder:Destroy()
-            end
-        end)
-        
-        -- PROTECCIÓN DE SPECIAL KEYS (Punto 3): Evitamos destruir elementos críticos del juego.
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj and obj.Parent then
-                local nameLower = string.lower(obj.Name)
-                local isSpecialKeyOrCoin = string.find(nameLower, "key") or string.find(nameLower, "coin") or string.find(nameLower, "cap")
-                local isInSpecialKeysFolder = false
-                
-                local p = obj.Parent
-                while p and p ~= Workspace do
-                    if string.lower(p.Name) == "specialkeys" then
-                        isInSpecialKeysFolder = true
-                        break
-                    end
-                    p = p.Parent
-                end
-
-                if not isSpecialKeyOrCoin and not isInSpecialKeysFolder then
+        -- Ejecución única fuera del callback principal para procesamiento masivo
+        task.spawn(function()
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                -- Detección y eliminación única: estricta con 'Keycap' (K mayúscula)
+                if obj.Name and string.find(obj.Name, "Keycap", 1, true) then
+                    obj:Destroy()
+                else
                     if obj:IsA("BasePart") then
-                        originalMaterials[obj] = obj.Material
-                        originalReflectance[obj] = obj.Reflectance
-                        originalCastShadows[obj] = obj.CastShadow
-                        
+                        if not originalMaterials[obj] then
+                            originalMaterials[obj] = obj.Material
+                        end
                         obj.Material = Enum.Material.SmoothPlastic
-                        obj.Reflectance = 0
-                        obj.CastShadow = false
-                    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
-                        originalVisualsEnabled[obj] = obj.Enabled
-                        obj.Enabled = false
                     end
                 end
             end
-        end
-        
-        Lighting.GlobalShadows = false
-        Lighting.Brightness = 2
-        Lighting.FogEnd = 100000
+        end)
     else
         antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
         antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         
-        pcall(function()
-            Workspace.StreamingEnabled = true
+        -- Restauración del estado original mediante el respaldo
+        task.spawn(function()
+            for obj, mat in pairs(originalMaterials) do
+                if obj and obj.Parent then
+                    obj.Material = mat
+                end
+            end
         end)
-        
-        for obj, mat in pairs(originalMaterials) do
-            if obj and obj.Parent then
-                obj.Material = mat
-            end
-        end
-        for obj, ref in pairs(originalReflectance) do
-            if obj and obj.Parent then
-                obj.Reflectance = ref
-            end
-        end
-        for obj, shadow in pairs(originalCastShadows) do
-            if obj and obj.Parent then
-                obj.CastShadow = shadow
-            end
-        end
-        for obj, en in pairs(originalVisualsEnabled) do
-            if obj and obj.Parent then
-                obj.Enabled = en
-            end
-        end
-        
-        Lighting.GlobalShadows = originalLighting.GlobalShadows
-        Lighting.Brightness = originalLighting.Brightness
-        Lighting.FogEnd = originalLighting.FogEnd
-        
-        originalMaterials = {}
-        originalReflectance = {}
-        originalCastShadows = {}
-        originalVisualsEnabled = {}
     end
 end)
 
