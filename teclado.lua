@@ -1,4 +1,4 @@
--- Servicios necesarios
+    -- Servicios necesarios
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -14,43 +14,34 @@ if CoreGui:FindFirstChild("DeltaHubCustom") then
 end
 
 ----------------------------------------------------
--- ANTI-DAÑO AUTOMÁTICO (Lava y NPCs con hitbox)
+-- 2. ANTI-DAÑO AUTOMÁTICO OPTIMIZADO (Punto 2)
 ----------------------------------------------------
-local function applyAntiDamage()
+local function cleanObject(obj)
     pcall(function()
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            local nameLower = string.lower(obj.Name)
-            if string.find(nameLower, "lava") then
+        local nameLower = string.lower(obj.Name)
+        if string.find(nameLower, "lava") then
+            obj:Destroy()
+            return
+        end
+        if nameLower == "hitbox" then
+            local parent = obj.Parent
+            if parent and string.lower(parent.Name):find("npc") then
                 obj:Destroy()
-            end
-        end
-        
-        local npcFolder = Workspace:FindFirstChild("NPC") or Workspace:FindFirstChild("Npcs")
-        if npcFolder then
-            for _, npc in pairs(npcFolder:GetDescendants()) do
-                if string.lower(npc.Name) == "hitbox" then
-                    npc:Destroy()
-                end
-            end
-        end
-        
-        for _, obj in pairs(Workspace:GetChildren()) do
-            if string.lower(obj.Name):find("npc") then
-                local hitbox = obj:FindFirstChild("Hitbox", true)
-                if hitbox then
-                    hitbox:Destroy()
-                end
             end
         end
     end)
 end
 
-applyAntiDamage()
-task.spawn(function()
-    while true do
-        task.wait(1)
-        applyAntiDamage()
+-- Limpieza inicial única
+pcall(function()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        cleanObject(obj)
     end
+end)
+
+-- Conexión dinámica en lugar de bucle while true pesado
+Workspace.DescendantAdded:Connect(function(obj)
+    cleanObject(obj)
 end)
 
 -- Creación de la Interfaz Principal (ScreenGui)
@@ -409,8 +400,11 @@ antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 antiLagToggle.TextSize = 11
 Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
 
+-- Tablas de restauración exacta (Puntos 3, 4 y 5)
 local originalMaterials = {}
 local originalReflectance = {}
+local originalCastShadows = {}
+local originalVisualsEnabled = {}
 local originalLighting = {
     GlobalShadows = Lighting.GlobalShadows,
     Brightness = Lighting.Brightness,
@@ -437,31 +431,38 @@ antiLagToggle.MouseButton1Click:Connect(function()
             end
         end)
         
-        local keyCapsMatches = {}
+        -- PROTECCIÓN DE SPECIAL KEYS (Punto 3): Evitamos destruir elementos críticos del juego.
+        -- Si requerimos limpiar basura visual sin tocar SpecialKeys:
         for _, obj in pairs(Workspace:GetDescendants()) do
-            local nameLower = string.lower(obj.Name)
-            if string.find(nameLower, "key") and string.find(nameLower, "cap") then
-                table.insert(keyCapsMatches, obj)
-            end
-        end
+            if obj and obj.Parent then
+                local nameLower = string.lower(obj.Name)
+                local isSpecialKeyOrCoin = string.find(nameLower, "key") or string.find(nameLower, "coin") or string.find(nameLower, "cap")
+                local isInSpecialKeysFolder = false
+                
+                -- Verificamos si está dentro de una carpeta SpecialKeys
+                local p = obj.Parent
+                while p and p ~= Workspace do
+                    if string.lower(p.Name) == "specialkeys" then
+                        isInSpecialKeysFolder = true
+                        break
+                    end
+                    p = p.Parent
+                end
 
-        if #keyCapsMatches > 50 then
-            for _, obj in ipairs(keyCapsMatches) do
-                pcall(function()
-                    obj:Destroy()
-                end)
-            end
-        end
-
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj and obj.Parent and obj:IsA("BasePart") then
-                originalMaterials[obj] = obj.Material
-                originalReflectance[obj] = obj.Reflectance
-                obj.Material = Enum.Material.SmoothPlastic
-                obj.Reflectance = 0
-                obj.CastShadow = false
-            elseif obj and obj.Parent and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles")) then
-                obj.Enabled = false
+                if not isSpecialKeyOrCoin and not isInSpecialKeysFolder then
+                    if obj:IsA("BasePart") then
+                        originalMaterials[obj] = obj.Material
+                        originalReflectance[obj] = obj.Reflectance
+                        originalCastShadows[obj] = obj.CastShadow
+                        
+                        obj.Material = Enum.Material.SmoothPlastic
+                        obj.Reflectance = 0
+                        obj.CastShadow = false
+                    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceAppearance") then
+                        originalVisualsEnabled[obj] = obj.Enabled
+                        obj.Enabled = false
+                    end
+                end
             end
         end
         
@@ -477,10 +478,10 @@ antiLagToggle.MouseButton1Click:Connect(function()
             Workspace.StreamingEnabled = true
         end)
         
+        -- Restauración exacta y fiel de propiedades (Puntos 4 y 5)
         for obj, mat in pairs(originalMaterials) do
             if obj and obj.Parent then
                 obj.Material = mat
-                obj.CastShadow = true
             end
         end
         for obj, ref in pairs(originalReflectance) do
@@ -488,10 +489,14 @@ antiLagToggle.MouseButton1Click:Connect(function()
                 obj.Reflectance = ref
             end
         end
-        
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj and obj.Parent and (obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles")) then
-                obj.Enabled = true
+        for obj, shadow in pairs(originalCastShadows) do
+            if obj and obj.Parent then
+                obj.CastShadow = shadow
+            end
+        end
+        for obj, en in pairs(originalVisualsEnabled) do
+            if obj and obj.Parent then
+                obj.Enabled = en
             end
         end
         
@@ -499,8 +504,11 @@ antiLagToggle.MouseButton1Click:Connect(function()
         Lighting.Brightness = originalLighting.Brightness
         Lighting.FogEnd = originalLighting.FogEnd
         
+        -- Limpiar tablas
         originalMaterials = {}
         originalReflectance = {}
+        originalCastShadows = {}
+        originalVisualsEnabled = {}
     end
 end)
 
@@ -885,10 +893,9 @@ UIListAutoItems.Parent = autoItemsSidebar
 UIListAutoItems.SortOrder = Enum.SortOrder.LayoutOrder
 UIListAutoItems.Padding = UDim.new(0, 5)
 
--- Botón 1: Auto Summer Coins
 local btnCoins = Instance.new("TextButton")
 btnCoins.Parent = autoItemsSidebar
-btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 btnCoins.Size = UDim2.new(1, -10, 0, 25)
 btnCoins.Font = Enum.Font.Gotham
 btnCoins.Text = "Auto Summer Coins"
@@ -896,10 +903,9 @@ btnCoins.TextColor3 = Color3.fromRGB(255, 255, 255)
 btnCoins.TextSize = 11
 Instance.new("UICorner", btnCoins).CornerRadius = UDim.new(0, 4)
 
--- Botón 2: Auto Special Keys
 local btnKeys = Instance.new("TextButton")
 btnKeys.Parent = autoItemsSidebar
-btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
 btnKeys.Size = UDim2.new(1, -10, 0, 25)
 btnKeys.Font = Enum.Font.Gotham
 btnKeys.Text = "Auto Special Keys"
@@ -910,18 +916,18 @@ Instance.new("UICorner", btnKeys).CornerRadius = UDim.new(0, 4)
 btnCoins.MouseButton1Click:Connect(function()
     autoCoinsSelected = not autoCoinsSelected
     if autoCoinsSelected then
-        btnCoins.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Gris muy oscuro / casi negro al seleccionar
+        btnCoins.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     else
-        btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+        btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     end
 end)
 
 btnKeys.MouseButton1Click:Connect(function()
     autoKeysSelected = not autoKeysSelected
     if autoKeysSelected then
-        btnKeys.BackgroundColor3 = Color3.fromRGB(20, 20, 25) -- Gris muy oscuro / casi negro al seleccionar
+        btnKeys.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     else
-        btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55) -- Gris normal
+        btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     end
 end)
 
@@ -938,7 +944,6 @@ autoItemsArrowBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Botón Global de Estado (Auto: ON / OFF) justo debajo de la sidebar
 local autoGlobalToggle = Instance.new("TextButton")
 autoGlobalToggle.Parent = GamePage
 autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -964,74 +969,85 @@ autoGlobalToggle.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- LÓGICA DE RECOLECCIÓN INTELIGENTE (COINS Y CARPETA SPECIALKEYS)
+-- 1. LÓGICA DE RECOLECCIÓN OPTIMIZADA (Punto 1)
 ----------------------------------------------------
 local collectedCoinsPositions = {}
 local collectedKeysPositions = {}
 local isCollectingItemsNow = false
 
--- Monitoreo y registro de Summer Coins y elementos dentro de carpetas SpecialKeys en el Workspace
-RunService.Heartbeat:Connect(function()
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+-- Bucle de búsqueda eficiente desacoplado de Heartbeat con task.wait(2) y condición global
+task.spawn(function()
+    while true do
+        task.wait(2)
+        -- Si Auto Global está apagado, nos saltamos todo el procesamiento pesado de Workspace
+        if autoGlobalEnabled then
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            if hrp then
+                -- Detectar Summer Coins (solo si está seleccionado)
+                if autoCoinsSelected then
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        local nameLower = string.lower(obj.Name)
+                        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
+                            local targetPart = nil
+                            if obj:IsA("BasePart") then
+                                targetPart = obj
+                            elseif obj:IsA("Model") and obj.PrimaryPart then
+                                targetPart = obj.PrimaryPart
+                            else
+                                targetPart = obj:FindFirstChildOfClass("BasePart")
+                            end
 
-    -- Detectar Summer Coins
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        local nameLower = string.lower(obj.Name)
-        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
-            local targetPart = nil
-            if obj:IsA("BasePart") then
-                targetPart = obj
-            elseif obj:IsA("Model") and obj.PrimaryPart then
-                targetPart = obj.PrimaryPart
-            else
-                targetPart = obj:FindFirstChildOfClass("BasePart")
-            end
-
-            if targetPart then
-                local pos = targetPart.Position
-                if (hrp.Position - pos).Magnitude <= 100 then
-                    local alreadySaved = false
-                    for _, savedPos in ipairs(collectedCoinsPositions) do
-                        if (savedPos - pos).Magnitude < 5 then
-                            alreadySaved = true
-                            break
-                        end
-                    end
-                    if not alreadySaved then
-                        table.insert(collectedCoinsPositions, pos)
-                    end
-                end
-            end
-        end
-    end
-
-    -- Detectar elementos dentro de cualquier carpeta u objeto llamado "SpecialKeys" (búsqueda estricta por nombre)
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
-            for _, item in pairs(obj:GetDescendants()) do
-                local targetPart = nil
-                if item:IsA("BasePart") then
-                    targetPart = item
-                elseif item:IsA("Model") and item.PrimaryPart then
-                    targetPart = item.PrimaryPart
-                else
-                    targetPart = item:FindFirstChildOfClass("BasePart")
-                end
-
-                if targetPart then
-                    local pos = targetPart.Position
-                    if (hrp.Position - pos).Magnitude <= 150 then
-                        local alreadySaved = false
-                        for _, savedPos in ipairs(collectedKeysPositions) do
-                            if (savedPos - pos).Magnitude < 5 then
-                                alreadySaved = true
-                                break
+                            if targetPart then
+                                local pos = targetPart.Position
+                                if (hrp.Position - pos).Magnitude <= 100 then
+                                    local alreadySaved = false
+                                    for _, savedPos in ipairs(collectedCoinsPositions) do
+                                        if (savedPos - pos).Magnitude < 5 then
+                                            alreadySaved = true
+                                            break
+                                        end
+                                    end
+                                    if not alreadySaved then
+                                        table.insert(collectedCoinsPositions, pos)
+                                    end
+                                end
                             end
                         end
-                        if not alreadySaved then
-                            table.insert(collectedKeysPositions, pos)
+                    end
+                end
+
+                -- Detectar SpecialKeys (solo si está seleccionado)
+                if autoKeysSelected then
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
+                            for _, item in pairs(obj:GetDescendants()) do
+                                local targetPart = nil
+                                if item:IsA("BasePart") then
+                                    targetPart = item
+                                elseif item:IsA("Model") and item.PrimaryPart then
+                                    targetPart = item.PrimaryPart
+                                else
+                                    targetPart = item:FindFirstChildOfClass("BasePart")
+                                end
+
+                                if targetPart then
+                                    local pos = targetPart.Position
+                                    if (hrp.Position - pos).Magnitude <= 150 then
+                                        local alreadySaved = false
+                                        for _, savedPos in ipairs(collectedKeysPositions) do
+                                            if (savedPos - pos).Magnitude < 5 then
+                                                alreadySaved = true
+                                                break
+                                            end
+                                        end
+                                        if not alreadySaved then
+                                            table.insert(collectedKeysPositions, pos)
+                                        end
+                                    end
+                                end
+                            end
                         end
                     end
                 end
@@ -1061,13 +1077,11 @@ local function processQueue(positionsList)
         local itemPos = positionsList[i]
         
         if hrp and itemPos then
-            -- TP al spawn primero antes de ir al item
             hrp.CFrame = CFrame.new(spawnPos)
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             task.wait(0.2)
 
-            -- Volar / TP hacia el item
             hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
@@ -1077,7 +1091,6 @@ local function processQueue(positionsList)
         end
     end
 
-    -- Regresar al spawn al terminar
     if hrp then
         hrp.CFrame = CFrame.new(spawnPos)
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -1086,7 +1099,6 @@ local function processQueue(positionsList)
     task.wait(0.3)
 end
 
--- Bucle principal gestor de Auto Items de forma pasiva / en esperas
 task.spawn(function()
     while true do
         task.wait(1)
@@ -1251,10 +1263,8 @@ local function executePlayback()
                     hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
                 end
 
-                -- 0.5 segundos despues de acabar el recorrido
                 task.wait(0.5)
                 
-                -- Si hay items pendientes y el modo auto está activo, pausamos el bucle de recorrido para recolectar
                 if autoGlobalEnabled then
                     local hasCoins = (#collectedCoinsPositions > 0) and autoCoinsSelected
                     local hasKeys = (#collectedKeysPositions > 0) and autoKeysSelected
