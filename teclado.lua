@@ -1,4 +1,4 @@
-    -- Servicios necesarios
+-- Servicios necesarios
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -432,14 +432,12 @@ antiLagToggle.MouseButton1Click:Connect(function()
         end)
         
         -- PROTECCIÓN DE SPECIAL KEYS (Punto 3): Evitamos destruir elementos críticos del juego.
-        -- Si requerimos limpiar basura visual sin tocar SpecialKeys:
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj and obj.Parent then
                 local nameLower = string.lower(obj.Name)
                 local isSpecialKeyOrCoin = string.find(nameLower, "key") or string.find(nameLower, "coin") or string.find(nameLower, "cap")
                 local isInSpecialKeysFolder = false
                 
-                -- Verificamos si está dentro de una carpeta SpecialKeys
                 local p = obj.Parent
                 while p and p ~= Workspace do
                     if string.lower(p.Name) == "specialkeys" then
@@ -478,7 +476,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
             Workspace.StreamingEnabled = true
         end)
         
-        -- Restauración exacta y fiel de propiedades (Puntos 4 y 5)
         for obj, mat in pairs(originalMaterials) do
             if obj and obj.Parent then
                 obj.Material = mat
@@ -504,7 +501,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
         Lighting.Brightness = originalLighting.Brightness
         Lighting.FogEnd = originalLighting.FogEnd
         
-        -- Limpiar tablas
         originalMaterials = {}
         originalReflectance = {}
         originalCastShadows = {}
@@ -975,17 +971,14 @@ local collectedCoinsPositions = {}
 local collectedKeysPositions = {}
 local isCollectingItemsNow = false
 
--- Bucle de búsqueda eficiente desacoplado de Heartbeat con task.wait(2) y condición global
 task.spawn(function()
     while true do
         task.wait(2)
-        -- Si Auto Global está apagado, nos saltamos todo el procesamiento pesado de Workspace
         if autoGlobalEnabled then
             local char = player.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             
             if hrp then
-                -- Detectar Summer Coins (solo si está seleccionado)
                 if autoCoinsSelected then
                     for _, obj in pairs(Workspace:GetDescendants()) do
                         local nameLower = string.lower(obj.Name)
@@ -1018,7 +1011,6 @@ task.spawn(function()
                     end
                 end
 
-                -- Detectar SpecialKeys (solo si está seleccionado)
                 if autoKeysSelected then
                     for _, obj in pairs(Workspace:GetDescendants()) do
                         if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
