@@ -8,10 +8,32 @@ local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 
--- Limpiar interfaz anterior si existe
-if CoreGui:FindFirstChild("DeltaHubCustom") then
-    CoreGui.DeltaHubCustom:Destroy()
+-- Definir contenedor seguro para la interfaz (CoreGui con respaldo en PlayerGui)
+local guiParent
+pcall(function()
+    if syn and syn.protect_gui then
+        local testGui = Instance.new("ScreenGui")
+        syn.protect_gui(testGui)
+        testGui.Parent = CoreGui
+        guiParent = CoreGui
+    else
+        guiParent = CoreGui
+    end
+end)
+
+if not guiParent then
+    guiParent = player:WaitForChild("PlayerGui")
 end
+
+-- Limpiar interfaz anterior si existe en ambos posibles contenedores
+pcall(function()
+    if CoreGui:FindFirstChild("DeltaHubCustom") then
+        CoreGui.DeltaHubCustom:Destroy()
+    end
+    if player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("DeltaHubCustom") then
+        player.PlayerGui.DeltaHubCustom:Destroy()
+    end
+end)
 
 ----------------------------------------------------
 -- 2. ANTI-DAÑO AUTOMÁTICO OPTIMIZADO (Punto 2)
@@ -47,8 +69,18 @@ end)
 -- Creación de la Interfaz Principal (ScreenGui)
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaHubCustom"
-ScreenGui.Parent = CoreGui
+ScreenGui.Enabled = true
+ScreenGui.DisplayOrder = 999999
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+
+pcall(function()
+    if syn and syn.protect_gui then
+        syn.protect_gui(ScreenGui)
+    end
+end)
+
+ScreenGui.Parent = guiParent
 
 local MaximizeBtn = Instance.new("TextButton")
 MaximizeBtn.Name = "MaximizeBtn"
@@ -72,6 +104,7 @@ MainFrame.Position = UDim2.new(0.5, -240, 0.5, -175)
 MainFrame.Size = UDim2.new(0, 480, 0, 350)
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = true
 
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
@@ -919,7 +952,7 @@ end)
 ----------------------------------------------------
 -- REPRODUCTOR DE RECORRIDOS (WINS) - GLOBAL STATE
 ----------------------------------------------------
-playbackStatus = "STOPPED"
+local playbackStatus = "STOPPED"
 local autoNoclipConnection
 local customNoclipActive = true
 
