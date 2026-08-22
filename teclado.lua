@@ -227,8 +227,13 @@ end)
 ----------------------------------------------------
 local speedEnabled = false
 local currentSpeed = 16
+local originalWalkSpeed = nil
+
 local jumpEnabled = false
 local currentJump = 50
+local originalUseJumpPower = nil
+local originalJumpPower = nil
+
 local noClipEnabled = false
 local infiniteJumpEnabled = false
 local antiLagEnabled = false
@@ -278,11 +283,19 @@ Instance.new("UICorner", speedToggle).CornerRadius = UDim.new(0, 4)
 
 speedToggle.MouseButton1Click:Connect(function()
     speedEnabled = not speedEnabled
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if speedEnabled then
+        if hum then
+            originalWalkSpeed = hum.WalkSpeed
+        end
         speedToggle.Text = "Activar Velocidad: ON"
         speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
     else
+        if hum and originalWalkSpeed then
+            hum.WalkSpeed = originalWalkSpeed
+        end
         speedToggle.Text = "Activar Velocidad: OFF"
         speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -321,11 +334,21 @@ Instance.new("UICorner", jumpToggle).CornerRadius = UDim.new(0, 4)
 
 jumpToggle.MouseButton1Click:Connect(function()
     jumpEnabled = not jumpEnabled
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
     if jumpEnabled then
+        if hum then
+            originalUseJumpPower = hum.UseJumpPower
+            originalJumpPower = hum.JumpPower
+        end
         jumpToggle.Text = "Activar Salto: ON"
         jumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
     else
+        if hum then
+            if originalUseJumpPower ~= nil then hum.UseJumpPower = originalUseJumpPower end
+            if originalJumpPower ~= nil then hum.JumpPower = originalJumpPower end
+        end
         jumpToggle.Text = "Activar Salto: OFF"
         jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
@@ -400,7 +423,6 @@ antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 antiLagToggle.TextSize = 11
 Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
 
--- Tabla de respaldo exclusiva para restauración de materiales
 local originalMaterials = {}
 
 antiLagToggle.MouseButton1Click:Connect(function()
@@ -410,11 +432,10 @@ antiLagToggle.MouseButton1Click:Connect(function()
         antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
         
-        -- Ejecución única fuera del callback principal para procesamiento masivo
         task.spawn(function()
             for _, obj in pairs(Workspace:GetDescendants()) do
-                -- Detección y eliminación única: estricta con 'Keycap' (K mayúscula)
-                if obj.Name and string.find(obj.Name, "Keycap", 1, true) then
+                local nameLower = string.lower(obj.Name)
+                if nameLower == "floatfolder" or string.find(obj.Name, "Keycap", 1, true) then
                     obj:Destroy()
                 else
                     if obj:IsA("BasePart") then
@@ -431,7 +452,6 @@ antiLagToggle.MouseButton1Click:Connect(function()
         antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         
-        -- Restauración del estado original mediante el respaldo
         task.spawn(function()
             for obj, mat in pairs(originalMaterials) do
                 if obj and obj.Parent then
@@ -775,9 +795,6 @@ loopToggle.MouseButton1Click:Connect(function()
     end
 end)
 
-----------------------------------------------------
--- MULTI-SELECTOR SIDEBAR: AUTO SUMMER COINS / AUTO SPECIAL KEYS
-----------------------------------------------------
 local autoCoinsSelected = false
 local autoKeysSelected = false
 
@@ -898,78 +915,84 @@ autoGlobalToggle.MouseButton1Click:Connect(function()
     end
 end)
 
-----------------------------------------------------
--- 1. LÓGICA DE RECOLECCIÓN OPTIMIZADA (Punto 1)
-----------------------------------------------------
 local collectedCoinsPositions = {}
 local collectedKeysPositions = {}
 local isCollectingItemsNow = false
 
 task.spawn(function()
     while true do
-        task.wait(2)
-        if autoGlobalEnabled then
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if not autoGlobalEnabled then
+            task.wait(0.5)
+        else
+            local hasTargets = (#collectedCoinsPositions > 0 and autoCoinsSelected) or (#collectedKeysPositions > 0 and autoKeysSelected)
+            if hasTargets then
+                task.wait(0.2)
+            else
+                task.wait(10)
+            end
             
-            if hrp then
-                if autoCoinsSelected then
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        local nameLower = string.lower(obj.Name)
-                        if string.find(nameLower, "summer") and string.find(nameLower, "coin") then
-                            local targetPart = nil
-                            if obj:IsA("BasePart") then
-                                targetPart = obj
-                            elseif obj:IsA("Model") and obj.PrimaryPart then
-                                targetPart = obj.PrimaryPart
-                            else
-                                targetPart = obj:FindFirstChildOfClass("BasePart")
-                            end
-
-                            if targetPart then
-                                local pos = targetPart.Position
-                                if (hrp.Position - pos).Magnitude <= 100 then
-                                    local alreadySaved = false
-                                    for _, savedPos in ipairs(collectedCoinsPositions) do
-                                        if (savedPos - pos).Magnitude < 5 then
-                                            alreadySaved = true
-                                            break
-                                        end
-                                    end
-                                    if not alreadySaved then
-                                        table.insert(collectedCoinsPositions, pos)
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-
-                if autoKeysSelected then
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
-                            for _, item in pairs(obj:GetDescendants()) do
+            if autoGlobalEnabled then
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if hrp then
+                    if autoCoinsSelected then
+                        for _, obj in pairs(Workspace:GetDescendants()) do
+                            if obj.Name == "SummerCoin" then
                                 local targetPart = nil
-                                if item:IsA("BasePart") then
-                                    targetPart = item
-                                elseif item:IsA("Model") and item.PrimaryPart then
-                                    targetPart = item.PrimaryPart
+                                if obj:IsA("BasePart") then
+                                    targetPart = obj
+                                elseif obj:IsA("Model") and obj.PrimaryPart then
+                                    targetPart = obj.PrimaryPart
                                 else
-                                    targetPart = item:FindFirstChildOfClass("BasePart")
+                                    targetPart = obj:FindFirstChildOfClass("BasePart")
                                 end
 
                                 if targetPart then
                                     local pos = targetPart.Position
-                                    if (hrp.Position - pos).Magnitude <= 150 then
+                                    if (hrp.Position - pos).Magnitude <= 100 then
                                         local alreadySaved = false
-                                        for _, savedPos in ipairs(collectedKeysPositions) do
+                                        for _, savedPos in ipairs(collectedCoinsPositions) do
                                             if (savedPos - pos).Magnitude < 5 then
                                                 alreadySaved = true
                                                 break
                                             end
                                         end
                                         if not alreadySaved then
-                                            table.insert(collectedKeysPositions, pos)
+                                            table.insert(collectedCoinsPositions, pos)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+
+                    if autoKeysSelected then
+                        for _, obj in pairs(Workspace:GetDescendants()) do
+                            if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
+                                for _, item in pairs(obj:GetDescendants()) do
+                                    local targetPart = nil
+                                    if item:IsA("BasePart") then
+                                        targetPart = item
+                                    elseif item:IsA("Model") and item.PrimaryPart then
+                                        targetPart = item.PrimaryPart
+                                    else
+                                        targetPart = item:FindFirstChildOfClass("BasePart")
+                                    end
+
+                                    if targetPart then
+                                        local pos = targetPart.Position
+                                        if (hrp.Position - pos).Magnitude <= 150 then
+                                            local alreadySaved = false
+                                            for _, savedPos in ipairs(collectedKeysPositions) do
+                                                if (savedPos - pos).Magnitude < 5 then
+                                                    alreadySaved = true
+                                                    break
+                                                end
+                                            end
+                                            if not alreadySaved then
+                                                table.insert(collectedKeysPositions, pos)
+                                            end
                                         end
                                     end
                                 end
@@ -1025,30 +1048,6 @@ local function processQueue(positionsList)
     task.wait(0.3)
 end
 
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if autoGlobalEnabled and not isCollectingItemsNow then
-            local hasCoinsToCollect = (#collectedCoinsPositions > 0) and autoCoinsSelected
-            local hasKeysToCollect = (#collectedKeysPositions > 0) and autoKeysSelected
-
-            if (hasCoinsToCollect or hasKeysToCollect) and playbackStatus == "STOPPED" then
-                isCollectingItemsNow = true
-                if hasCoinsToCollect then
-                    processQueue(collectedCoinsPositions)
-                end
-                if hasKeysToCollect then
-                    processQueue(collectedKeysPositions)
-                end
-                isCollectingItemsNow = false
-            end
-        end
-    end
-end)
-
-----------------------------------------------------
--- REPRODUCTOR DE RECORRIDOS (WINS)
-----------------------------------------------------
 playbackStatus = "STOPPED"
 local autoNoclipConnection
 local customNoclipActive = true
@@ -1093,6 +1092,8 @@ end
 
 local function executePlayback()
     if not currentSelectedRecording then return end
+    if playbackStatus == "PLAYING" or playbackStatus == "PAUSED" then return end
+    
     local pathData = _G.RecordedPaths[currentSelectedRecording]
     if not pathData or #pathData == 0 then return end
 
@@ -1113,7 +1114,7 @@ local function executePlayback()
     task.wait(0.05)
 
     autoNoclipConnection = RunService.Stepped:Connect(function()
-        if playbackStatus == "PLAYING" and char and customNoclipActive then
+        if (playbackStatus == "PLAYING" or playbackStatus == "PAUSED") and char and customNoclipActive then
             for _, part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CanCollide = false
@@ -1131,8 +1132,14 @@ local function executePlayback()
 
     task.spawn(function()
         local jitterCounter = 0
+        local currentIndex = 1
 
-        while playbackStatus == "PLAYING" do
+        while playbackStatus == "PLAYING" or playbackStatus == "PAUSED" do
+            if playbackStatus == "PAUSED" then
+                task.wait(0.1)
+                continue
+            end
+
             jitterCounter = jitterCounter + 1
             local speedVariation = 0
             
@@ -1147,12 +1154,12 @@ local function executePlayback()
             
             local activeSpeed = math.clamp(playbackSpeedValue + speedVariation, 1, playbackSpeedLimit)
 
-            local i = 1
-            while i <= #pathData and playbackStatus == "PLAYING" do
-                local point = pathData[i]
+            local reachedEndNormal = false
+            while currentIndex <= #pathData and playbackStatus == "PLAYING" do
+                local point = pathData[currentIndex]
                 local targetPos = (typeof(point) == "Vector3") and point or point.Position
                 
-                local isLastPoint = (i == #pathData)
+                local isLastPoint = (currentIndex == #pathData)
                 if isLastPoint then
                     targetPos = targetPos + Vector3.new(0, 10, 0)
                 end
@@ -1176,10 +1183,15 @@ local function executePlayback()
                         end
                     end
                 end
-                i = i + 1
+                
+                currentIndex = currentIndex + 1
             end
 
-            if playbackStatus == "PLAYING" then
+            if currentIndex > #pathData then
+                reachedEndNormal = true
+            end
+
+            if reachedEndNormal and playbackStatus == "PLAYING" then
                 if bv and bv.Parent then bv:Destroy() end
                 customNoclipActive = false
                 if hum then hum.PlatformStand = false end
@@ -1204,6 +1216,7 @@ local function executePlayback()
                 end
 
                 if playbackStatus == "PLAYING" and loopEnabled then
+                    currentIndex = 1
                     bv = Instance.new("BodyVelocity")
                     bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                     bv.Velocity = Vector3.new(0, 0, 0)
@@ -1235,9 +1248,55 @@ local function executePlayback()
             
             customNoclipActive = true
         end
-        stopPlaybackCleanup()
+        if playbackStatus ~= "PAUSED" then
+            stopPlaybackCleanup()
+        end
     end)
 end
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if autoGlobalEnabled and not isCollectingItemsNow then
+            local hasCoinsToCollect = (#collectedCoinsPositions > 0) and autoCoinsSelected
+            local hasKeysToCollect = (#collectedKeysPositions > 0) and autoKeysSelected
+
+            if hasCoinsToCollect or hasKeysToCollect then
+                if playbackStatus == "PLAYING" then
+                    if loopEnabled then
+                        playbackStatus = "PAUSED"
+                        local char = player.Character
+                        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                        if hrp and hrp:FindFirstChildOfClass("BodyVelocity") then
+                            hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
+                        end
+                        local hum = char and char:FindFirstChildOfClass("Humanoid")
+                        if hum then hum.PlatformStand = false end
+
+                        isCollectingItemsNow = true
+                        if hasCoinsToCollect then processQueue(collectedCoinsPositions) end
+                        if hasKeysToCollect then processQueue(collectedKeysPositions) end
+                        isCollectingItemsNow = false
+
+                        playbackStatus = "PLAYING"
+                        if hrp then
+                            local bv = Instance.new("BodyVelocity")
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                            bv.Parent = hrp
+                            if hum then hum.PlatformStand = true end
+                        end
+                    end
+                elseif playbackStatus == "STOPPED" then
+                    isCollectingItemsNow = true
+                    if hasCoinsToCollect then processQueue(collectedCoinsPositions) end
+                    if hasKeysToCollect then processQueue(collectedKeysPositions) end
+                    isCollectingItemsNow = false
+                end
+            end
+        end
+    end
+end)
 
 playBtn.MouseButton1Click:Connect(function()
     if playbackStatus == "STOPPED" then
