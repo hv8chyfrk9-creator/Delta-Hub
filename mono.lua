@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
@@ -499,14 +500,14 @@ chosenWorldLabel.TextSize = 12
 chosenWorldLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 local mundoCoordinates = {
-    ["Mundo 1"] = CFrame.new(-9459.66, 386.04, -254.67),
-    ["Mundo 2"] = CFrame.new(-3605.38, 151.34, -9378.49),
-    ["Mundo 3"] = CFrame.new(-8077.63, 278.54, 2740.95),
-    ["Mundo 4"] = CFrame.new(-7760.11, 17.50, 5740.95),
-    ["Mundo 5"] = CFrame.new(-1333.16, 22.54, 7561.95)
+    ["Mundo 1"] = {CFrame = CFrame.new(-9459.66, 386.04, -254.67), Name = "Mundo 1", Index = "1"},
+    ["Mundo 2"] = {CFrame = CFrame.new(-3605.38, 151.34, -9378.49), Name = "Mundo 2", Index = "2"},
+    ["Mundo 3"] = {CFrame = CFrame.new(-8077.63, 278.54, 2740.95), Name = "Mundo 3", Index = "3"},
+    ["Mundo 4"] = {CFrame = CFrame.new(-7760.11, 17.50, 5740.95), Name = "Mundo 4", Index = "4"},
+    ["Mundo 5"] = {CFrame = CFrame.new(-1333.16, 22.54, 7561.95), Name = "Mundo 5", Index = "5"}
 }
 
-local selectedCFrame = nil
+local selectedWorldData = nil
 
 local function updateWinsSidebarUI()
     for _, child in pairs(winsSidebar:GetChildren()) do
@@ -516,7 +517,7 @@ local function updateWinsSidebarUI()
     end
     
     local count = 0
-    for mundoName, _ in pairs(mundoCoordinates) do
+    for mundoName, data in pairs(mundoCoordinates) do
         count = count + 1
         local btn = Instance.new("TextButton")
         btn.Parent = winsSidebar
@@ -529,7 +530,7 @@ local function updateWinsSidebarUI()
         Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         
         btn.MouseButton1Click:Connect(function()
-            selectedCFrame = mundoCoordinates[mundoName]
+            selectedWorldData = data
             chosenWorldLabel.Text = "Mundo seleccionado: " .. mundoName
             winsSidebar.Visible = false
             winsSidebar.Size = UDim2.new(1, 0, 0, 0)
@@ -564,13 +565,113 @@ tpWinBtn.TextSize = 13
 Instance.new("UICorner", tpWinBtn).CornerRadius = UDim.new(0, 4)
 
 tpWinBtn.MouseButton1Click:Connect(function()
-    if not selectedCFrame then return end
+    if not selectedWorldData then return end
     
     local char = player.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
-        hrp.CFrame = selectedCFrame + Vector3.new(0, 5, 0)
+        hrp.CFrame = selectedWorldData.CFrame + Vector3.new(0, 5, 0)
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
         hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+    end
+end)
+
+-- Botón de TP Infinito (Intervalo fijo de 13 segundos)
+local loopTpEnabled = false
+local loopInterval = 13
+local loopTpBtn = Instance.new("TextButton")
+loopTpBtn.Parent = GamePage
+loopTpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+loopTpBtn.Size = UDim2.new(1, 0, 0, 40)
+loopTpBtn.Font = Enum.Font.GothamBold
+loopTpBtn.Text = "TP Infinito: OFF"
+loopTpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+loopTpBtn.TextSize = 13
+Instance.new("UICorner", loopTpBtn).CornerRadius = UDim.new(0, 4)
+
+loopTpBtn.MouseButton1Click:Connect(function()
+    if not selectedWorldData then
+        chosenWorldLabel.Text = "¡Selecciona un mundo primero!"
+        return
+    end
+    
+    loopTpEnabled = not loopTpEnabled
+    if loopTpEnabled then
+        loopTpBtn.Text = "TP Infinito: ON"
+        loopTpBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        loopTpBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+    else
+        loopTpBtn.Text = "TP Infinito: OFF"
+        loopTpBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        loopTpBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
+-- Tarea en segundo plano para el bucle de TP + Verificación de SpawnLocation y Tween
+task.spawn(function()
+    while true do
+        if loopTpEnabled and selectedWorldData then
+            local char = player.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                
+                -- 1. Teletransportar al punto base seleccionado
+                local baseCFrame = selectedWorldData.CFrame + Vector3.new(0, 5, 0)
+                hrp.CFrame = baseCFrame
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                
+                -- 2. Verificar colisión con SpawnLocation[Index] en un margen de 5 segundos
+                local targetSpawnName = "SpawnLocation" .. selectedWorldData.Index
+                local collided = false
+                local startTime = tick()
+                
+                local spawnPart = Workspace:FindFirstChild(targetSpawnName, true)
+                local touchConn
+                
+                if spawnPart and spawnPart:IsA("BasePart") then
+                    touchConn = spawnPart.Touched:Connect(function(hit)
+                        if hit:IsDescendantOf(char) then
+                            collided = true
+                        end
+                    end)
+                end
+                
+                -- Esperar hasta 5 segundos para ver si toca el spawn
+                while (tick() - startTime) < 5 and not collided and loopTpEnabled do
+                    if spawnPart and (hrp.Position - spawnPart.Position).Magnitude < 10 then
+                        collided = true
+                    end
+                    task.wait(0.1)
+                end
+                
+                if touchConn then touchConn:Disconnect() end
+                
+                -- 3. CONDICIÓN: Si NO tocó el spawn en 5 segundos, hacer tween a los lados y regresar al punto
+                if not collided and loopTpEnabled then
+                    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    
+                    -- Direcciones a los lados (Derecha, Izquierda, Adelante, Atrás) de 10 studs
+                    local offsets = {
+                        baseCFrame + Vector3.new(10, 0, 0),
+                        baseCFrame + Vector3.new(-10, 0, 0),
+                        baseCFrame + Vector3.new(0, 0, 10),
+                        baseCFrame + Vector3.new(0, 0, -10)
+                    }
+                    
+                    for _, sideCFrame in ipairs(offsets) do
+                        if not loopTpEnabled then break end
+                        local tweenToSide = TweenService:Create(hrp, tweenInfo, {CFrame = sideCFrame})
+                        tweenToSide:Play()
+                        tweenToSide.Completed:Wait()
+                        
+                        local tweenBack = TweenService:Create(hrp, tweenInfo, {CFrame = baseCFrame})
+                        tweenBack:Play()
+                        tweenBack.Completed:Wait()
+                    end
+                end
+            end
+        end
+        task.wait(loopInterval)
     end
 end)
