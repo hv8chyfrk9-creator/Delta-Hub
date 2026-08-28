@@ -1,4 +1,41 @@
 local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Archivo de configuración y visitas
+local configFileName = "DeltaHub_Data.json"
+
+local function saveConfig(data)
+    pcall(function()
+        writefile(configFileName, HttpService:JSONEncode(data))
+    end)
+end
+
+local function loadConfig()
+    local success, result = pcall(function()
+        if isfile and isfile(configFileName) then
+            return HttpService:JSONDecode(readfile(configFileName))
+        end
+    end)
+    if success and result then
+        -- Aumentamos el contador de visitas cada vez que se abre
+        result.visits = (result.visits or 0) + 1
+        saveConfig(result)
+        return result
+    end
+    
+    -- Si es la primera vez que se ejecuta
+    local initialData = { autoExecute = false, visits = 1 }
+    saveConfig(initialData)
+    return initialData
+end
+
+local config = loadConfig()
+
+-- IDs de los juegos
+local ID_TECLADO = 9584852943
+local ID_MONO = 10144280947
 
 -- Limpiar loader anterior si existe
 if CoreGui:FindFirstChild("DeltaHubLoader") then
@@ -41,16 +78,40 @@ TopBarFix.BorderSizePixel = 0
 TopBarFix.Position = UDim2.new(0, 0, 1, -5)
 TopBarFix.Size = UDim2.new(1, 0, 0, 5)
 
+-- Saludo dinámico según las veces que lo haya abierto
 local Title = Instance.new("TextLabel")
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
 Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Size = UDim2.new(0, 160, 1, 0)
 Title.Font = Enum.Font.GothamBold
-Title.Text = "Delta Hub | Selector de Juegos"
+
+if config.visits == 1 then
+    Title.Text = "Delta Hub | Selector"
+elseif config.visits == 2 then
+    Title.Text = "¡Hola de nuevo, " .. LocalPlayer.Name .. "!"
+elseif config.visits == 3 then
+    Title.Text = "¡Qué bueno verte otra vez!"
+elseif config.visits == 5 then
+    Title.Text = "¡Ya eres un usuario frecuente!"
+else
+    Title.Text = "Delta Hub | Visita #" .. config.visits
+end
+
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
+Title.TextSize = 12
 Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Botón de los 3 Puntos (...)
+local OptionsBtn = Instance.new("TextButton")
+OptionsBtn.Parent = TopBar
+OptionsBtn.BackgroundTransparency = 1
+OptionsBtn.Position = UDim2.new(1, -60, 0, 6)
+OptionsBtn.Size = UDim2.new(0, 24, 0, 24)
+OptionsBtn.Font = Enum.Font.GothamBold
+OptionsBtn.Text = "..."
+OptionsBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+OptionsBtn.TextSize = 16
 
 -- Botón Cerrar (X)
 local CloseBtn = Instance.new("TextButton")
@@ -68,7 +129,7 @@ CloseBtn.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Contenedor de Botones
+-- Contenedor de Botones (Menú de Selección de Juegos)
 local ButtonsFrame = Instance.new("Frame")
 ButtonsFrame.Parent = MainFrame
 ButtonsFrame.BackgroundTransparency = 1
@@ -104,7 +165,55 @@ BtnMono.TextColor3 = Color3.fromRGB(255, 255, 255)
 BtnMono.TextSize = 14
 Instance.new("UICorner", BtnMono).CornerRadius = UDim.new(0, 6)
 
--- Funciones de Carga
+-- Pantalla de Configuración
+local SettingsFrame = Instance.new("Frame")
+SettingsFrame.Parent = MainFrame
+SettingsFrame.BackgroundTransparency = 1
+SettingsFrame.Position = UDim2.new(0, 20, 0, 55)
+SettingsFrame.Size = UDim2.new(1, -40, 1, -75)
+SettingsFrame.Visible = false
+
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.Parent = SettingsFrame
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 10)
+SettingsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+SettingsLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+local AutoExecBtn = Instance.new("TextButton")
+AutoExecBtn.Parent = SettingsFrame
+AutoExecBtn.BackgroundColor3 = config.autoExecute and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(45, 45, 55)
+AutoExecBtn.Size = UDim2.new(1, 0, 0, 40)
+AutoExecBtn.Font = Enum.Font.GothamBold
+AutoExecBtn.Text = config.autoExecute and "Auto Execute: ON" or "Auto Execute: OFF"
+AutoExecBtn.TextColor3 = config.autoExecute and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+AutoExecBtn.TextSize = 13
+Instance.new("UICorner", AutoExecBtn).CornerRadius = UDim.new(0, 6)
+
+local BackBtn = Instance.new("TextButton")
+BackBtn.Parent = SettingsFrame
+BackBtn.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+BackBtn.Size = UDim2.new(1, 0, 0, 40)
+BackBtn.Font = Enum.Font.GothamBold
+BackBtn.Text = "Volver al Selector"
+BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BackBtn.TextSize = 13
+Instance.new("UICorner", BackBtn).CornerRadius = UDim.new(0, 6)
+
+-- Etiqueta de Estado para el Auto Execute
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 20, 0, 55)
+StatusLabel.Size = UDim2.new(1, -40, 1, -75)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.TextSize = 16
+StatusLabel.TextWrapped = true
+StatusLabel.Text = "Buscando juego..."
+StatusLabel.Visible = false
+
+-- Funciones de Carga Manual
 BtnTeclado.MouseButton1Click:Connect(function()
     BtnTeclado.Text = "Cargando..."
     BtnTeclado.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
@@ -122,3 +231,104 @@ BtnMono.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/mono.lua"))()
 end)
+
+-- Lógica de Intercambio de Pantallas (3 Puntos / Ajustes)
+local autoExecutePaused = false
+
+OptionsBtn.MouseButton1Click:Connect(function()
+    ButtonsFrame.Visible = false
+    SettingsFrame.Visible = true
+    Title.Text = "Delta Hub | Ajustes"
+    autoExecutePaused = true
+end)
+
+BackBtn.MouseButton1Click:Connect(function()
+    SettingsFrame.Visible = false
+    ButtonsFrame.Visible = true
+    -- Restaura el título personalizado al volver
+    if config.visits == 1 then
+        Title.Text = "Delta Hub | Selector"
+    else
+        Title.Text = "¡Hola de nuevo, " .. LocalPlayer.Name .. "!"
+    end
+    autoExecutePaused = false
+end)
+
+AutoExecBtn.MouseButton1Click:Connect(function()
+    config.autoExecute = not config.autoExecute
+    saveConfig(config)
+    
+    if config.autoExecute then
+        AutoExecBtn.Text = "Auto Execute: ON"
+        AutoExecBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        AutoExecBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+    else
+        AutoExecBtn.Text = "Auto Execute: OFF"
+        AutoExecBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        AutoExecBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        
+        StatusLabel.Visible = false
+        ButtonsFrame.Visible = true
+        SettingsFrame.Visible = false
+        if config.visits == 1 then
+            Title.Text = "Delta Hub | Selector"
+        else
+            Title.Text = "¡Hola de nuevo, " .. LocalPlayer.Name .. "!"
+        end
+    end
+end)
+
+-- Si el Auto Execute está activado
+if config.autoExecute then
+    ButtonsFrame.Visible = false
+    SettingsFrame.Visible = false
+    StatusLabel.Visible = true
+    
+    task.spawn(function()
+        local secondsElapsed = 0
+        
+        StatusLabel.Text = "Buscando juego..."
+        while secondsElapsed < 1 do
+            if not ScreenGui.Parent then return end
+            if not autoExecutePaused then secondsElapsed = secondsElapsed + 0.1 end
+            task.wait(0.1)
+        end
+        
+        StatusLabel.Text = "Juego encontrado"
+        secondsElapsed = 0
+        while secondsElapsed < 1 do
+            if not ScreenGui.Parent then return end
+            if not autoExecutePaused then secondsElapsed = secondsElapsed + 0.1 end
+            task.wait(0.1)
+        end
+        
+        StatusLabel.Text = "Cargando script..."
+        secondsElapsed = 0
+        while secondsElapsed < 2 do
+            if not ScreenGui.Parent then return end
+            if not autoExecutePaused then secondsElapsed = secondsElapsed + 0.1 end
+            task.wait(0.1)
+        end
+        
+        StatusLabel.Text = "Script cargado completamente"
+        secondsElapsed = 0
+        while secondsElapsed < 1 do
+            if not ScreenGui.Parent then return end
+            if not autoExecutePaused then secondsElapsed = secondsElapsed + 0.1 end
+            task.wait(0.1)
+        end
+        
+        if not config.autoExecute then return end
+        
+        local currentId = game.GameId
+        local placeId = game.PlaceId
+        
+        ScreenGui:Destroy()
+        
+        if currentId == ID_TECLADO or placeId == ID_TECLADO then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"))()
+        elseif currentId == ID_MONO or placeId == ID_MONO then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/mono.lua"))()
+        end
+    end)
+end
