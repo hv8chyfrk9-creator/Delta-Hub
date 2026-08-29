@@ -36,6 +36,7 @@ local config = loadConfig()
 -- IDs de los juegos
 local ID_TECLADO = 9584852943
 local ID_MONO = 10144280947
+local GALAXIA_2_PLACE_ID = 75012837977315
 
 -- Limpiar loader anterior si existe
 if CoreGui:FindFirstChild("DeltaHubLoader") then
@@ -220,7 +221,12 @@ BtnTeclado.MouseButton1Click:Connect(function()
     BtnTeclado.TextColor3 = Color3.fromRGB(0, 0, 0)
     task.wait(0.5)
     ScreenGui:Destroy()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"))()
+    
+    if game.PlaceId == GALAXIA_2_PLACE_ID then
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua2"))()
+    else
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"))()
+    end
 end)
 
 BtnMono.MouseButton1Click:Connect(function()
@@ -326,7 +332,11 @@ if config.autoExecute then
         ScreenGui:Destroy()
         
         if currentId == ID_TECLADO or placeId == ID_TECLADO then
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"))()
+            if placeId == GALAXIA_2_PLACE_ID then
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua2"))()
+            else
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"))()
+            end
         elseif currentId == ID_MONO or placeId == ID_MONO then
             loadstring(game:HttpGet("https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/mono.lua"))()
         end
