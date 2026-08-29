@@ -9,6 +9,34 @@ local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
 
+-- Eliminar objetos estilo "Crushers", "crusher", "Boulder" y "Guard" (sin importar mayúsculas/minúsculas) al ejecutar
+local function cleanMapElements()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj and obj.Parent then
+            local nameLower = obj.Name:lower()
+            if nameLower:find("crusher") or nameLower == "boulder" or nameLower:find("guard") then
+                pcall(function()
+                    obj:Destroy()
+                end)
+            end
+        end
+    end
+end
+
+cleanMapElements()
+
+-- También limpiar si aparecen nuevos elementos dinámicamente
+Workspace.DescendantAdded:Connect(function(obj)
+    if obj then
+        local nameLower = obj.Name:lower()
+        if nameLower:find("crusher") or nameLower == "boulder" or nameLower:find("guard") then
+            pcall(function()
+                obj:Destroy()
+            end)
+        end
+    end
+end)
+
 -- Limpiar interfaz anterior si existe
 if CoreGui:FindFirstChild("DeltaHubCustom") then
     CoreGui.DeltaHubCustom:Destroy()
