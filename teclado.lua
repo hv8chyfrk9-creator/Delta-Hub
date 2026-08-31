@@ -14,12 +14,12 @@ if CoreGui:FindFirstChild("DeltaHubCustom") then
 end
 
 ----------------------------------------------------
--- 2. ANTI-DAÑO AUTOMÁTICO OPTIMIZADO (Punto 2)
+-- 2. ANTI-DAÑO AUTOMÁTICO, LAVA Y MOVING WALLS
 ----------------------------------------------------
 local function cleanObject(obj)
     pcall(function()
         local nameLower = string.lower(obj.Name)
-        if string.find(nameLower, "lava") then
+        if string.find(nameLower, "lava") or string.find(nameLower, "movingwall") then
             obj:Destroy()
             return
         end
@@ -484,116 +484,104 @@ RunService.Stepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- GAMEPLAY & REPRODUCTOR DE WINS
+-- GAMEPLAY & REPRODUCTOR DE WINS (NUEVOS RECORRIDOS ACUMULATIVOS)
 ----------------------------------------------------
-_G.RecordedPaths = _G.RecordedPaths or {
-    ["Win-block-1"] = {
-        Vector3.new(-1455.18, -159.04, -999.85),
-        Vector3.new(-1452.75, -160.68, -864.21),
-        Vector3.new(-1431.03, -160.43, -859.13),
-        Vector3.new(-1430.00, -69.54, -539.32),
-        Vector3.new(-1453.00, -69.54, -516.92),
-        Vector3.new(-1480.72, -68.65, -516.64)
-    },
-    ["Win-block-2"] = {
-        Vector3.new(-1454.95, -159.04, -1000.49),
-        Vector3.new(-1455.35, -160.68, -863.53),
-        Vector3.new(-1431.57, -160.43, -857.99),
-        Vector3.new(-1429.59, -69.54, -538.64),
-        Vector3.new(-1452.39, -69.54, -514.24),
-        Vector3.new(-1452.81, -57.91, -391.94),
-        Vector3.new(-1454.66, -57.30, -18.80),
-        Vector3.new(-1479.18, -56.41, -15.81)
-    },
-    ["Win-block-3"] = {
-        Vector3.new(-1456.28, -159.04, -999.09),
-        Vector3.new(-1455.84, -160.68, -862.67),
-        Vector3.new(-1429.39, -160.43, -858.34),
-        Vector3.new(-1427.87, -69.54, -533.03),
-        Vector3.new(-1454.57, -69.54, -491.11),
-        Vector3.new(-1452.46, -58.13, -392.79),
-        Vector3.new(-1453.40, -57.30, -15.98),
-        Vector3.new(-1454.60, -57.30, 4.99),
-        Vector3.new(-1455.46, 274.37, 4.74),
-        Vector3.new(-1455.02, 256.95, 13.45),
-        Vector3.new(-1455.75, 223.52, 179.85),
-        Vector3.new(-1448.47, 223.77, 227.89),
-        Vector3.new(-1479.51, 215.60, 332.05)
-    },
-    ["Win-block-4"] = {
-        Vector3.new(-1455.07, -159.04, -999.51),
-        Vector3.new(-1454.60, -160.68, -862.43),
-        Vector3.new(-1429.65, -160.43, -861.47),
-        Vector3.new(-1428.23, -69.54, -534.50),
-        Vector3.new(-1453.44, -69.54, -490.71),
-        Vector3.new(-1453.89, -57.98, -392.20),
-        Vector3.new(-1452.69, -57.30, 5.25),
-        Vector3.new(-1457.56, 256.95, 13.62),
-        Vector3.new(-1453.49, 214.71, 332.51),
-        Vector3.new(-1453.41, 214.71, 627.32),
-        Vector3.new(-1453.43, 375.20, 627.74),
-        Vector3.new(-1406.99, 392.23, 720.46),
-        Vector3.new(-1406.99, 559.22, 720.46),
-        Vector3.new(-1405.46, 532.72, 758.44),
-        Vector3.new(-1410.59, 576.73, 808.45),
-        Vector3.new(-1314.53, 590.19, 1005.70),
-        Vector3.new(-1375.53, 591.62, 1236.85),
-        Vector3.new(-1402.83, 532.72, 1329.88),
-        Vector3.new(-1430.08, 533.61, 1329.89)
-    },
-    ["Win-block-5"] = {
-        Vector3.new(-1452.65, -159.04, -996.46),
-        Vector3.new(-1452.99, -160.68, -865.02),
-        Vector3.new(-1433.13, -160.43, -858.72),
-        Vector3.new(-1431.15, -69.54, -539.78),
-        Vector3.new(-1454.68, -69.54, -496.74),
-        Vector3.new(-1454.89, -58.65, -394.89),
-        Vector3.new(-1453.12, -57.30, 3.29),
-        Vector3.new(-1449.43, 257.62, 7.44),
-        Vector3.new(-1447.02, 256.95, 13.27),
-        Vector3.new(-1456.40, 223.35, 179.21),
-        Vector3.new(-1455.03, 214.71, 333.16),
-        Vector3.new(-1454.93, 214.67, 627.20),
-        Vector3.new(-1454.93, 374.54, 627.20),
-        Vector3.new(-1405.45, 373.74, 724.20),
-        Vector3.new(-1405.45, 548.60, 724.20),
-        Vector3.new(-1402.99, 532.72, 760.93),
-        Vector3.new(-1408.86, 532.72, 798.73),
-        Vector3.new(-1405.86, 543.58, 812.64),
-        Vector3.new(-1295.28, 543.58, 1039.75),
-        Vector3.new(-1402.41, 543.58, 1230.38),
-        Vector3.new(-1403.06, 532.72, 1329.03),
-        Vector3.new(-1430.21, 533.61, 1330.90)
-    },
-    ["Win-block-6"] = {
-        Vector3.new(-1455.11, -159.04, -999.51),
-        Vector3.new(-1456.32, -160.68, -861.32),
-        Vector3.new(-1432.18, -160.43, -858.86),
-        Vector3.new(-1429.89, -69.54, -534.43),
-        Vector3.new(-1455.58, -69.54, -491.34),
-        Vector3.new(-1454.55, -58.05, -392.49),
-        Vector3.new(-1452.54, -57.30, 3.35),
-        Vector3.new(-1454.01, 256.59, 3.56),
-        Vector3.new(-1455.28, 256.95, 12.89),
-        Vector3.new(-1451.72, 214.96, 284.90),
-        Vector3.new(-1452.50, 214.71, 329.67),
-        Vector3.new(-1454.62, 214.72, 627.69),
-        Vector3.new(-1454.62, 374.87, 627.69),
-        Vector3.new(-1406.85, 374.85, 724.68),
-        Vector3.new(-1406.85, 544.93, 724.68),
-        Vector3.new(-1404.91, 532.72, 759.85),
-        Vector3.new(-1404.93, 532.72, 795.47),
-        Vector3.new(-1404.33, 543.58, 811.87),
-        Vector3.new(-1295.36, 543.58, 1045.52),
-        Vector3.new(-1402.53, 543.58, 1231.56),
-        Vector3.new(-1402.50, 532.72, 1278.69),
-        Vector3.new(-1403.84, 532.72, 1423.62),
-        Vector3.new(-1440.64, 532.72, 1439.15),
-        Vector3.new(-1661.71, 508.72, 1446.75),
-        Vector3.new(-2006.55, 508.72, 1446.38),
-        Vector3.new(-2059.75, 442.72, 1485.68),
-        Vector3.new(-2062.52, 443.61, 1461.34)
-    }
+local mundoCoordinates = {
+    ["Check 1"] = {CFrame = CFrame.new(-1457.01, -159.04, -995.58), Name = "Check 1", Index = 1},
+    ["Check 2"] = {CFrame = CFrame.new(-1454.13, -160.68, -866.26), Name = "Check 2", Index = 2},
+    ["Check 3"] = {CFrame = CFrame.new(-1429.06, -161.35, -859.59), Name = "Check 3", Index = 3},
+    ["WinBlock32"] = {CFrame = CFrame.new(-1424.62, -69.54, -535.65), Name = "WinBlock32", Index = 4},
+    ["WinBlock33"] = {CFrame = CFrame.new(-1452.24, -57.30, -13.76), Name = "WinBlock33", Index = 5},
+    ["Check 6"] = {CFrame = CFrame.new(-1446.47, 214.96, 102.78), Name = "Check 6", Index = 6},
+    ["WinBlock34"] = {CFrame = CFrame.new(-1452.94, 214.71, 331.86), Name = "WinBlock34", Index = 7},
+    ["Check 8"] = {CFrame = CFrame.new(-1452.77, 214.71, 627.39), Name = "Check 8", Index = 8},
+    ["Check 9"] = {CFrame = CFrame.new(-1452.84, 375.07, 627.82), Name = "Check 9", Index = 9},
+    ["Check 10"] = {CFrame = CFrame.new(-1406.34, 373.75, 724.71), Name = "Check 10", Index = 10},
+    ["Check 11"] = {CFrame = CFrame.new(-1406.21, 542.43, 724.63), Name = "Check 11", Index = 11},
+    ["WinBlock35"] = {CFrame = CFrame.new(-1403.21, 532.72, 764.47), Name = "WinBlock35", Index = 12},
+    ["Check 13"] = {CFrame = CFrame.new(-1403.59, 572.57, 840.81), Name = "Check 13", Index = 13},
+    ["Check 14"] = {CFrame = CFrame.new(-1401.34, 568.12, 1279.96), Name = "Check 14", Index = 14},
+    ["Check 15"] = {CFrame = CFrame.new(-1404.94, 532.72, 1336.26), Name = "Check 15", Index = 15},
+    ["WinBlock36"] = {CFrame = CFrame.new(-1415.26, 532.72, 1328.72), Name = "WinBlock36", Index = 16},
+    ["Check 17"] = {CFrame = CFrame.new(-1418.55, 532.72, 1444.72), Name = "Check 17", Index = 17},
+    ["Check 18"] = {CFrame = CFrame.new(-1464.45, 508.72, 1445.54), Name = "Check 18", Index = 18},
+    ["Check 19"] = {CFrame = CFrame.new(-2060.08, 507.48, 1446.34), Name = "Check 19", Index = 19},
+    ["WinBlock37"] = {CFrame = CFrame.new(-2066.29, 442.72, 1483.72), Name = "WinBlock37", Index = 20},
+    ["Check 21"] = {CFrame = CFrame.new(-2170.62, 451.59, 1486.40), Name = "Check 21", Index = 21},
+    ["Check 22"] = {CFrame = CFrame.new(-2361.55, 447.72, 1483.10), Name = "Check 22", Index = 22},
+    ["Check 23"] = {CFrame = CFrame.new(-2549.23, 465.28, 1482.54), Name = "Check 23", Index = 23},
+    ["Check 24"] = {CFrame = CFrame.new(-2865.76, 499.08, 1486.15), Name = "Check 24", Index = 24},
+    ["Check 25"] = {CFrame = CFrame.new(-2895.08, 524.15, 1488.26), Name = "Check 25", Index = 25},
+    ["Check 26"] = {CFrame = CFrame.new(-2920.23, 520.90, 1482.62), Name = "Check 26", Index = 26},
+    ["Check 27"] = {CFrame = CFrame.new(-2971.24, 598.60, 1479.33), Name = "Check 27", Index = 27},
+    ["Check 28"] = {CFrame = CFrame.new(-3007.71, 598.27, 1486.84), Name = "Check 28", Index = 28},
+    ["Check 29"] = {CFrame = CFrame.new(-3051.79, 678.35, 1483.46), Name = "Check 29", Index = 29},
+    ["WinBlock38"] = {CFrame = CFrame.new(-3214.58, 672.23, 1485.70), Name = "WinBlock38", Index = 30},
+    ["Check 31"] = {CFrame = CFrame.new(-3242.50, 672.23, 1485.28), Name = "Check 31", Index = 31},
+    ["WinBlock39"] = {CFrame = CFrame.new(-3635.40, 616.57, 1487.51), Name = "WinBlock39", Index = 32},
+    ["DeleteMovingWalls"] = {CFrame = CFrame.new(-3678.52, 616.57, 1484.52), Name = "DeleteMovingWalls", Index = 33},
+    ["WinBlock40"] = {CFrame = CFrame.new(-4129.89, 616.57, 1485.00), Name = "WinBlock40", Index = 34},
+    ["Check 35"] = {CFrame = CFrame.new(-4179.17, 615.42, 1485.02), Name = "Check 35", Index = 35},
+    ["WinBlock41"] = {CFrame = CFrame.new(-4963.60, 616.58, 1484.45), Name = "WinBlock41", Index = 36},
+    ["Check 37"] = {CFrame = CFrame.new(-5075.15, 625.33, 1487.43), Name = "Check 37", Index = 37},
+    ["Check 38"] = {CFrame = CFrame.new(-5174.70, 676.08, 1478.71), Name = "Check 38", Index = 38},
+    ["Check 39"] = {CFrame = CFrame.new(-5254.81, 684.30, 1485.26), Name = "Check 39", Index = 39},
+    ["Check 40"] = {CFrame = CFrame.new(-5350.31, 685.81, 1498.25), Name = "Check 40", Index = 40},
+    ["Check 41"] = {CFrame = CFrame.new(-5351.64, 732.28, 1497.75), Name = "Check 41", Index = 41},
+    ["Check 42"] = {CFrame = CFrame.new(-5434.03, 743.12, 1490.36), Name = "Check 42", Index = 42},
+    ["Check 43"] = {CFrame = CFrame.new(-5529.95, 743.16, 1487.80), Name = "Check 43", Index = 43},
+    ["Check 44"] = {CFrame = CFrame.new(-5531.66, 802.47, 1487.38), Name = "Check 44", Index = 44},
+    ["Check 45"] = {CFrame = CFrame.new(-5618.35, 802.01, 1484.20), Name = "Check 45", Index = 45},
+    ["Check 46"] = {CFrame = CFrame.new(-5710.37, 801.54, 1485.99), Name = "Check 46", Index = 46},
+    ["Check 47"] = {CFrame = CFrame.new(-5711.84, 861.79, 1485.97), Name = "Check 47", Index = 47},
+    ["WinBlock42"] = {CFrame = CFrame.new(-5738.87, 851.59, 1485.31), Name = "WinBlock42", Index = 48},
+    ["Check 49"] = {CFrame = CFrame.new(-5763.28, 851.59, 1483.11), Name = "Check 49", Index = 49},
+    ["Check 50"] = {CFrame = CFrame.new(-5856.32, 850.32, 1480.37), Name = "Check 50", Index = 50},
+    ["Check 51"] = {CFrame = CFrame.new(-5969.47, 850.32, 1365.51), Name = "Check 51", Index = 51},
+    ["Check 52"] = {CFrame = CFrame.new(-6203.47, 850.32, 1600.17), Name = "Check 52", Index = 52},
+    ["Check 53"] = {CFrame = CFrame.new(-6424.06, 850.32, 1371.28), Name = "Check 53", Index = 53},
+    ["Check 54"] = {CFrame = CFrame.new(-6545.06, 850.32, 1483.27), Name = "Check 54", Index = 54},
+    ["WinBlock43"] = {CFrame = CFrame.new(-6656.58, 851.60, 1481.67), Name = "WinBlock43", Index = 55},
+    ["WinBlock44"] = {CFrame = CFrame.new(-9514.86, 851.60, 1485.95), Name = "WinBlock44", Index = 56},
+    ["Check 57"] = {CFrame = CFrame.new(-9621.40, 860.35, 1487.07), Name = "Check 57", Index = 57},
+    ["Check 58"] = {CFrame = CFrame.new(-9815.77, 860.41, 1483.23), Name = "Check 58", Index = 58},
+    ["Check 59"] = {CFrame = CFrame.new(-10209.31, 860.24, 1482.81), Name = "Check 59", Index = 59},
+    ["Check 60"] = {CFrame = CFrame.new(-10403.26, 860.58, 1482.43), Name = "Check 60", Index = 60},
+    ["Check 61"] = {CFrame = CFrame.new(-10708.00, 857.29, 1483.09), Name = "Check 61", Index = 61},
+    ["WinBlock45"] = {CFrame = CFrame.new(-10809.08, 851.60, 1483.35), Name = "WinBlock45", Index = 62},
+}
+
+-- Organizar puntos ordenados por Index para construcción acumulativa
+local orderedPoints = {}
+for _, data in pairs(mundoCoordinates) do
+    orderedPoints[data.Index] = data.CFrame.Position
+end
+
+local function getRangePositions(maxIndex)
+    local list = {}
+    for i = 1, maxIndex do
+        if orderedPoints[i] then
+            table.insert(list, orderedPoints[i])
+        end
+    end
+    return list
+end
+
+_G.RecordedPaths = {
+    ["WinBlock32"] = getRangePositions(4),
+    ["WinBlock33"] = getRangePositions(5),
+    ["WinBlock34"] = getRangePositions(7),
+    ["WinBlock35"] = getRangePositions(12),
+    ["WinBlock36"] = getRangePositions(16),
+    ["WinBlock37"] = getRangePositions(20),
+    ["WinBlock38"] = getRangePositions(30),
+    ["WinBlock39"] = getRangePositions(32),
+    ["WinBlock40"] = getRangePositions(34),
+    ["WinBlock41"] = getRangePositions(36),
+    ["WinBlock42"] = getRangePositions(48),
+    ["WinBlock43"] = getRangePositions(55),
+    ["WinBlock44"] = getRangePositions(56),
+    ["WinBlock45"] = getRangePositions(62),
 }
 
 local winsContainer = Instance.new("Frame")
@@ -650,6 +638,24 @@ chosenRecLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
 chosenRecLabel.TextSize = 12
 chosenRecLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+-- Orden fijo de los 14 recorridos exactos
+local sortedWinNames = {
+    "WinBlock32",
+    "WinBlock33",
+    "WinBlock34",
+    "WinBlock35",
+    "WinBlock36",
+    "WinBlock37",
+    "WinBlock38",
+    "WinBlock39",
+    "WinBlock40",
+    "WinBlock41",
+    "WinBlock42",
+    "WinBlock43",
+    "WinBlock44",
+    "WinBlock45"
+}
+
 local function updateWinsSidebarUI()
     for _, child in pairs(winsSidebar:GetChildren()) do
         if child:IsA("TextButton") then
@@ -657,28 +663,28 @@ local function updateWinsSidebarUI()
         end
     end
     
-    local count = 0
-    for recName, _ in pairs(_G.RecordedPaths) do
-        count = count + 1
-        local btn = Instance.new("TextButton")
-        btn.Parent = winsSidebar
-        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-        btn.Size = UDim2.new(1, -10, 0, 25)
-        btn.Font = Enum.Font.Gotham
-        btn.Text = recName
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 11
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-        
-        btn.MouseButton1Click:Connect(function()
-            currentSelectedRecording = recName
-            chosenRecLabel.Text = "recorrido escogido: " .. recName
-            winsSidebar.Visible = false
-            winsSidebar.Size = UDim2.new(1, 0, 0, 0)
-            winsArrowBtn.Text = ">"
-        end)
+    for _, recName in ipairs(sortedWinNames) do
+        if _G.RecordedPaths[recName] then
+            local btn = Instance.new("TextButton")
+            btn.Parent = winsSidebar
+            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            btn.Size = UDim2.new(1, -10, 0, 25)
+            btn.Font = Enum.Font.Gotham
+            btn.Text = recName
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.TextSize = 11
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            
+            btn.MouseButton1Click:Connect(function()
+                currentSelectedRecording = recName
+                chosenRecLabel.Text = "recorrido escogido: " .. recName
+                winsSidebar.Visible = false
+                winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+                winsArrowBtn.Text = ">"
+            end)
+        end
     end
-    winsSidebar.CanvasSize = UDim2.new(0, 0, 0, count * 30)
+    winsSidebar.CanvasSize = UDim2.new(0, 0, 0, #sortedWinNames * 30)
 end
 
 winsArrowBtn.MouseButton1Click:Connect(function()
@@ -1006,7 +1012,7 @@ task.spawn(function()
 end)
 
 local function getSpawnPosition()
-    local spawnPos = Vector3.new(-1455.18, -159.04, -999.85)
+    local spawnPos = Vector3.new(-1457.01, -159.04, -995.58)
     if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
         local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
         spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
@@ -1161,6 +1167,23 @@ local function executePlayback()
                 
                 local isLastPoint = (currentIndex == #pathData)
                 if isLastPoint then
+                    -- Buscar en el Workspace el objeto con el nombre del WinBlock seleccionado y hacer tween/teleport directo al CFrame exacto del objeto si existe
+                    pcall(function()
+                        local foundWinObj = Workspace:FindFirstChild(currentSelectedRecording, true)
+                        if foundWinObj then
+                            local targetPart = nil
+                            if foundWinObj:IsA("BasePart") then
+                                targetPart = foundWinObj
+                            elseif foundWinObj:IsA("Model") and foundWinObj.PrimaryPart then
+                                targetPart = foundWinObj.PrimaryPart
+                            else
+                                targetPart = foundWinObj:FindFirstChildOfClass("BasePart")
+                            end
+                            if targetPart then
+                                targetPos = targetPart.Position + Vector3.new(0, 3, 0)
+                            end
+                        end
+                    end)
                     targetPos = targetPos + Vector3.new(0, 10, 0)
                 end
                 
