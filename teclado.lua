@@ -4,6 +4,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
@@ -925,17 +926,13 @@ local collectedCoinsPositions = {}
 local collectedKeysPositions = {}
 local isCollectingItemsNow = false
 
+-- Hilo de escaneo principal cada 10 segundos según carpetas y nombres exactos
 task.spawn(function()
     while true do
         if not autoGlobalEnabled then
             task.wait(0.5)
         else
-            local hasTargets = (#collectedCoinsPositions > 0 and autoCoinsSelected) or (#collectedKeysPositions > 0 and autoKeysSelected)
-            if hasTargets then
-                task.wait(0.2)
-            else
-                task.wait(10)
-            end
+            task.wait(10)
             
             if autoGlobalEnabled then
                 local char = player.Character
@@ -944,7 +941,7 @@ task.spawn(function()
                 if hrp then
                     if autoCoinsSelected then
                         for _, obj in pairs(Workspace:GetDescendants()) do
-                            if obj.Name == "SummerCoin" then
+                            if obj.Name == "SummerCoins" then
                                 local targetPart = nil
                                 if obj:IsA("BasePart") then
                                     targetPart = obj
@@ -956,17 +953,15 @@ task.spawn(function()
 
                                 if targetPart then
                                     local pos = targetPart.Position
-                                    if (hrp.Position - pos).Magnitude <= 100 then
-                                        local alreadySaved = false
-                                        for _, savedPos in ipairs(collectedCoinsPositions) do
-                                            if (savedPos - pos).Magnitude < 5 then
-                                                alreadySaved = true
-                                                break
-                                            end
+                                    local alreadySaved = false
+                                    for _, savedPos in ipairs(collectedCoinsPositions) do
+                                        if (savedPos - pos).Magnitude < 5 then
+                                            alreadySaved = true
+                                            break
                                         end
-                                        if not alreadySaved then
-                                            table.insert(collectedCoinsPositions, pos)
-                                        end
+                                    end
+                                    if not alreadySaved then
+                                        table.insert(collectedCoinsPositions, pos)
                                     end
                                 end
                             end
@@ -974,9 +969,9 @@ task.spawn(function()
                     end
 
                     if autoKeysSelected then
-                        for _, obj in pairs(Workspace:GetDescendants()) do
-                            if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
-                                for _, item in pairs(obj:GetDescendants()) do
+                        for _, folder in pairs(Workspace:GetDescendants()) do
+                            if folder.Name == "SpecialKeys" then
+                                for _, item in pairs(folder:GetDescendants()) do
                                     local targetPart = nil
                                     if item:IsA("BasePart") then
                                         targetPart = item
@@ -988,17 +983,15 @@ task.spawn(function()
 
                                     if targetPart then
                                         local pos = targetPart.Position
-                                        if (hrp.Position - pos).Magnitude <= 150 then
-                                            local alreadySaved = false
-                                            for _, savedPos in ipairs(collectedKeysPositions) do
-                                                if (savedPos - pos).Magnitude < 5 then
-                                                    alreadySaved = true
-                                                    break
-                                                end
+                                        local alreadySaved = false
+                                        for _, savedPos in ipairs(collectedKeysPositions) do
+                                            if (savedPos - pos).Magnitude < 5 then
+                                                alreadySaved = true
+                                                break
                                             end
-                                            if not alreadySaved then
-                                                table.insert(collectedKeysPositions, pos)
-                                            end
+                                        end
+                                        if not alreadySaved then
+                                            table.insert(collectedKeysPositions, pos)
                                         end
                                     end
                                 end
@@ -1020,6 +1013,7 @@ local function getSpawnPosition()
     return spawnPos
 end
 
+-- Procesamiento de cola corregido: TP inicial, búsqueda en radio (100-150 studs) y Tween fluido si está dentro
 local function processQueue(positionsList)
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1027,25 +1021,36 @@ local function processQueue(positionsList)
 
     local spawnPos = getSpawnPosition()
 
-    for i = #positionsList, 1, -1 do
+    local i = #positionsList
+    while i >= 1 do
         if not autoGlobalEnabled then break end
         local itemPos = positionsList[i]
         
         if hrp and itemPos then
-            hrp.CFrame = CFrame.new(spawnPos)
+            -- 1. Teletransporte inicial hacia la zona del ítem
+            hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 15, 0))
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.2)
+            task.wait(0.5) -- Esperar unos segundos para la búsqueda en radio cercano
 
-            hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.35)
+            -- 2. Búsqueda en radio de 100 a 150 studs
+            local currentDist = (hrp.Position - itemPos).Magnitude
+            if currentDist <= 150 then
+                -- 3. Movimiento fluido mediante Tween hacia el ítem exacto
+                local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))})
+                tween:Play()
+                tween.Completed:Wait()
+                task.wait(0.2)
+            end
             
+            -- Limpieza segura de la tabla sin romper índices
             table.remove(positionsList, i)
         end
+        i = i - 1
     end
 
+    -- Retorno seguro al punto de inicio / seguridad
     if hrp then
         hrp.CFrame = CFrame.new(spawnPos)
         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -1167,7 +1172,6 @@ local function executePlayback()
                 
                 local isLastPoint = (currentIndex == #pathData)
                 if isLastPoint then
-                    -- Buscar en el Workspace el objeto con el nombre del WinBlock seleccionado y hacer tween/teleport directo al CFrame exacto del objeto si existe
                     pcall(function()
                         local foundWinObj = Workspace:FindFirstChild(currentSelectedRecording, true)
                         if foundWinObj then
@@ -1293,7 +1297,7 @@ task.spawn(function()
                         if hrp and hrp:FindFirstChildOfClass("BodyVelocity") then
                             hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
                         end
-                        local hum = char and char:FindFirstChildOfClass("Humanoid")
+                        local hum = char and char:FindFirstChild("Humanoid")
                         if hum then hum.PlatformStand = false end
 
                         isCollectingItemsNow = true
