@@ -1,0 +1,412 @@
+-- Servicios necesarios
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+
+local player = Players.LocalPlayer
+
+-- Limpiar interfaz anterior si existe
+if CoreGui:FindFirstChild("DeltaHubMinimal") then
+    CoreGui.DeltaHubMinimal:Destroy()
+end
+
+----------------------------------------------------
+-- 1. LIMPIEZA AUTOMÁTICA Y ANTI-LAG AVANZADO (Por default al ejecutar)
+----------------------------------------------------
+local function cleanObject(obj)
+    pcall(function()
+        local nameLower = string.lower(obj.Name)
+        if string.find(nameLower, "lava") or string.find(nameLower, "movingwall") or nameLower == "keycaps" then
+            obj:Destroy()
+            return
+        end
+        if nameLower == "hitbox" then
+            local parent = obj.Parent
+            if parent and string.lower(parent.Name):find("npc") then
+                obj:Destroy()
+            end
+        end
+    end)
+end
+
+-- Limpieza inicial de obstáculos, texturas pesadas y materiales
+pcall(function()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        cleanObject(obj)
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0
+        elseif obj:IsA("Texture") or obj:IsA("Decal") then
+            obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            obj:Destroy()
+        end
+    end
+end)
+
+-- Conexión dinámica para nuevos objetos que aparezcan en el Workspace
+Workspace.DescendantAdded:Connect(function(obj)
+    cleanObject(obj)
+    pcall(function()
+        if obj:IsA("BasePart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0
+        elseif obj:IsA("Texture") or obj:IsA("Decal") then
+            obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+            obj:Destroy()
+        end
+    end)
+end)
+
+-- Optimización de iluminación y efectos visuales pesados (manteniendo máxima distancia de renderizado)
+pcall(function()
+    Lighting.GlobalShadows = false
+    Lighting.FogEnd = 9e9
+    for _, effect in ipairs(Lighting:GetChildren()) do
+        if effect:IsA("PostEffect") or effect:IsA("Atmosphere") or effect:IsA("Sky") then
+            effect.Enabled = false
+        end
+    end
+end)
+
+-- Forzar la distancia de renderizado al MÁXIMO posible
+pcall(function()
+    if player and player.ReplicationFocus then
+        player.ReplicationFocus = nil
+    end
+    -- Establecer la calidad y distancia de renderizado al nivel máximo permitido
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
+    pcall(function()
+        Workspace.StreamingEnabled = false -- Desactiva el streaming para cargar todo el mapa por completo a máxima distancia
+    end)
+    pcall(function()
+        if UserSettings():GetService("UserGameSettings") then
+            UserSettings():GetService("UserGameSettings").SavedQualityLevel = Enum.SavedQualityLevel.Level21
+        end
+    end)
+end)
+
+----------------------------------------------------
+-- 2. CREACIÓN DE LA INTERFAZ BÁSICA (Arrastrable y Minimizable)
+----------------------------------------------------
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeltaHubMinimal"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local MaximizeBtn = Instance.new("TextButton")
+MaximizeBtn.Name = "MaximizeBtn"
+MaximizeBtn.Parent = ScreenGui
+MaximizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+MaximizeBtn.Position = UDim2.new(0.5, -20, 0, 10)
+MaximizeBtn.Size = UDim2.new(0, 40, 0, 40)
+MaximizeBtn.Font = Enum.Font.GothamBold
+MaximizeBtn.Text = "+"
+MaximizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MaximizeBtn.TextSize = 20
+MaximizeBtn.Visible = false
+Instance.new("UICorner", MaximizeBtn).CornerRadius = UDim.new(1, 0)
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -85)
+MainFrame.Size = UDim2.new(0, 220, 0, 170)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.Parent = MainFrame
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+
+local TopBarFix = Instance.new("Frame")
+TopBarFix.Parent = TopBar
+TopBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+TopBarFix.BorderSizePixel = 0
+TopBarFix.Position = UDim2.new(0, 0, 1, -5)
+TopBarFix.Size = UDim2.new(1, 0, 0, 5)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(0, 150, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "AutoWin Hub"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+MinimizeBtn.Position = UDim2.new(1, -30, 0, 6)
+MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 14
+Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
+
+MinimizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MaximizeBtn.Visible = true
+end)
+
+MaximizeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    MaximizeBtn.Visible = false
+end)
+
+-- Campo de Texto para Velocidad
+local SpeedBox = Instance.new("TextBox")
+SpeedBox.Parent = MainFrame
+SpeedBox.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+SpeedBox.Position = UDim2.new(0, 15, 0, 45)
+SpeedBox.Size = UDim2.new(1, -30, 0, 30)
+SpeedBox.Font = Enum.Font.Gotham
+SpeedBox.PlaceholderText = "Velocidad (ej. 200)"
+SpeedBox.Text = "200"
+SpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpeedBox.TextSize = 12
+Instance.new("UICorner", SpeedBox).CornerRadius = UDim.new(0, 6)
+
+local AutoWinBtn = Instance.new("TextButton")
+AutoWinBtn.Parent = MainFrame
+AutoWinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+AutoWinBtn.Position = UDim2.new(0, 15, 0, 85)
+AutoWinBtn.Size = UDim2.new(1, -30, 0, 40)
+AutoWinBtn.Font = Enum.Font.GothamBold
+AutoWinBtn.Text = "autowin: OFF"
+AutoWinBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+AutoWinBtn.TextSize = 13
+Instance.new("UICorner", AutoWinBtn).CornerRadius = UDim.new(0, 6)
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 15, 0, 132)
+StatusLabel.Size = UDim2.new(1, -30, 0, 25)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "Estado: Inactivo (Anti-Lag Activo)"
+StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+StatusLabel.TextSize = 11
+
+----------------------------------------------------
+-- 3. LÓGICA DE AUTO-WIN Y RECORRIDO
+----------------------------------------------------
+local ultimaFasePoints = {
+    Vector3.new(-9514.86, 851.60, 1485.95),
+    Vector3.new(-9589.86, 851.99, 1484.93),
+    Vector3.new(-9621.03, 860.23, 1484.76),
+    Vector3.new(-9816.75, 860.58, 1484.10),
+    Vector3.new(-10209.11, 860.16, 1482.87),
+    Vector3.new(-10400.92, 860.18, 1484.91),
+    Vector3.new(-10705.33, 860.25, 1484.21),
+    Vector3.new(-10804.45, 851.60, 1484.91),
+    Vector3.new(-11541.75, 849.59, 1483.78),
+    Vector3.new(-11541.75, 910.49, 1483.78),
+    Vector3.new(-12507.54, 918.91, 1479.40),
+    Vector3.new(-12507.54, 849.59, 1479.40),
+    Vector3.new(-12610.79, 849.48, 1455.62),
+    Vector3.new(-12891.38, 904.52, 1447.84),
+    Vector3.new(-13395.75, 994.91, 1448.04),
+    Vector3.new(-13599.86, 1026.29, 1449.29),
+    Vector3.new(-13689.71, 1026.29, 1452.69),
+    Vector3.new(-13689.71, 1089.13, 1452.69),
+    Vector3.new(-14321.55, 1085.53, 1453.80),
+    Vector3.new(-14321.55, 1028.31, 1453.80),
+    Vector3.new(-14519.74, 1042.20, 1454.99),
+    Vector3.new(-15250.76, 1042.16, 1458.10),
+    Vector3.new(-15418.38, 1028.31, 1483.64),
+    Vector3.new(-15497.04, 1014.54, 1485.46),
+    Vector3.new(-17179.25, 1014.30, 1492.37),
+    Vector3.new(-17410.72, 1014.28, 1724.96),
+    Vector3.new(-17867.60, 1014.28, 1265.76),
+    Vector3.new(-18329.62, 1014.28, 1733.80),
+    Vector3.new(-18788.77, 1014.28, 1269.73),
+    Vector3.new(-19023.13, 1014.30, 1508.44),
+    Vector3.new(-19216.03, 1014.30, 1518.73),
+    Vector3.new(-19558.76, 952.39, 1560.34),
+    Vector3.new(-19886.89, 897.52, 1467.99),
+    Vector3.new(-20216.18, 843.65, 1561.94),
+    Vector3.new(-20572.85, 781.43, 1466.64),
+    Vector3.new(-20765.91, 720.77, 1518.30),
+    Vector3.new(-20883.73, 720.77, 1518.62),
+    Vector3.new(-20963.94, 734.63, 1518.22),
+    Vector3.new(-21348.98, 734.68, 1514.54),
+    Vector3.new(-21547.67, 720.77, 1517.91),
+    Vector3.new(-21708.50, 700.83, 1521.94),
+    Vector3.new(-22088.03, 671.09, 1514.92),
+    Vector3.new(-23240.10, 671.09, 1518.42),
+}
+
+local autoWinEnabled = false
+local noclipConnection = nil
+
+local function setNoclip(state)
+    local char = player.Character
+    if state then
+        if not noclipConnection then
+            noclipConnection = RunService.Stepped:Connect(function()
+                if char then
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        end
+    else
+        if noclipConnection then
+            noclipConnection:Disconnect()
+            noclipConnection = nil
+        end
+    end
+end
+
+local function findRemoteEvent()
+    local targetName = "RequestCheckpointTp"
+    local found = ReplicatedStorage:FindFirstChild(targetName)
+    if found and found:IsA("RemoteEvent") then
+        return found
+    end
+    for _, descendant in ipairs(ReplicatedStorage:GetDescendants()) do
+        if descendant.Name == targetName and descendant:IsA("RemoteEvent") then
+            return descendant
+        end
+    end
+    return nil
+end
+
+AutoWinBtn.MouseButton1Click:Connect(function()
+    autoWinEnabled = not autoWinEnabled
+    if autoWinEnabled then
+        AutoWinBtn.Text = "autowin: ON"
+        AutoWinBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+        AutoWinBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        setNoclip(true)
+
+        task.spawn(function()
+            while autoWinEnabled do
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                
+                if hrp and hum then
+                    -- 1. Ejecutar el RemoteEvent
+                    StatusLabel.Text = "Estado: Disparando RemoteEvent..."
+                    local remoteEvent = findRemoteEvent()
+                    if remoteEvent then
+                        pcall(function()
+                            remoteEvent:FireServer(13, "wins")
+                        end)
+                    end
+
+                    -- 2. Esperar 0.1 segundos
+                    task.wait(0.1)
+
+                    -- 3. Ejecutar el recorrido por los puntos
+                    StatusLabel.Text = "Estado: Ejecutando recorrido..."
+                    hrp.CFrame = CFrame.new(ultimaFasePoints[1])
+                    task.wait(0.05)
+
+                    local bv = Instance.new("BodyVelocity")
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Velocity = Vector3.new(0, 0, 0)
+                    bv.Parent = hrp
+                    hum.PlatformStand = true
+
+                    local recorridoVelocidad = tonumber(SpeedBox.Text) or 200
+                    for i = 1, #ultimaFasePoints do
+                        local targetPos = ultimaFasePoints[i]
+                        
+                        while true do
+                            local dt = RunService.RenderStepped:Wait()
+                            local currentPos = hrp.Position
+                            local distance = (targetPos - currentPos).Magnitude
+                            local step = recorridoVelocidad * dt
+                            
+                            if distance <= step + 0.5 then
+                                hrp.CFrame = CFrame.new(targetPos)
+                                break
+                            else
+                                bv.Velocity = (targetPos - currentPos).Unit * recorridoVelocidad
+                                hrp.CFrame = CFrame.new(currentPos, targetPos)
+                            end
+                        end
+                    end
+
+                    if bv and bv.Parent then bv:Destroy() end
+                    hum.PlatformStand = false
+
+                    -- 4. Hacer tween hacia WinBlock46
+                    StatusLabel.Text = "Estado: Haciendo tween a WinBlock46..."
+                    local targetTweenPos = nil
+                    pcall(function()
+                        local foundObj = Workspace:FindFirstChild("WinBlock46", true)
+                        if foundObj then
+                            if foundObj:IsA("BasePart") then
+                                targetTweenPos = foundObj.Position + Vector3.new(0, 3, 0)
+                            elseif foundObj:IsA("Model") and foundObj.PrimaryPart then
+                                targetTweenPos = foundObj.PrimaryPart.Position + Vector3.new(0, 3, 0)
+                            end
+                        end
+                    end)
+
+                    if not targetTweenPos then
+                        targetTweenPos = ultimaFasePoints[#ultimaFasePoints] + Vector3.new(0, 5, 0)
+                    end
+
+                    local distanceToWin = (targetTweenPos - hrp.Position).Magnitude
+                    local tweenDuration = math.clamp(distanceToWin / 350, 0.2, 1.5)
+                    
+                    local tween = TweenService:Create(hrp, TweenInfo.new(tweenDuration, Enum.EasingStyle.Linear), {CFrame = CFrame.new(targetTweenPos)})
+                    tween:Play()
+                    tween.Completed:Wait()
+
+                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+
+                    -- 5. Esperar 0.1 segundos después de tocar WinBlock46 antes de evaluar el ciclo
+                    StatusLabel.Text = "Estado: Ciclo completado, esperando..."
+                    task.wait(0.1)
+                else
+                    task.wait(0.5)
+                end
+            end
+            
+            StatusLabel.Text = "Estado: Inactivo (Anti-Lag Activo)"
+            setNoclip(false)
+            local char = player.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp:FindFirstChildOfClass("BodyVelocity") then
+                    hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
+                end
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum.PlatformStand = false end
+            end
+        end)
+    else
+        AutoWinBtn.Text = "autowin: OFF"
+        AutoWinBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+        AutoWinBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
