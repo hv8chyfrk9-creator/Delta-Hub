@@ -4,7 +4,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 
@@ -12,1177 +12,939 @@ local player = Players.LocalPlayer
 local GALAXIA_2_PLACE_ID = 75012837977315
 
 if game.PlaceId == GALAXIA_2_PLACE_ID then
-    print("[Teclado.lua] Galaxia 2 detectada. Cargando sistema de 6 recorridos seccionados con WinBlocks...")
+    print("[Delta Hub Galaxy 2] Cargando sistema corregido...")
 
     ----------------------------------------------------
-    -- 1. COORDENADAS BASE Y 6 RECORRIDOS SECCIONADOS
+    -- 1. RECORRIDO COMPLETO MAESTRO
     ----------------------------------------------------
-    local todosLosPuntosGalaxia2 = {
-        Vector3.new(-440.81, 361.93, -759.89), -- Winblocks / Punto 1
-        Vector3.new(-208.77, 361.39, -786.41), -- Check 2
-        Vector3.new(-130.78, 361.38, -760.87), -- Check 3
-        Vector3.new(101.39, 361.40, -779.44),  -- Check 4
-        Vector3.new(464.42, 361.40, -779.21),  -- Check 5
-        Vector3.new(784.30, 361.40, -776.46),  -- Check 6
-        Vector3.new(1142.93, 361.40, -775.38), -- Check 7
-        Vector3.new(1559.58, 361.99, -777.49), -- Check 8
+    local masterPoints = {
+        Vector3.new(-440.96, 361.93, -760.28),
+        Vector3.new(-269.84, 361.39, -760.24),
+        Vector3.new(-213.55, 361.39, -784.71),
+        Vector3.new(-132.15, 361.38, -762.40),
+        Vector3.new(-49.81, 361.39, -761.06),
+        Vector3.new(-34.10, 361.39, -776.40),
+        Vector3.new(98.44, 361.40, -778.22),
+        Vector3.new(460.84, 361.40, -777.13),
+        Vector3.new(483.44, 361.40, -777.01),
+        Vector3.new(570.11, 361.40, -793.35),
+        Vector3.new(642.42, 361.40, -783.31),
+        Vector3.new(738.71, 361.40, -760.15),
+        Vector3.new(779.79, 361.40, -762.26),
+        Vector3.new(1142.59, 361.40, -760.49),
+        Vector3.new(1280.88, 362.10, -755.53),
+        Vector3.new(1293.60, 361.64, -704.93),
+        Vector3.new(1400.35, 361.33, -715.56),
+        Vector3.new(1561.40, 361.99, -754.84),
+        Vector3.new(1708.35, 361.61, -751.92),
+        Vector3.new(1728.22, 361.16, -705.91),
+        Vector3.new(1883.67, 360.84, -722.74),
+        Vector3.new(2262.94, 361.58, -760.00),
+        Vector3.new(2281.36, 361.16, -705.72),
+        Vector3.new(2330.16, 361.10, -714.15),
+        Vector3.new(2455.83, 361.79, -757.68),
+        Vector3.new(2626.14, 361.83, -759.44),
+        Vector3.new(2634.71, 363.46, -759.07),
+        Vector3.new(2640.74, 365.70, -758.82),
+        Vector3.new(2646.57, 369.62, -758.11),
+        Vector3.new(2652.48, 375.09, -758.39),
+        Vector3.new(2657.22, 381.60, -757.37),
+        Vector3.new(2658.21, 383.32, -757.84),
+        Vector3.new(2660.03, 387.42, -757.19),
+        Vector3.new(2662.77, 398.56, -756.77),
+        Vector3.new(2662.75, 403.11, -757.03),
+        Vector3.new(2662.75, 779.13, -756.57),
+        Vector3.new(2662.75, 786.12, -756.36),
+        Vector3.new(2662.74, 791.14, -756.66),
+        Vector3.new(2664.01, 801.16, -755.45),
+        Vector3.new(2666.47, 808.43, -755.30),
+        Vector3.new(2670.71, 816.41, -755.15),
+        Vector3.new(2676.38, 823.50, -755.39),
+        Vector3.new(2681.77, 828.14, -755.44),
+        Vector3.new(2687.77, 831.98, -755.75),
+        Vector3.new(2697.48, 836.09, -754.33),
+        Vector3.new(2705.03, 837.59, -756.31),
+        Vector3.new(2716.77, 837.83, -755.05),
+        Vector3.new(2721.30, 837.83, -755.05),
+        Vector3.new(2725.28, 837.83, -754.69),
+        Vector3.new(2732.04, 837.83, -754.61),
+        Vector3.new(2743.77, 837.83, -754.45),
+        Vector3.new(2753.28, 837.83, -754.32),
+        Vector3.new(2827.11, 837.84, -754.17),
+        Vector3.new(2965.03, 842.50, -773.36),
+        Vector3.new(3102.33, 846.10, -774.84),
+        Vector3.new(3136.98, 816.90, -745.90),
+        Vector3.new(3332.86, 818.76, -745.82),
+        Vector3.new(3358.38, 798.78, -774.81),
+        Vector3.new(3543.46, 795.06, -773.92),
+        Vector3.new(3572.83, 772.23, -745.75),
+        Vector3.new(3643.19, 768.13, -745.06),
+        Vector3.new(3722.93, 727.94, -756.33),
+        Vector3.new(3874.12, 729.03, -759.72),
+        Vector3.new(3874.24, 772.12, -757.92),
+        Vector3.new(3972.99, 772.12, -758.98),
+        Vector3.new(3997.60, 767.04, -760.18),
+        Vector3.new(3997.48, 766.92, -760.23),
+        Vector3.new(4076.79, 772.13, -761.20),
+        Vector3.new(4189.75, 772.13, -759.33),
+        Vector3.new(4214.46, 766.90, -760.23),
+        Vector3.new(4416.63, 771.70, -760.26),
+        Vector3.new(4509.18, 727.22, -760.51),
+        Vector3.new(4540.89, 755.31, -763.02),
+        Vector3.new(4837.49, 756.19, -761.54),
+        Vector3.new(4867.83, 755.34, -759.59),
+        Vector3.new(4876.07, 727.22, -758.69),
+        Vector3.new(5023.45, 718.62, -760.71),
+        Vector3.new(5140.85, 717.22, -760.25),
+        Vector3.new(5333.20, 718.61, -760.49),
+        Vector3.new(5489.08, 718.60, -758.41),
+        Vector3.new(5618.77, 718.60, -759.16),
+        Vector3.new(5675.29, 718.92, -759.86),
+        Vector3.new(5723.77, 718.60, -760.10),
+        Vector3.new(5783.57, 718.65, -759.56),
+        Vector3.new(5999.25, 718.60, -758.75),
+        Vector3.new(6047.94, 718.72, -760.33),
+        Vector3.new(6396.73, 719.16, -758.75),
+        Vector3.new(6703.10, 719.16, -759.90),
+        Vector3.new(7052.28, 719.16, -761.09),
+        Vector3.new(8198.29, 718.84, -761.83),
+        Vector3.new(8215.11, 717.54, -760.37),
+        Vector3.new(8217.06, 663.64, -759.81),
     }
 
-    -- Definición de los 6 recorridos según tus reglas exactas:
-    -- Recorrido 1: Del inicio hasta el CFrame 3 (puntos 1 al 3) -> Al terminar busca WinBlock1
-    -- Recorrido 2: Hasta el CFrame 4 (puntos 1 al 4) -> Al terminar busca WinBlock2
-    -- Recorrido 3: Hasta el CFrame 5 (puntos 1 al 5) -> Al terminar busca WinBlock3
-    -- Recorrido 4: Hasta el CFrame 6 (puntos 1 al 6) -> Al terminar busca WinBlock4
-    -- Recorrido 5: Hasta el CFrame 7 (puntos 1 al 7) -> Al terminar busca WinBlock5
-    -- Recorrido 6: Hasta el CFrame 8 (todos los puntos) -> Al terminar busca WinBlock6
+    _G.RecordedPath = masterPoints
 
-    _G.RecordedPaths = {
-        ["Win-block-1"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3]
-        },
-        ["Win-block-2"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3],
-            todosLosPuntosGalaxia2[4]
-        },
-        ["Win-block-3"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3],
-            todosLosPuntosGalaxia2[4],
-            todosLosPuntosGalaxia2[5]
-        },
-        ["Win-block-4"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3],
-            todosLosPuntosGalaxia2[4],
-            todosLosPuntosGalaxia2[5],
-            todosLosPuntosGalaxia2[6]
-        },
-        ["Win-block-5"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3],
-            todosLosPuntosGalaxia2[4],
-            todosLosPuntosGalaxia2[5],
-            todosLosPuntosGalaxia2[6],
-            todosLosPuntosGalaxia2[7]
-        },
-        ["Win-block-6"] = {
-            todosLosPuntosGalaxia2[1],
-            todosLosPuntosGalaxia2[2],
-            todosLosPuntosGalaxia2[3],
-            todosLosPuntosGalaxia2[4],
-            todosLosPuntosGalaxia2[5],
-            todosLosPuntosGalaxia2[6],
-            todosLosPuntosGalaxia2[7],
-            todosLosPuntosGalaxia2[8]
-        }
-    }
-
-    -- Función auxiliar integrada para buscar y teletransportar al WinBlock correspondiente al terminar el recorrido
-    local function buscarYEjecutarWinBlock(nombreRecorrido)
-        -- Extraer el número del recorrido (Ej: "Win-block-1" -> "WinBlock1")
-        local numStr = string.match(nombreRecorrido, "%d+")
-        if numStr then
-            local targetWinBlockName = "WinBlock" .. numStr
-            local winBlockPart = Workspace:FindFirstChild(targetWinBlockName, true)
-            
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
-            if winBlockPart and hrp and winBlockPart:IsA("BasePart") then
-                hrp.CFrame = winBlockPart.CFrame + Vector3.new(0, 3, 0)
-                print("[Galaxia 2] ¡Recorrido finalizado! Personaje llevado al: " .. targetWinBlockName)
-            else
-                warn("[Galaxia 2] No se encontró en el Workspace el objeto: " .. targetWinBlockName)
+    local function getClosestPointIndex(path, targetPos)
+        local min = math.huge
+        local idx = #path
+        for i, pt in ipairs(path) do
+            local pos = typeof(pt) == "Vector3" and pt or pt.Position
+            local d = (pos - targetPos).Magnitude
+            if d < min then
+                min = d
+                idx = i
             end
         end
+        return idx
     end
 
-    -- Inyección especial en el reproductor para buscar el WinBlock al finalizar cada recorrido
-    -- (El resto de la interfaz y configuraciones se mantiene exactamente igual abajo)
+    ----------------------------------------------------
+    -- INTERFAZ DE DELTA HUB
+    ----------------------------------------------------
+    if CoreGui:FindFirstChild("DeltaHubCustom") then
+        CoreGui.DeltaHubCustom:Destroy()
+    end
 
-----------------------------------------------------
--- SCRIPT PRINCIPAL DE INTERFAZ Y REPRODUCTOR
-----------------------------------------------------
-
--- Limpiar interfaz anterior si existe
-if CoreGui:FindFirstChild("DeltaHubCustom") then
-    CoreGui.DeltaHubCustom:Destroy()
-end
-
-----------------------------------------------------
--- 2. ANTI-DAÑO AUTOMÁTICO OPTIMIZADO (Punto 2)
-----------------------------------------------------
-local function cleanObject(obj)
-    pcall(function()
-        local nameLower = string.lower(obj.Name)
-        if string.find(nameLower, "lava") then
-            obj:Destroy()
-            return
-        end
-        if nameLower == "hitbox" then
-            local parent = obj.Parent
-            if parent and string.lower(parent.Name):find("npc") then
+    ----------------------------------------------------
+    -- 2. ANTI-DAÑO AUTOMÁTICO OPTIMIZADO
+    ----------------------------------------------------
+    local function cleanObject(obj)
+        pcall(function()
+            local nameLower = string.lower(obj.Name)
+            if string.find(nameLower, "lava") then
                 obj:Destroy()
+                return
+            end
+            if nameLower == "hitbox" then
+                local parent = obj.Parent
+                if parent and string.lower(parent.Name):find("npc") then
+                    obj:Destroy()
+                end
+            end
+        end)
+    end
+
+    pcall(function()
+        for _, obj in pairs(Workspace:GetDescendants()) do cleanObject(obj) end
+    end)
+    Workspace.DescendantAdded:Connect(function(obj) cleanObject(obj) end)
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "DeltaHubCustom"
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local MaximizeBtn = Instance.new("TextButton")
+    MaximizeBtn.Parent = ScreenGui
+    MaximizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    MaximizeBtn.Position = UDim2.new(0.5, -20, 0, 10)
+    MaximizeBtn.Size = UDim2.new(0, 40, 0, 40)
+    MaximizeBtn.Font = Enum.Font.GothamBold
+    MaximizeBtn.Text = "+"
+    MaximizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MaximizeBtn.TextSize = 22
+    MaximizeBtn.Visible = false
+    Instance.new("UICorner", MaximizeBtn).CornerRadius = UDim.new(1, 0)
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Position = UDim2.new(0.5, -240, 0.5, -175)
+    MainFrame.Size = UDim2.new(0, 480, 0, 360)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+    local TopBar = Instance.new("Frame")
+    TopBar.Parent = MainFrame
+    TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+    TopBar.BorderSizePixel = 0
+    TopBar.Size = UDim2.new(1, 0, 0, 35)
+    Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+
+    local TopBarFix = Instance.new("Frame")
+    TopBarFix.Parent = TopBar
+    TopBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+    TopBarFix.BorderSizePixel = 0
+    TopBarFix.Position = UDim2.new(0, 0, 1, -5)
+    TopBarFix.Size = UDim2.new(1, 0, 0, 5)
+
+    local Title = Instance.new("TextLabel")
+    Title.Parent = TopBar
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0, 15, 0, 0)
+    Title.Size = UDim2.new(0, 300, 1, 0)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "Delta Hub Galaxy 2"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 16
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+
+    local MinimizeBtn = Instance.new("TextButton")
+    MinimizeBtn.Parent = TopBar
+    MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    MinimizeBtn.Position = UDim2.new(1, -32, 0, 5)
+    MinimizeBtn.Size = UDim2.new(0, 26, 0, 26)
+    MinimizeBtn.Font = Enum.Font.GothamBold
+    MinimizeBtn.Text = "-"
+    MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinimizeBtn.TextSize = 16
+    Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
+
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        MainFrame.Visible = false
+        MaximizeBtn.Visible = true
+    end)
+    MaximizeBtn.MouseButton1Click:Connect(function()
+        MainFrame.Visible = true
+        MaximizeBtn.Visible = false
+    end)
+
+    local Container = Instance.new("Frame")
+    Container.Parent = MainFrame
+    Container.BackgroundTransparency = 1
+    Container.Position = UDim2.new(0, 0, 0, 35)
+    Container.Size = UDim2.new(1, 0, 1, -35)
+
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Parent = Container
+    Sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    Sidebar.BorderSizePixel = 0
+    Sidebar.Size = UDim2.new(0, 130, 1, 0)
+    local UIListSidebar = Instance.new("UIListLayout")
+    UIListSidebar.Parent = Sidebar
+    UIListSidebar.Padding = UDim.new(0, 10)
+    UIListSidebar.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    local SidebarPadding = Instance.new("UIPadding")
+    SidebarPadding.Parent = Sidebar
+    SidebarPadding.PaddingTop = UDim.new(0, 10)
+
+    local Tab1Btn = Instance.new("TextButton")
+    Tab1Btn.Parent = Sidebar
+    Tab1Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    Tab1Btn.Size = UDim2.new(1, -16, 0, 38)
+    Tab1Btn.Font = Enum.Font.GothamBold
+    Tab1Btn.Text = "Configuración"
+    Tab1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Tab1Btn.TextSize = 13
+    Instance.new("UICorner", Tab1Btn).CornerRadius = UDim.new(0, 6)
+
+    local Tab2Btn = Instance.new("TextButton")
+    Tab2Btn.Parent = Sidebar
+    Tab2Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    Tab2Btn.Size = UDim2.new(1, -16, 0, 38)
+    Tab2Btn.Font = Enum.Font.GothamBold
+    Tab2Btn.Text = "Grabador"
+    Tab2Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
+    Tab2Btn.TextSize = 13
+    Instance.new("UICorner", Tab2Btn).CornerRadius = UDim.new(0, 6)
+
+    local PagesFrame = Instance.new("Frame")
+    PagesFrame.Parent = Container
+    PagesFrame.BackgroundTransparency = 1
+    PagesFrame.Position = UDim2.new(0, 130, 0, 0)
+    PagesFrame.Size = UDim2.new(1, -130, 1, 0)
+
+    local ConfigPage = Instance.new("ScrollingFrame")
+    ConfigPage.Parent = PagesFrame
+    ConfigPage.BackgroundTransparency = 1
+    ConfigPage.Position = UDim2.new(0, 10, 0, 10)
+    ConfigPage.Size = UDim2.new(1, -20, 1, -20)
+    ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 580)
+    ConfigPage.ScrollBarThickness = 4
+    local UIListConfig = Instance.new("UIListLayout")
+    UIListConfig.Parent = ConfigPage
+    UIListConfig.Padding = UDim.new(0, 12)
+
+    local GamePage = Instance.new("ScrollingFrame")
+    GamePage.Parent = PagesFrame
+    GamePage.BackgroundTransparency = 1
+    GamePage.Position = UDim2.new(0, 10, 0, 10)
+    GamePage.Size = UDim2.new(1, -20, 1, -20)
+    GamePage.CanvasSize = UDim2.new(0, 0, 0, 1400)
+    GamePage.ScrollBarThickness = 4
+    GamePage.Visible = false
+    local UIListGame = Instance.new("UIListLayout")
+    UIListGame.Parent = GamePage
+    UIListGame.Padding = UDim.new(0, 12)
+
+    Tab1Btn.MouseButton1Click:Connect(function()
+        ConfigPage.Visible = true
+        GamePage.Visible = false
+        Tab1Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        Tab1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Tab2Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        Tab2Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
+    end)
+
+    Tab2Btn.MouseButton1Click:Connect(function()
+        ConfigPage.Visible = false
+        GamePage.Visible = true
+        Tab2Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        Tab2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Tab1Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        Tab1Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
+    end)
+
+    ----------------------------------------------------
+    -- CONFIGURACIÓN PAGE
+    ----------------------------------------------------
+    local speedEnabled, currentSpeed, originalWalkSpeed = false, 16, nil
+    local jumpEnabled, currentJump, originalUseJumpPower, originalJumpPower = false, 50, nil, nil
+    local noClipEnabled, infiniteJumpEnabled, antiLagEnabled = false, false, false
+
+    local function createLabel(parent, text)
+        local lbl = Instance.new("TextLabel")
+        lbl.Parent = parent
+        lbl.BackgroundTransparency = 1
+        lbl.Size = UDim2.new(1, 0, 0, 22)
+        lbl.Font = Enum.Font.GothamSemibold
+        lbl.Text = text
+        lbl.TextColor3 = Color3.fromRGB(220, 220, 220)
+        lbl.TextSize = 14
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        return lbl
+    end
+
+    createLabel(ConfigPage, "Velocidad Normal:")
+    local speedBox = Instance.new("TextBox")
+    speedBox.Parent = ConfigPage
+    speedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    speedBox.Size = UDim2.new(1, 0, 0, 35)
+    speedBox.Font = Enum.Font.Gotham
+    speedBox.PlaceholderText = "Ej. 16"
+    speedBox.Text = ""
+    speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    speedBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+    speedBox.TextSize = 14
+    Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
+
+    speedBox.FocusLost:Connect(function()
+        local val = tonumber(speedBox.Text)
+        if val then
+            currentSpeed = math.clamp(val, 1, 500)
+            speedBox.Text = tostring(currentSpeed)
+        end
+    end)
+
+    local speedToggle = Instance.new("TextButton")
+    speedToggle.Parent = ConfigPage
+    speedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    speedToggle.Size = UDim2.new(1, 0, 0, 35)
+    speedToggle.Font = Enum.Font.GothamBold
+    speedToggle.Text = "Activar Velocidad: OFF"
+    speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    speedToggle.TextSize = 14
+    Instance.new("UICorner", speedToggle).CornerRadius = UDim.new(0, 6)
+
+    speedToggle.MouseButton1Click:Connect(function()
+        speedEnabled = not speedEnabled
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if speedEnabled then
+            if hum then originalWalkSpeed = hum.WalkSpeed end
+            speedToggle.Text = "Activar Velocidad: ON"
+            speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            speedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        else
+            if hum and originalWalkSpeed then hum.WalkSpeed = originalWalkSpeed end
+            speedToggle.Text = "Activar Velocidad: OFF"
+            speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            speedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        end
+    end)
+
+    createLabel(ConfigPage, "Potencia de Salto (1 - 500):")
+    local jumpBox = Instance.new("TextBox")
+    jumpBox.Parent = ConfigPage
+    jumpBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    jumpBox.Size = UDim2.new(1, 0, 0, 35)
+    jumpBox.Font = Enum.Font.Gotham
+    jumpBox.PlaceholderText = "Ej. 50"
+    jumpBox.Text = ""
+    jumpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    jumpBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 130)
+    jumpBox.TextSize = 14
+    Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 6)
+    jumpBox.FocusLost:Connect(function()
+        local val = tonumber(jumpBox.Text)
+        if val then
+            currentJump = math.clamp(val, 1, 500)
+            jumpBox.Text = tostring(currentJump)
+        end
+    end)
+
+    local jumpToggle = Instance.new("TextButton")
+    jumpToggle.Parent = ConfigPage
+    jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    jumpToggle.Size = UDim2.new(1, 0, 0, 35)
+    jumpToggle.Font = Enum.Font.GothamBold
+    jumpToggle.Text = "Activar Salto: OFF"
+    jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    jumpToggle.TextSize = 14
+    Instance.new("UICorner", jumpToggle).CornerRadius = UDim.new(0, 6)
+
+    jumpToggle.MouseButton1Click:Connect(function()
+        jumpEnabled = not jumpEnabled
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if jumpEnabled then
+            if hum then originalUseJumpPower = hum.UseJumpPower; originalJumpPower = hum.JumpPower end
+            jumpToggle.Text = "Activar Salto: ON"
+            jumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            jumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        else
+            if hum then
+                if originalUseJumpPower ~= nil then hum.UseJumpPower = originalUseJumpPower end
+                if originalJumpPower ~= nil then hum.JumpPower = originalJumpPower end
+            end
+            jumpToggle.Text = "Activar Salto: OFF"
+            jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        end
+    end)
+
+    local infJumpToggle = Instance.new("TextButton")
+    infJumpToggle.Parent = ConfigPage
+    infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    infJumpToggle.Size = UDim2.new(1, 0, 0, 35)
+    infJumpToggle.Font = Enum.Font.GothamBold
+    infJumpToggle.Text = "Salto Infinito: OFF"
+    infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    infJumpToggle.TextSize = 14
+    Instance.new("UICorner", infJumpToggle).CornerRadius = UDim.new(0, 6)
+
+    infJumpToggle.MouseButton1Click:Connect(function()
+        infiniteJumpEnabled = not infiniteJumpEnabled
+        if infiniteJumpEnabled then
+            infJumpToggle.Text = "Salto Infinito: ON"
+            infJumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            infJumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        else
+            infJumpToggle.Text = "Salto Infinito: OFF"
+            infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        end
+    end)
+    UserInputService.JumpRequest:Connect(function()
+        if infiniteJumpEnabled then
+            local char = player.Character
+            if char then
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
             end
         end
     end)
-end
 
-pcall(function()
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        cleanObject(obj)
-    end
-end)
+    local noclipBtn = Instance.new("TextButton")
+    noclipBtn.Parent = ConfigPage
+    noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    noclipBtn.Size = UDim2.new(1, 0, 0, 35)
+    noclipBtn.Font = Enum.Font.GothamBold
+    noclipBtn.Text = "NoClip Global: OFF"
+    noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    noclipBtn.TextSize = 14
+    Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 6)
 
-Workspace.DescendantAdded:Connect(function(obj)
-    cleanObject(obj)
-end)
-
--- Creación de la Interfaz Principal (ScreenGui)
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaHubCustom"
-ScreenGui.Parent = CoreGui
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local MaximizeBtn = Instance.new("TextButton")
-MaximizeBtn.Name = "MaximizeBtn"
-MaximizeBtn.Parent = ScreenGui
-MaximizeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-MaximizeBtn.Position = UDim2.new(0.5, -20, 0, 10)
-MaximizeBtn.Size = UDim2.new(0, 40, 0, 40)
-MaximizeBtn.Font = Enum.Font.GothamBold
-MaximizeBtn.Text = "+"
-MaximizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MaximizeBtn.TextSize = 20
-MaximizeBtn.Visible = false
-Instance.new("UICorner", MaximizeBtn).CornerRadius = UDim.new(1, 0)
-
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -175)
-MainFrame.Size = UDim2.new(0, 480, 0, 350)
-MainFrame.Active = true
-MainFrame.Draggable = true
-
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
-UICorner.Parent = MainFrame
-
-local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
-TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
-TopBar.BorderSizePixel = 0
-TopBar.Size = UDim2.new(1, 0, 0, 35)
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
-
-local TopBarFix = Instance.new("Frame")
-TopBarFix.Parent = TopBar
-TopBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
-TopBarFix.BorderSizePixel = 0
-TopBarFix.Position = UDim2.new(0, 0, 1, -5)
-TopBarFix.Size = UDim2.new(1, 0, 0, 5)
-
-local Title = Instance.new("TextLabel")
-Title.Parent = TopBar
-Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.Size = UDim2.new(0, 250, 1, 0)
-Title.Font = Enum.Font.GothamBold
-Title.Text = "Delta Hub | Galaxia 2 (6 Recorridos)"
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Parent = TopBar
-MinimizeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-MinimizeBtn.Position = UDim2.new(1, -30, 0, 6)
-MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-MinimizeBtn.TextSize = 14
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 4)
-
-MinimizeBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    MaximizeBtn.Visible = true
-end)
-
-MaximizeBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    MaximizeBtn.Visible = false
-end)
-
-local Container = Instance.new("Frame")
-Container.Name = "Container"
-Container.Parent = MainFrame
-Container.BackgroundTransparency = 1
-Container.Position = UDim2.new(0, 0, 0, 35)
-Container.Size = UDim2.new(1, 0, 1, -35)
-
-local Sidebar = Instance.new("Frame")
-Sidebar.Name = "Sidebar"
-Sidebar.Parent = Container
-Sidebar.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
-Sidebar.BorderSizePixel = 0
-Sidebar.Size = UDim2.new(0, 130, 1, 0)
-
-local UIListSidebar = Instance.new("UIListLayout")
-UIListSidebar.Parent = Sidebar
-UIListSidebar.SortOrder = Enum.SortOrder.LayoutOrder
-UIListSidebar.Padding = UDim.new(0, 10)
-UIListSidebar.HorizontalAlignment = Enum.HorizontalAlignment.Center
-
-local SidebarPadding = Instance.new("UIPadding")
-SidebarPadding.Parent = Sidebar
-SidebarPadding.PaddingTop = UDim.new(0, 10)
-
-local Tab1Btn = Instance.new("TextButton")
-Tab1Btn.Parent = Sidebar
-Tab1Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-Tab1Btn.Size = UDim2.new(1, -16, 0, 35)
-Tab1Btn.Font = Enum.Font.GothamBold
-Tab1Btn.Text = "Configuración"
-Tab1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-Tab1Btn.TextSize = 12
-Instance.new("UICorner", Tab1Btn).CornerRadius = UDim.new(0, 4)
-
-local Tab2Btn = Instance.new("TextButton")
-Tab2Btn.Parent = Sidebar
-Tab2Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-Tab2Btn.Size = UDim2.new(1, -16, 0, 35)
-Tab2Btn.Font = Enum.Font.GothamBold
-Tab2Btn.Text = "Grabador"
-Tab2Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
-Tab2Btn.TextSize = 12
-Instance.new("UICorner", Tab2Btn).CornerRadius = UDim.new(0, 4)
-
-local PagesFrame = Instance.new("Frame")
-PagesFrame.Name = "PagesFrame"
-PagesFrame.Parent = Container
-PagesFrame.BackgroundTransparency = 1
-PagesFrame.Position = UDim2.new(0, 130, 0, 0)
-PagesFrame.Size = UDim2.new(1, -130, 1, 0)
-
-local ConfigPage = Instance.new("ScrollingFrame")
-ConfigPage.Name = "ConfigPage"
-ConfigPage.Parent = PagesFrame
-ConfigPage.BackgroundTransparency = 1
-ConfigPage.Position = UDim2.new(0, 10, 0, 10)
-ConfigPage.Size = UDim2.new(1, -20, 1, -20)
-ConfigPage.CanvasSize = UDim2.new(0, 0, 0, 550)
-ConfigPage.ScrollBarThickness = 4
-
-local UIListConfig = Instance.new("UIListLayout")
-UIListConfig.Parent = ConfigPage
-UIListConfig.SortOrder = Enum.SortOrder.LayoutOrder
-UIListConfig.Padding = UDim.new(0, 10)
-
-local GamePage = Instance.new("ScrollingFrame")
-GamePage.Name = "GamePage"
-GamePage.Parent = PagesFrame
-GamePage.BackgroundTransparency = 1
-GamePage.Position = UDim2.new(0, 10, 0, 10)
-GamePage.Size = UDim2.new(1, -20, 1, -20)
-GamePage.CanvasSize = UDim2.new(0, 0, 0, 1350)
-GamePage.ScrollBarThickness = 4
-GamePage.Visible = false
-
-local UIListGame = Instance.new("UIListLayout")
-UIListGame.Parent = GamePage
-UIListGame.SortOrder = Enum.SortOrder.LayoutOrder
-UIListGame.Padding = UDim.new(0, 10)
-
-Tab1Btn.MouseButton1Click:Connect(function()
-    ConfigPage.Visible = true
-    GamePage.Visible = false
-    Tab1Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    Tab1Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Tab2Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    Tab2Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
-end)
-
-Tab2Btn.MouseButton1Click:Connect(function()
-    ConfigPage.Visible = false
-    GamePage.Visible = true
-    Tab2Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-    Tab2Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Tab1Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    Tab1Btn.TextColor3 = Color3.fromRGB(170, 170, 170)
-end)
-
-----------------------------------------------------
--- CONFIGURACIÓN
-----------------------------------------------------
-local speedEnabled = false
-local currentSpeed = 16
-local originalWalkSpeed = nil
-
-local jumpEnabled = false
-local currentJump = 50
-local originalUseJumpPower = nil
-local originalJumpPower = nil
-
-local noClipEnabled = false
-local infiniteJumpEnabled = false
-local antiLagEnabled = false
-
-local function createLabel(parent, text)
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = parent
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1, 0, 0, 20)
-    lbl.Font = Enum.Font.GothamSemibold
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    lbl.TextSize = 12
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    return lbl
-end
-
-createLabel(ConfigPage, "Velocidad Normal:")
-local speedBox = Instance.new("TextBox")
-speedBox.Parent = ConfigPage
-speedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-speedBox.Size = UDim2.new(1, 0, 0, 30)
-speedBox.Font = Enum.Font.Gotham
-speedBox.PlaceholderText = "Ej. 16"
-speedBox.Text = ""
-speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedBox.TextSize = 12
-Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 4)
-
-speedBox.FocusLost:Connect(function()
-    local val = tonumber(speedBox.Text)
-    if val then
-        currentSpeed = math.clamp(val, 1, 500)
-        speedBox.Text = tostring(currentSpeed)
-    end
-end)
-
-local speedToggle = Instance.new("TextButton")
-speedToggle.Parent = ConfigPage
-speedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-speedToggle.Size = UDim2.new(1, 0, 0, 30)
-speedToggle.Font = Enum.Font.GothamBold
-speedToggle.Text = "Activar Velocidad: OFF"
-speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-speedToggle.TextSize = 12
-Instance.new("UICorner", speedToggle).CornerRadius = UDim.new(0, 4)
-
-speedToggle.MouseButton1Click:Connect(function()
-    speedEnabled = not speedEnabled
-    local char = player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if speedEnabled then
-        if hum then originalWalkSpeed = hum.WalkSpeed end
-        speedToggle.Text = "Activar Velocidad: ON"
-        speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        speedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        if hum and originalWalkSpeed then hum.WalkSpeed = originalWalkSpeed end
-        speedToggle.Text = "Activar Velocidad: OFF"
-        speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        speedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
-
-createLabel(ConfigPage, "Potencia de Salto (1 - 500):")
-local jumpBox = Instance.new("TextBox")
-jumpBox.Parent = ConfigPage
-jumpBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-jumpBox.Size = UDim2.new(1, 0, 0, 30)
-jumpBox.Font = Enum.Font.Gotham
-jumpBox.PlaceholderText = "Ej. 50"
-jumpBox.Text = ""
-jumpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-jumpBox.TextSize = 12
-Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 4)
-
-jumpBox.FocusLost:Connect(function()
-    local val = tonumber(jumpBox.Text)
-    if val then
-        currentJump = math.clamp(val, 1, 500)
-        jumpBox.Text = tostring(currentJump)
-    end
-end)
-
-local jumpToggle = Instance.new("TextButton")
-jumpToggle.Parent = ConfigPage
-jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-jumpToggle.Size = UDim2.new(1, 0, 0, 30)
-jumpToggle.Font = Enum.Font.GothamBold
-jumpToggle.Text = "Activar Salto: OFF"
-jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-jumpToggle.TextSize = 12
-Instance.new("UICorner", jumpToggle).CornerRadius = UDim.new(0, 4)
-
-jumpToggle.MouseButton1Click:Connect(function()
-    jumpEnabled = not jumpEnabled
-    local char = player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    if jumpEnabled then
-        if hum then
-            originalUseJumpPower = hum.UseJumpPower
-            originalJumpPower = hum.JumpPower
+    noclipBtn.MouseButton1Click:Connect(function()
+        noClipEnabled = not noClipEnabled
+        if noClipEnabled then
+            noclipBtn.Text = "NoClip Global: ON"
+            noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+            noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        else
+            noclipBtn.Text = "NoClip Global: OFF"
+            noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+            noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
         end
-        jumpToggle.Text = "Activar Salto: ON"
-        jumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        jumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        if hum then
-            if originalUseJumpPower ~= nil then hum.UseJumpPower = originalUseJumpPower end
-            if originalJumpPower ~= nil then hum.JumpPower = originalJumpPower end
-        end
-        jumpToggle.Text = "Activar Salto: OFF"
-        jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        jumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
+    end)
 
-local infJumpToggle = Instance.new("TextButton")
-infJumpToggle.Parent = ConfigPage
-infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-infJumpToggle.Size = UDim2.new(1, 0, 0, 30)
-infJumpToggle.Font = Enum.Font.GothamBold
-infJumpToggle.Text = "Salto Infinito: OFF"
-infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-infJumpToggle.TextSize = 12
-Instance.new("UICorner", infJumpToggle).CornerRadius = UDim.new(0, 4)
+    local antiLagToggle = Instance.new("TextButton")
+    antiLagToggle.Parent = ConfigPage
+    antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    antiLagToggle.Size = UDim2.new(1, 0, 0, 35)
+    antiLagToggle.Font = Enum.Font.GothamBold
+    antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
+    antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    antiLagToggle.TextSize = 14
+    Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 6)
+    local originalMaterials = {}
 
-infJumpToggle.MouseButton1Click:Connect(function()
-    infiniteJumpEnabled = not infiniteJumpEnabled
-    if infiniteJumpEnabled then
-        infJumpToggle.Text = "Salto Infinito: ON"
-        infJumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        infJumpToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        infJumpToggle.Text = "Salto Infinito: OFF"
-        infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        infJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if infiniteJumpEnabled then
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-        end
-    end
-end)
-
-local noclipBtn = Instance.new("TextButton")
-noclipBtn.Parent = ConfigPage
-noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-noclipBtn.Size = UDim2.new(1, 0, 0, 30)
-noclipBtn.Font = Enum.Font.GothamBold
-noclipBtn.Text = "NoClip Global: OFF"
-noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-noclipBtn.TextSize = 12
-Instance.new("UICorner", noclipBtn).CornerRadius = UDim.new(0, 4)
-
-noclipBtn.MouseButton1Click:Connect(function()
-    noClipEnabled = not noClipEnabled
-    if noClipEnabled then
-        noclipBtn.Text = "NoClip Global: ON"
-        noclipBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        noclipBtn.Text = "NoClip Global: OFF"
-        noclipBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-        noclipBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
-
-local antiLagToggle = Instance.new("TextButton")
-antiLagToggle.Parent = ConfigPage
-antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-antiLagToggle.Size = UDim2.new(1, 0, 0, 30)
-antiLagToggle.Font = Enum.Font.GothamBold
-antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
-antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-antiLagToggle.TextSize = 11
-Instance.new("UICorner", antiLagToggle).CornerRadius = UDim.new(0, 4)
-
-local originalMaterials = {}
-
-antiLagToggle.MouseButton1Click:Connect(function()
-    antiLagEnabled = not antiLagEnabled
-    if antiLagEnabled then
-        antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: ON"
-        antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-        task.spawn(function()
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                local nameLower = string.lower(obj.Name)
-                if nameLower == "floatfolder" or string.find(obj.Name, "Keycap", 1, true) then
-                    obj:Destroy()
-                else
-                    if obj:IsA("BasePart") then
+    antiLagToggle.MouseButton1Click:Connect(function()
+        antiLagEnabled = not antiLagEnabled
+        if antiLagEnabled then
+            antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: ON"
+            antiLagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            antiLagToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+            task.spawn(function()
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    if obj.Name == "FloatFolder" or string.find(obj.Name, "Keycap", 1, true) then
+                        obj:Destroy()
+                    elseif obj:IsA("BasePart") then
                         if not originalMaterials[obj] then originalMaterials[obj] = obj.Material end
                         obj.Material = Enum.Material.SmoothPlastic
                     end
                 end
-            end
-        end)
-    else
-        antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
-        antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        task.spawn(function()
-            for obj, mat in pairs(originalMaterials) do
-                if obj and obj.Parent then obj.Material = mat end
-            end
-        end)
-    end
-end)
+            end)
+        else
+            antiLagToggle.Text = "Anti-Lag Extremo & Key Caps: OFF"
+            antiLagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            antiLagToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            task.spawn(function()
+                for obj, mat in pairs(originalMaterials) do
+                    if obj and obj.Parent then obj.Material = mat end
+                end
+            end)
+        end
+    end)
 
-RunService.Stepped:Connect(function()
-    local char = player.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            if speedEnabled then hum.WalkSpeed = currentSpeed end
-            if jumpEnabled then 
-                hum.UseJumpPower = true
-                hum.JumpPower = currentJump 
+    RunService.Stepped:Connect(function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                if speedEnabled then hum.WalkSpeed = currentSpeed end
+                if jumpEnabled then hum.UseJumpPower = true; hum.JumpPower = currentJump end
+            end
+            if noClipEnabled then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
             end
         end
-        if noClipEnabled then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
+    end)
+
+    ----------------------------------------------------
+    -- GRABADOR Y REPRODUCTOR DINÁMICO
+    ----------------------------------------------------
+    createLabel(GamePage, "Seleccionar WinBlock:")
+
+    local winsContainer = Instance.new("Frame")
+    winsContainer.Parent = GamePage
+    winsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    winsContainer.Size = UDim2.new(1, 0, 0, 40)
+    winsContainer.BorderSizePixel = 0
+    Instance.new("UICorner", winsContainer).CornerRadius = UDim.new(0, 6)
+
+    local winsText = Instance.new("TextLabel")
+    winsText.Parent = winsContainer
+    winsText.BackgroundTransparency = 1
+    winsText.Position = UDim2.new(0, 12, 0, 0)
+    winsText.Size = UDim2.new(1, -45, 1, 0)
+    winsText.Font = Enum.Font.GothamBold
+    winsText.Text = "Wins"
+    winsText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    winsText.TextSize = 14
+    winsText.TextXAlignment = Enum.TextXAlignment.Left
+
+    local winsArrowBtn = Instance.new("TextButton")
+    winsArrowBtn.Parent = winsContainer
+    winsArrowBtn.BackgroundTransparency = 1
+    winsArrowBtn.Position = UDim2.new(1, -35, 0, 0)
+    winsArrowBtn.Size = UDim2.new(0, 35, 1, 0)
+    winsArrowBtn.Font = Enum.Font.GothamBold
+    winsArrowBtn.Text = ">"
+    winsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    winsArrowBtn.TextSize = 16
+
+    local winsSidebar = Instance.new("ScrollingFrame")
+    winsSidebar.Parent = GamePage
+    winsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
+    winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+    winsSidebar.Visible = false
+    winsSidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    winsSidebar.ScrollBarThickness = 4
+    Instance.new("UICorner", winsSidebar).CornerRadius = UDim.new(0, 6)
+
+    local UIListWinsSidebar = Instance.new("UIListLayout")
+    UIListWinsSidebar.Parent = winsSidebar
+    UIListWinsSidebar.Padding = UDim.new(0, 5)
+
+    local currentSelectedWinBlock = "WinBlock1"
+
+    -- TEXTO DE ESTADO INMEDIATAMENTE ABAJO DEL SELECTOR
+    local chosenRecLabel = Instance.new("TextLabel")
+    chosenRecLabel.Parent = GamePage
+    chosenRecLabel.BackgroundTransparency = 1
+    chosenRecLabel.Size = UDim2.new(1, 0, 0, 24)
+    chosenRecLabel.Font = Enum.Font.GothamSemibold
+    chosenRecLabel.Text = "recorrido escogido: Ninguno"
+    chosenRecLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
+    chosenRecLabel.TextSize = 13
+    chosenRecLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local function buildWinBlocksUI()
+        for _, child in pairs(winsSidebar:GetChildren()) do
+            if child:IsA("TextButton") then child:Destroy() end
         end
-    end
-end)
-
-----------------------------------------------------
--- GAMEPLAY & REPRODUCTOR DE WINS
-----------------------------------------------------
-local winsContainer = Instance.new("Frame")
-winsContainer.Parent = GamePage
-winsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-winsContainer.Size = UDim2.new(1, 0, 0, 35)
-winsContainer.BorderSizePixel = 0
-Instance.new("UICorner", winsContainer).CornerRadius = UDim.new(0, 4)
-
-local winsText = Instance.new("TextLabel")
-winsText.Parent = winsContainer
-winsText.BackgroundTransparency = 1
-winsText.Position = UDim2.new(0, 10, 0, 0)
-winsText.Size = UDim2.new(1, -40, 1, 0)
-winsText.Font = Enum.Font.GothamBold
-winsText.Text = "Wins"
-winsText.TextColor3 = Color3.fromRGB(255, 255, 255)
-winsText.TextSize = 12
-winsText.TextXAlignment = Enum.TextXAlignment.Left
-
-local winsArrowBtn = Instance.new("TextButton")
-winsArrowBtn.Parent = winsContainer
-winsArrowBtn.BackgroundTransparency = 1
-winsArrowBtn.Position = UDim2.new(1, -30, 0, 0)
-winsArrowBtn.Size = UDim2.new(0, 30, 1, 0)
-winsArrowBtn.Font = Enum.Font.GothamBold
-winsArrowBtn.Text = ">"
-winsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-winsArrowBtn.TextSize = 14
-
-local winsSidebar = Instance.new("ScrollingFrame")
-winsSidebar.Parent = GamePage
-winsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-winsSidebar.Size = UDim2.new(1, 0, 0, 0)
-winsSidebar.Visible = false
-winsSidebar.CanvasSize = UDim2.new(0, 0, 0, 0)
-winsSidebar.ScrollBarThickness = 4
-Instance.new("UICorner", winsSidebar).CornerRadius = UDim.new(0, 4)
-
-local UIListWinsSidebar = Instance.new("UIListLayout")
-UIListWinsSidebar.Parent = winsSidebar
-UIListWinsSidebar.SortOrder = Enum.SortOrder.LayoutOrder
-UIListWinsSidebar.Padding = UDim.new(0, 5)
-
-local currentSelectedRecording = nil
-
-local chosenRecLabel = Instance.new("TextLabel")
-chosenRecLabel.Parent = GamePage
-chosenRecLabel.BackgroundTransparency = 1
-chosenRecLabel.Size = UDim2.new(1, 0, 0, 20)
-chosenRecLabel.Font = Enum.Font.GothamSemibold
-chosenRecLabel.Text = "recorrido escogido: Ninguno"
-chosenRecLabel.TextColor3 = Color3.fromRGB(150, 255, 150)
-chosenRecLabel.TextSize = 12
-chosenRecLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-local function updateWinsSidebarUI()
-    for _, child in pairs(winsSidebar:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    
-    local count = 0
-    for recName, _ in pairs(_G.RecordedPaths) do
-        count = count + 1
-        local btn = Instance.new("TextButton")
-        btn.Parent = winsSidebar
-        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-        btn.Size = UDim2.new(1, -10, 0, 25)
-        btn.Font = Enum.Font.Gotham
-        btn.Text = recName
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 11
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
         
-        btn.MouseButton1Click:Connect(function()
-            currentSelectedRecording = recName
-            chosenRecLabel.Text = "recorrido escogido: " .. recName
+        local winBlocks = {}
+        for i = 1, 14 do table.insert(winBlocks, "WinBlock" .. i) end
+
+        for _, wbName in ipairs(winBlocks) do
+            local btn = Instance.new("TextButton")
+            btn.Parent = winsSidebar
+            btn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Font = Enum.Font.Gotham
+            btn.Text = wbName
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.TextSize = 13
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            
+            btn.MouseButton1Click:Connect(function()
+                currentSelectedWinBlock = wbName
+                winsText.Text = wbName
+                chosenRecLabel.Text = "recorrido escogido: " .. wbName
+                winsSidebar.Visible = false
+                winsSidebar.Size = UDim2.new(1, 0, 0, 0)
+                winsArrowBtn.Text = ">"
+            end)
+        end
+        winsSidebar.CanvasSize = UDim2.new(0, 0, 0, #winBlocks * 35)
+    end
+
+    winsArrowBtn.MouseButton1Click:Connect(function()
+        local isOpen = winsSidebar.Visible
+        if not isOpen then
+            buildWinBlocksUI()
+            winsSidebar.Visible = true
+            winsSidebar.Size = UDim2.new(1, 0, 0, 180)
+            winsArrowBtn.Text = "v"
+        else
             winsSidebar.Visible = false
             winsSidebar.Size = UDim2.new(1, 0, 0, 0)
             winsArrowBtn.Text = ">"
+        end
+    end)
+    buildWinBlocksUI()
+
+    local playbackSpeedLimit = 200
+    local playbackSpeedLabel = createLabel(GamePage, "Velocidad del recorrido (Max: 200):")
+    local playbackSpeedBox = Instance.new("TextBox")
+    playbackSpeedBox.Parent = GamePage
+    playbackSpeedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    playbackSpeedBox.Size = UDim2.new(1, 0, 0, 35)
+    playbackSpeedBox.Font = Enum.Font.Gotham
+    playbackSpeedBox.Text = "100"
+    playbackSpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playbackSpeedBox.TextSize = 14
+    Instance.new("UICorner", playbackSpeedBox).CornerRadius = UDim.new(0, 6)
+
+    local playbackSpeedValue = 100
+    playbackSpeedBox.FocusLost:Connect(function()
+        local val = tonumber(playbackSpeedBox.Text)
+        if val then
+            playbackSpeedValue = math.clamp(val, 1, playbackSpeedLimit)
+            playbackSpeedBox.Text = tostring(playbackSpeedValue)
+        end
+    end)
+
+    local safeSpeedToggle = Instance.new("TextButton")
+    safeSpeedToggle.Parent = GamePage
+    safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    safeSpeedToggle.Size = UDim2.new(1, 0, 0, 35)
+    safeSpeedToggle.Font = Enum.Font.GothamBold
+    safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
+    safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    safeSpeedToggle.TextSize = 14
+    Instance.new("UICorner", safeSpeedToggle).CornerRadius = UDim.new(0, 6)
+
+    safeSpeedToggle.MouseButton1Click:Connect(function()
+        if playbackSpeedLimit == 200 then
+            playbackSpeedLimit = 400
+            safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): ON"
+            safeSpeedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+            playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 400):"
+        else
+            playbackSpeedLimit = 200
+            safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
+            safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 200):"
+            if playbackSpeedValue > 200 then
+                playbackSpeedValue = 200
+                playbackSpeedBox.Text = "200"
+            end
+        end
+    end)
+
+    createLabel(GamePage, "Delay entre recorridos (0 - 10 seg):")
+    local delayBox = Instance.new("TextBox")
+    delayBox.Parent = GamePage
+    delayBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    delayBox.Size = UDim2.new(1, 0, 0, 35)
+    delayBox.Font = Enum.Font.Gotham
+    delayBox.Text = "2"
+    delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    delayBox.TextSize = 14
+    Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 6)
+    local delayValue = 2
+    delayBox.FocusLost:Connect(function()
+        local val = tonumber(delayBox.Text)
+        if val then delayValue = math.clamp(val, 0, 10); delayBox.Text = tostring(delayValue) end
+    end)
+
+    local loopToggle = Instance.new("TextButton")
+    loopToggle.Parent = GamePage
+    loopToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    loopToggle.Size = UDim2.new(1, 0, 0, 35)
+    loopToggle.Font = Enum.Font.GothamBold
+    loopToggle.Text = "Correr Indefinidamente: OFF"
+    loopToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    loopToggle.TextSize = 14
+    Instance.new("UICorner", loopToggle).CornerRadius = UDim.new(0, 6)
+
+    local loopEnabled = false
+    loopToggle.MouseButton1Click:Connect(function()
+        loopEnabled = not loopEnabled
+        if loopEnabled then
+            loopToggle.Text = "Correr Indefinidamente: ON"
+            loopToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+            loopToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        else
+            loopToggle.Text = "Correr Indefinidamente: OFF"
+            loopToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+            loopToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        end
+    end)
+
+    playbackStatus = "STOPPED"
+    local autoNoclipConnection
+    local customNoclipActive = true
+
+    local playBtn = Instance.new("TextButton")
+    playBtn.Parent = GamePage
+    playBtn.BackgroundColor3 = Color3.fromRGB(40, 90, 40)
+    playBtn.Size = UDim2.new(1, 0, 0, 38)
+    playBtn.Font = Enum.Font.GothamBold
+    playBtn.Text = "iniciar recorrido"
+    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    playBtn.TextSize = 14
+    Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0, 6)
+
+    local stopRecBtn = Instance.new("TextButton")
+    stopRecBtn.Parent = GamePage
+    stopRecBtn.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
+    stopRecBtn.Size = UDim2.new(1, 0, 0, 38)
+    stopRecBtn.Font = Enum.Font.GothamBold
+    stopRecBtn.Text = "terminar recorrido"
+    stopRecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    stopRecBtn.TextSize = 14
+    Instance.new("UICorner", stopRecBtn).CornerRadius = UDim.new(0, 6)
+
+    local function stopPlaybackCleanup()
+        playbackStatus = "STOPPED"
+        customNoclipActive = true
+        if autoNoclipConnection then
+            autoNoclipConnection:Disconnect()
+            autoNoclipConnection = nil
+        end
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = false end
+        end
+    end
+
+    local function executePlayback()
+        if playbackStatus == "PLAYING" or playbackStatus == "PAUSED" then return end
+        
+        local pathData = _G.RecordedPath
+        if not pathData or #pathData == 0 then return end
+
+        playbackStatus = "PLAYING"
+        customNoclipActive = true
+        
+        local char = player.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+        local hum = char:FindFirstChildOfClass("Humanoid")
+
+        local firstPoint = pathData[1]
+        hrp.CFrame = CFrame.new((typeof(firstPoint) == "Vector3") and firstPoint or firstPoint.Position)
+        task.wait(0.05)
+
+        autoNoclipConnection = RunService.Stepped:Connect(function()
+            if (playbackStatus == "PLAYING" or playbackStatus == "PAUSED") and char and customNoclipActive then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then part.CanCollide = false end
+                end
+            end
+        end)
+
+        if hum then hum.PlatformStand = true end
+
+        local targetWinBlock = Workspace:FindFirstChild(currentSelectedWinBlock, true)
+        local stopIndex = #pathData
+        local foundTarget = false
+
+        if targetWinBlock then
+            stopIndex = getClosestPointIndex(pathData, targetWinBlock.Position)
+            foundTarget = true
+        else
+            task.spawn(function()
+                while playbackStatus == "PLAYING" and not foundTarget do
+                    task.wait(0.5)
+                    local wb = Workspace:FindFirstChild(currentSelectedWinBlock, true)
+                    if wb then
+                        targetWinBlock = wb
+                        stopIndex = getClosestPointIndex(pathData, wb.Position)
+                        foundTarget = true
+                        break
+                    end
+                end
+            end)
+        end
+
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Velocity = Vector3.new(0, 0, 0)
+        bodyVel.Parent = hrp
+
+        task.spawn(function()
+            local currentIndex = 1
+
+            while playbackStatus == "PLAYING" or playbackStatus == "PAUSED" do
+                if playbackStatus == "PAUSED" then 
+                    bodyVel.Velocity = Vector3.new(0, 0, 0)
+                    task.wait(0.1) 
+                    continue 
+                end
+
+                while currentIndex <= stopIndex and playbackStatus == "PLAYING" do
+                    local point = pathData[currentIndex]
+                    local targetPos = (typeof(point) == "Vector3") and point or point.Position
+                    
+                    if hrp then
+                        local currentSpeedVal = math.clamp(playbackSpeedValue, 1, playbackSpeedLimit)
+                        while playbackStatus == "PLAYING" and hrp and (hrp.Position - targetPos).Magnitude > 3 do
+                            local direction = (targetPos - hrp.Position).Unit
+                            bodyVel.Velocity = direction * currentSpeedVal
+                            RunService.RenderStepped:Wait()
+                        end
+                    end
+                    currentIndex = currentIndex + 1
+                end
+
+                if playbackStatus == "PLAYING" then
+                    bodyVel.Velocity = Vector3.new(0, 0, 0)
+                    bodyVel:Destroy()
+                    bodyVel = nil
+                    customNoclipActive = false
+                    if hum then hum.PlatformStand = false end
+
+                    if hrp then
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+
+                    if foundTarget and targetWinBlock then
+                        local dist = (hrp.Position - targetWinBlock.Position).Magnitude
+                        local tweenTime = math.clamp(dist / 200, 0.5, 3)
+                        local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+                        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = targetWinBlock.CFrame + Vector3.new(0, 3, 0)})
+                        tween:Play()
+                        tween.Completed:Wait()
+                    end
+
+                    task.wait(0.5)
+
+                    if playbackStatus == "PLAYING" and loopEnabled then
+                        currentIndex = 1
+                        foundTarget = false
+                        targetWinBlock = Workspace:FindFirstChild(currentSelectedWinBlock, true)
+                        
+                        if targetWinBlock then
+                            stopIndex = getClosestPointIndex(pathData, targetWinBlock.Position)
+                            foundTarget = true
+                        else
+                            stopIndex = #pathData
+                            task.spawn(function()
+                                while playbackStatus == "PLAYING" and not foundTarget do
+                                    task.wait(0.5)
+                                    local wb = Workspace:FindFirstChild(currentSelectedWinBlock, true)
+                                    if wb then
+                                        targetWinBlock = wb
+                                        stopIndex = getClosestPointIndex(pathData, wb.Position)
+                                        foundTarget = true
+                                        break
+                                    end
+                                end
+                            end)
+                        end
+
+                        if hum then hum.PlatformStand = true end
+                        if hrp and not bodyVel then
+                            bodyVel = Instance.new("BodyVelocity")
+                            bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bodyVel.Velocity = Vector3.new(0, 0, 0)
+                            bodyVel.Parent = hrp
+                        end
+                    end
+                end
+
+                if not loopEnabled or playbackStatus ~= "PLAYING" then break end
+
+                if playbackStatus == "PLAYING" then
+                    if delayValue > 0 then task.wait(delayValue) else task.wait(0.2) end
+                    local nextFirstPoint = pathData[1]
+                    local nextStartPos = (typeof(nextFirstPoint) == "Vector3") and nextFirstPoint or nextFirstPoint.Position
+                    if hrp then
+                        hrp.CFrame = CFrame.new(nextStartPos)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+                    task.wait(0.1)
+                end
+                customNoclipActive = true
+            end
+
+            if bodyVel then bodyVel:Destroy() end
+            if playbackStatus ~= "PAUSED" then stopPlaybackCleanup() end
         end)
     end
-    winsSidebar.CanvasSize = UDim2.new(0, 0, 0, count * 30)
-end
 
-winsArrowBtn.MouseButton1Click:Connect(function()
-    local isOpen = winsSidebar.Visible
-    if not isOpen then
-        updateWinsSidebarUI()
-        winsSidebar.Visible = true
-        winsSidebar.Size = UDim2.new(1, 0, 0, 160)
-        winsArrowBtn.Text = "v"
-    else
-        winsSidebar.Visible = false
-        winsSidebar.Size = UDim2.new(1, 0, 0, 0)
-        winsArrowBtn.Text = ">"
-    end
-end)
-
-local playbackSpeedLimit = 200
-
-local playbackSpeedLabel = createLabel(GamePage, "Velocidad del recorrido (Max: 200):")
-local playbackSpeedBox = Instance.new("TextBox")
-playbackSpeedBox.Parent = GamePage
-playbackSpeedBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-playbackSpeedBox.Size = UDim2.new(1, 0, 0, 30)
-playbackSpeedBox.Font = Enum.Font.Gotham
-playbackSpeedBox.Text = "100"
-playbackSpeedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-playbackSpeedBox.TextSize = 12
-Instance.new("UICorner", playbackSpeedBox).CornerRadius = UDim.new(0, 4)
-
-local playbackSpeedValue = 100
-playbackSpeedBox.FocusLost:Connect(function()
-    local val = tonumber(playbackSpeedBox.Text)
-    if val then
-        playbackSpeedValue = math.clamp(val, 1, playbackSpeedLimit)
-        playbackSpeedBox.Text = tostring(playbackSpeedValue)
-    else
-        playbackSpeedBox.Text = tostring(playbackSpeedValue)
-    end
-end)
-
-local safeSpeedToggle = Instance.new("TextButton")
-safeSpeedToggle.Parent = GamePage
-safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-safeSpeedToggle.Size = UDim2.new(1, 0, 0, 30)
-safeSpeedToggle.Font = Enum.Font.GothamBold
-safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
-safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-safeSpeedToggle.TextSize = 11
-Instance.new("UICorner", safeSpeedToggle).CornerRadius = UDim.new(0, 4)
-
-safeSpeedToggle.MouseButton1Click:Connect(function()
-    if playbackSpeedLimit == 200 then
-        playbackSpeedLimit = 400
-        safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): ON"
-        safeSpeedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-        playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 400):"
-    else
-        playbackSpeedLimit = 200
-        safeSpeedToggle.Text = "Modo Extremo Recorrido (Max 400): OFF"
-        safeSpeedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        safeSpeedToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-        playbackSpeedLabel.Text = "Velocidad del recorrido (Max: 200):"
-        if playbackSpeedValue > 200 then
-            playbackSpeedValue = 200
-            playbackSpeedBox.Text = "200"
-        end
-    end
-end)
-
-createLabel(GamePage, "Delay entre recorridos (0 - 10 seg):")
-local delayBox = Instance.new("TextBox")
-delayBox.Parent = GamePage
-delayBox.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-delayBox.Size = UDim2.new(1, 0, 0, 30)
-delayBox.Font = Enum.Font.Gotham
-delayBox.Text = "2"
-delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-delayBox.TextSize = 12
-Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 4)
-
-local delayValue = 2
-delayBox.FocusLost:Connect(function()
-    local val = tonumber(delayBox.Text)
-    if val then
-        delayValue = math.clamp(val, 0, 10)
-        delayBox.Text = tostring(delayValue)
-    else
-        delayBox.Text = tostring(delayValue)
-    end
-end)
-
-local loopToggle = Instance.new("TextButton")
-loopToggle.Parent = GamePage
-loopToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-loopToggle.Size = UDim2.new(1, 0, 0, 30)
-loopToggle.Font = Enum.Font.GothamBold
-loopToggle.Text = "Correr Indefinidamente: OFF"
-loopToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-loopToggle.TextSize = 12
-Instance.new("UICorner", loopToggle).CornerRadius = UDim.new(0, 4)
-
-local loopEnabled = false
-loopToggle.MouseButton1Click:Connect(function()
-    loopEnabled = not loopEnabled
-    if loopEnabled then
-        loopToggle.Text = "Correr Indefinidamente: ON"
-        loopToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        loopToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        loopToggle.Text = "Correr Indefinidamente: OFF"
-        loopToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        loopToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
-
-local autoCoinsSelected = false
-local autoKeysSelected = false
-
-local autoItemsContainer = Instance.new("Frame")
-autoItemsContainer.Parent = GamePage
-autoItemsContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-autoItemsContainer.Size = UDim2.new(1, 0, 0, 35)
-autoItemsContainer.BorderSizePixel = 0
-Instance.new("UICorner", autoItemsContainer).CornerRadius = UDim.new(0, 4)
-
-local autoItemsText = Instance.new("TextLabel")
-autoItemsText.Parent = autoItemsContainer
-autoItemsText.BackgroundTransparency = 1
-autoItemsText.Position = UDim2.new(0, 10, 0, 0)
-autoItemsText.Size = UDim2.new(1, -40, 1, 0)
-autoItemsText.Font = Enum.Font.GothamBold
-autoItemsText.Text = "Auto Items (Seleccionar)"
-autoItemsText.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoItemsText.TextSize = 12
-autoItemsText.TextXAlignment = Enum.TextXAlignment.Left
-
-local autoItemsArrowBtn = Instance.new("TextButton")
-autoItemsArrowBtn.Parent = autoItemsContainer
-autoItemsArrowBtn.BackgroundTransparency = 1
-autoItemsArrowBtn.Position = UDim2.new(1, -30, 0, 0)
-autoItemsArrowBtn.Size = UDim2.new(0, 30, 1, 0)
-autoItemsArrowBtn.Font = Enum.Font.GothamBold
-autoItemsArrowBtn.Text = ">"
-autoItemsArrowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-autoItemsArrowBtn.TextSize = 14
-
-local autoItemsSidebar = Instance.new("ScrollingFrame")
-autoItemsSidebar.Parent = GamePage
-autoItemsSidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
-autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
-autoItemsSidebar.Visible = false
-autoItemsSidebar.CanvasSize = UDim2.new(0, 0, 0, 70)
-autoItemsSidebar.ScrollBarThickness = 4
-Instance.new("UICorner", autoItemsSidebar).CornerRadius = UDim.new(0, 4)
-
-local UIListAutoItems = Instance.new("UIListLayout")
-UIListAutoItems.Parent = autoItemsSidebar
-UIListAutoItems.SortOrder = Enum.SortOrder.LayoutOrder
-UIListAutoItems.Padding = UDim.new(0, 5)
-
-local btnCoins = Instance.new("TextButton")
-btnCoins.Parent = autoItemsSidebar
-btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-btnCoins.Size = UDim2.new(1, -10, 0, 25)
-btnCoins.Font = Enum.Font.Gotham
-btnCoins.Text = "Auto Summer Coins"
-btnCoins.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnCoins.TextSize = 11
-Instance.new("UICorner", btnCoins).CornerRadius = UDim.new(0, 4)
-
-local btnKeys = Instance.new("TextButton")
-btnKeys.Parent = autoItemsSidebar
-btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
-btnKeys.Size = UDim2.new(1, -10, 0, 25)
-btnKeys.Font = Enum.Font.Gotham
-btnKeys.Text = "Auto Special Keys"
-btnKeys.TextColor3 = Color3.fromRGB(255, 255, 255)
-btnKeys.TextSize = 11
-Instance.new("UICorner", btnKeys).CornerRadius = UDim.new(0, 4)
-
-btnCoins.MouseButton1Click:Connect(function()
-    autoCoinsSelected = not autoCoinsSelected
-    if autoCoinsSelected then btnCoins.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    else btnCoins.BackgroundColor3 = Color3.fromRGB(45, 45, 55) end
-end)
-
-btnKeys.MouseButton1Click:Connect(function()
-    autoKeysSelected = not autoKeysSelected
-    if autoKeysSelected then btnKeys.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    else btnKeys.BackgroundColor3 = Color3.fromRGB(45, 45, 55) end
-end)
-
-autoItemsArrowBtn.MouseButton1Click:Connect(function()
-    local isOpen = autoItemsSidebar.Visible
-    if not isOpen then
-        autoItemsSidebar.Visible = true
-        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 70)
-        autoItemsArrowBtn.Text = "v"
-    else
-        autoItemsSidebar.Visible = false
-        autoItemsSidebar.Size = UDim2.new(1, 0, 0, 0)
-        autoItemsArrowBtn.Text = ">"
-    end
-end)
-
-local autoGlobalToggle = Instance.new("TextButton")
-autoGlobalToggle.Parent = GamePage
-autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-autoGlobalToggle.Size = UDim2.new(1, 0, 0, 30)
-autoGlobalToggle.Font = Enum.Font.GothamBold
-autoGlobalToggle.Text = "Auto: OFF"
-autoGlobalToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-autoGlobalToggle.TextSize = 12
-Instance.new("UICorner", autoGlobalToggle).CornerRadius = UDim.new(0, 4)
-
-local autoGlobalEnabled = false
-autoGlobalToggle.MouseButton1Click:Connect(function()
-    autoGlobalEnabled = not autoGlobalEnabled
-    if autoGlobalEnabled then
-        autoGlobalToggle.Text = "Auto: ON"
-        autoGlobalToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
-    else
-        autoGlobalToggle.Text = "Auto: OFF"
-        autoGlobalToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        autoGlobalToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end
-end)
-
-local collectedCoinsPositions = {}
-local collectedKeysPositions = {}
-local isCollectingItemsNow = false
-
-task.spawn(function()
-    while true do
-        if not autoGlobalEnabled then
-            task.wait(0.5)
-        else
-            local hasTargets = (#collectedCoinsPositions > 0 and autoCoinsSelected) or (#collectedKeysPositions > 0 and autoKeysSelected)
-            if hasTargets then task.wait(0.2) else task.wait(10) end
-            
-            if autoGlobalEnabled then
-                local char = player.Character
-                local hrp = char and char:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if autoCoinsSelected then
-                        for _, obj in pairs(Workspace:GetDescendants()) do
-                            if obj.Name == "SummerCoin" then
-                                local targetPart = obj:IsA("BasePart") and obj or (obj:IsA("Model") and obj.PrimaryPart or obj:FindFirstChildOfClass("BasePart"))
-                                if targetPart then
-                                    local pos = targetPart.Position
-                                    if (hrp.Position - pos).Magnitude <= 100 then
-                                        local alreadySaved = false
-                                        for _, savedPos in ipairs(collectedCoinsPositions) do
-                                            if (savedPos - pos).Magnitude < 5 then alreadySaved = true break end
-                                        end
-                                        if not alreadySaved then table.insert(collectedCoinsPositions, pos) end
-                                    end
-                                end
-                            end
-                        end
-                    end
-
-                    if autoKeysSelected then
-                        for _, obj in pairs(Workspace:GetDescendants()) do
-                            if obj.Name == "SpecialKeys" or string.lower(obj.Name) == "specialkeys" then
-                                for _, item in pairs(obj:GetDescendants()) do
-                                    local targetPart = item:IsA("BasePart") and item or (item:IsA("Model") and item.PrimaryPart or item:FindFirstChildOfClass("BasePart"))
-                                    if targetPart then
-                                        local pos = targetPart.Position
-                                        if (hrp.Position - pos).Magnitude <= 150 then
-                                            local alreadySaved = false
-                                            for _, savedPos in ipairs(collectedKeysPositions) do
-                                                if (savedPos - pos).Magnitude < 5 then alreadySaved = true break end
-                                            end
-                                            if not alreadySaved then table.insert(collectedKeysPositions, pos) end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
-local function getSpawnPosition()
-    local spawnPos = todosLosPuntosGalaxia2[1]
-    if currentSelectedRecording and _G.RecordedPaths[currentSelectedRecording] then
-        local firstPt = _G.RecordedPaths[currentSelectedRecording][1]
-        spawnPos = (typeof(firstPt) == "Vector3") and firstPt or firstPt.Position
-    end
-    return spawnPos
-end
-
-local function processQueue(positionsList)
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    local spawnPos = getSpawnPosition()
-
-    for i = #positionsList, 1, -1 do
-        if not autoGlobalEnabled then break end
-        local itemPos = positionsList[i]
-        
-        if hrp and itemPos then
-            hrp.CFrame = CFrame.new(spawnPos)
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.2)
-
-            hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            task.wait(0.35)
-            
-            table.remove(positionsList, i)
-        end
-    end
-
-    if hrp then
-        hrp.CFrame = CFrame.new(spawnPos)
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-    end
-    task.wait(0.3)
-end
-
-playbackStatus = "STOPPED"
-local autoNoclipConnection
-local customNoclipActive = true
-
-local playBtn = Instance.new("TextButton")
-playBtn.Parent = GamePage
-playBtn.BackgroundColor3 = Color3.fromRGB(40, 90, 40)
-playBtn.Size = UDim2.new(1, 0, 0, 35)
-playBtn.Font = Enum.Font.GothamBold
-playBtn.Text = "iniciar recorrido"
-playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-playBtn.TextSize = 12
-Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0, 4)
-
-local stopRecBtn = Instance.new("TextButton")
-stopRecBtn.Parent = GamePage
-stopRecBtn.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
-stopRecBtn.Size = UDim2.new(1, 0, 0, 35)
-stopRecBtn.Font = Enum.Font.GothamBold
-stopRecBtn.Text = "terminar recorrido"
-stopRecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-stopRecBtn.TextSize = 12
-Instance.new("UICorner", stopRecBtn).CornerRadius = UDim.new(0, 4)
-
-local function stopPlaybackCleanup()
-    playbackStatus = "STOPPED"
-    customNoclipActive = true
-    if autoNoclipConnection then
-        autoNoclipConnection:Disconnect()
-        autoNoclipConnection = nil
-    end
-    local char = player.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp and hrp:FindFirstChildOfClass("BodyVelocity") then
-            hrp:FindFirstChildOfClass("BodyVelocity"):Destroy()
-        end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.PlatformStand = false end
-    end
-end
-
-local function executePlayback()
-    if not currentSelectedRecording then return end
-    if playbackStatus == "PLAYING" or playbackStatus == "PAUSED" then return end
-    
-    local pathData = _G.RecordedPaths[currentSelectedRecording]
-    if not pathData or #pathData == 0 then return end
-
-    playbackStatus = "PLAYING"
-    customNoclipActive = true
-    
-    local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
-    local hum = char:FindFirstChildOfClass("Humanoid")
-
-    local firstPoint = pathData[1]
-    hrp.CFrame = CFrame.new((typeof(firstPoint) == "Vector3") and firstPoint or firstPoint.Position)
-    task.wait(0.05)
-
-    autoNoclipConnection = RunService.Stepped:Connect(function()
-        if (playbackStatus == "PLAYING" or playbackStatus == "PAUSED") and char and customNoclipActive then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        end
+    playBtn.MouseButton1Click:Connect(function()
+        if playbackStatus == "STOPPED" then executePlayback() end
     end)
 
-    local bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bv.Velocity = Vector3.new(0, 0, 0)
-    bv.Parent = hrp
-
-    if hum then hum.PlatformStand = true end
-
-    task.spawn(function()
-        local jitterCounter = 0
-        local currentIndex = 1
-
-        while playbackStatus == "PLAYING" or playbackStatus == "PAUSED" do
-            if playbackStatus == "PAUSED" then task.wait(0.1) continue end
-
-            jitterCounter = jitterCounter + 1
-            local speedVariation = 0
-            if playbackSpeedValue > 10 then
-                local mod = jitterCounter % 5
-                if mod == 1 then speedVariation = 0
-                elseif mod == 2 then speedVariation = -10
-                elseif mod == 3 then speedVariation = -5
-                elseif mod == 4 then speedVariation = -3
-                else speedVariation = -8 end
-            end
-            
-            local activeSpeed = math.clamp(playbackSpeedValue + speedVariation, 1, playbackSpeedLimit)
-            local reachedEndNormal = false
-
-            while currentIndex <= #pathData and playbackStatus == "PLAYING" do
-                local point = pathData[currentIndex]
-                local targetPos = (typeof(point) == "Vector3") and point or point.Position
-                
-                if currentIndex == #pathData then
-                    targetPos = targetPos + Vector3.new(0, 5, 0)
-                end
-                
-                if hrp then
-                    while playbackStatus == "PLAYING" do
-                        local dt = RunService.RenderStepped:Wait()
-                        local currentPos = hrp.Position
-                        local distanceToTarget = (targetPos - currentPos).Magnitude
-                        local stepDistance = activeSpeed * dt
-                        
-                        if distanceToTarget <= stepDistance + 0.5 then
-                            hrp.CFrame = CFrame.new(targetPos)
-                            break
-                        else
-                            local direction = (targetPos - currentPos).Unit
-                            bv.Velocity = direction * activeSpeed
-                            hrp.CFrame = CFrame.new(currentPos, targetPos)
-                        end
-                    end
-                end
-                currentIndex = currentIndex + 1
-            end
-
-            if currentIndex > #pathData then reachedEndNormal = true end
-
-            if reachedEndNormal and playbackStatus == "PLAYING" then
-                if bv and bv.Parent then bv:Destroy() end
-                customNoclipActive = false
-                if hum then hum.PlatformStand = false end
-
-                if hrp then
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                end
-
-                -- BUSCAR Y TELEPORTAR AL WINBLOCK CORRESPONDIENTE AUTOMÁTICAMENTE
-                buscarYEjecutarWinBlock(currentSelectedRecording)
-
-                task.wait(0.5)
-                
-                if autoGlobalEnabled then
-                    local hasCoins = (#collectedCoinsPositions > 0) and autoCoinsSelected
-                    local hasKeys = (#collectedKeysPositions > 0) and autoKeysSelected
-                    if hasCoins or hasKeys then
-                        isCollectingItemsNow = true
-                        if hasCoins then processQueue(collectedCoinsPositions) end
-                        if hasKeys then processQueue(collectedKeysPositions) end
-                        isCollectingItemsNow = false
-                    end
-                end
-
-                if playbackStatus == "PLAYING" and loopEnabled then
-                    currentIndex = 1
-                    bv = Instance.new("BodyVelocity")
-                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                    bv.Velocity = Vector3.new(0, 0, 0)
-                    bv.Parent = hrp
-                    if hum then hum.PlatformStand = true end
-                end
-            end
-
-            if not loopEnabled or playbackStatus ~= "PLAYING" then break end
-
-            if playbackStatus == "PLAYING" then
-                if delayValue > 0 then task.wait(delayValue) else task.wait(0.2) end
-                
-                local nextFirstPoint = pathData[1]
-                local nextStartPos = (typeof(nextFirstPoint) == "Vector3") and nextFirstPoint or nextFirstPoint.Position
-                if hrp then
-                    hrp.CFrame = CFrame.new(nextStartPos)
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                end
-                task.wait(0.1)
-            end
-            customNoclipActive = true
-        end
-        if playbackStatus ~= "PAUSED" then stopPlaybackCleanup() end
+    stopRecBtn.MouseButton1Click:Connect(function()
+        stopPlaybackCleanup()
     end)
-end
-
-playBtn.MouseButton1Click:Connect(function()
-    if playbackStatus == "STOPPED" then executePlayback() end
-end)
-
-stopRecBtn.MouseButton1Click:Connect(function()
-    stopPlaybackCleanup()
-end)
-
-updateWinsSidebarUI()
 
 else
-    ----------------------------------------------------
-    -- MUNDO NORMAL / SCRIPT ORIGINAL DE TECLADO.LUA
-    ----------------------------------------------------
-    print("[Teclado.lua] Carga normal activada para el mapa base.")
-    -- AQUÍ PUEDES PONER TU SCRIPT ORIGINAL O DEJARLO VACÍO SI SOLO FUNCIONA EN GALAXIA 2
+    print("[Delta Hub] Carga normal activada para el mapa base.")
 end
