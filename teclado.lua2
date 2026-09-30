@@ -1,8 +1,7 @@
 -- ==========================================
--- DELTA HUB - SCRIPT FINAL CORREGIDO (NPC MODE & CAMERA NOCLIP)
+-- DELTA HUB - SCRIPT FINAL CORREGIDO (PLAYERGUI)
 -- ==========================================
 
-local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -11,31 +10,67 @@ local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 -- ==========================================
--- 0. LIMPIEZA INICIAL DE OBJETOS MOLESTOS
+-- 0. LIMPIEZA INICIAL DE OBJETOS Y LAVA (DE FÁBRICA)
 -- ==========================================
 local targetNamesToDestroy = {"ReversePad", "JumpWall", "EyesLaser", "Hitbox", "Tsunami1", "LavaTower", "ZonePad", "MeteorArea"}
 for _, obj in pairs(Workspace:GetDescendants()) do
     for _, name in ipairs(targetNamesToDestroy) do
         if obj.Name == name then
-            pcall(function()
-                obj:Destroy()
-            end)
+            pcall(function() obj:Destroy() end)
         end
     end
 end
 
--- Limpiar interfaz anterior si existe
-if CoreGui:FindFirstChild("DeltaHubMinimal") then
-    CoreGui.DeltaHubMinimal:Destroy()
+-- Borrar TouchInterests y desactivar CanTouch en objetos Lava / lava
+for _, obj in pairs(Workspace:GetDescendants()) do
+    local lowerName = string.lower(obj.Name)
+    if lowerName == "lava" then
+        pcall(function()
+            for _, child in pairs(obj:GetChildren()) do
+                if child.ClassName == "TouchInterest" then
+                    child:Destroy()
+                end
+            end
+            if obj:IsA("BasePart") then
+                obj.CanTouch = false
+            end
+        end)
+    end
+end
+
+if playerGui:FindFirstChild("DeltaHubMinimal") then
+    playerGui.DeltaHubMinimal:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaHubMinimal"
-ScreenGui.Parent = CoreGui
+ScreenGui.Parent = playerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
+
+-- ==========================================
+-- PANTALLA NEGRA DE CARGA QUE ABARCA TODA LA PANTALLA
+-- ==========================================
+local LoadingScreen = Instance.new("Frame")
+LoadingScreen.Name = "LoadingScreen"
+LoadingScreen.Parent = ScreenGui
+LoadingScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+LoadingScreen.Position = UDim2.new(0, 0, 0, 0)
+LoadingScreen.Size = UDim2.new(1, 0, 1, 0)
+LoadingScreen.ZIndex = 9999
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Parent = LoadingScreen
+LoadingText.BackgroundTransparency = 1
+LoadingText.Size = UDim2.new(1, 0, 1, 0)
+LoadingText.Font = Enum.Font.GothamBold
+LoadingText.Text = "Cargando activos..."
+LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingText.TextSize = 24
+LoadingText.ZIndex = 10000
 
 -- ==========================================
 -- SISTEMA DE NOTIFICACIONES INTERNAS
@@ -91,6 +126,97 @@ LogoStroke.Thickness = 1
 LogoStroke.Parent = FloatingLogo
 
 -- ==========================================
+-- PANEL FLOTANTE SUPERIOR DERECHA: TERMINAR RECORRIDO (CON MINIMIZAR)
+-- ==========================================
+local StopRouteContainer = Instance.new("Frame")
+StopRouteContainer.Name = "StopRouteContainer"
+StopRouteContainer.Parent = ScreenGui
+StopRouteContainer.BackgroundColor3 = Color3.fromRGB(180, 50, 50)
+StopRouteContainer.Position = UDim2.new(1, -170, 0, 15)
+StopRouteContainer.Size = UDim2.new(0, 155, 0, 35)
+StopRouteContainer.Visible = false
+Instance.new("UICorner", StopRouteContainer).CornerRadius = UDim.new(0, 6)
+
+local StopRouteFloatingBtn = Instance.new("TextButton")
+StopRouteFloatingBtn.Parent = StopRouteContainer
+StopRouteFloatingBtn.BackgroundTransparency = 1
+StopRouteFloatingBtn.Size = UDim2.new(1, -30, 1, 0)
+StopRouteFloatingBtn.Font = Enum.Font.GothamBold
+StopRouteFloatingBtn.Text = "Terminar Recorrido"
+StopRouteFloatingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopRouteFloatingBtn.TextSize = 11
+
+local MinimizeRouteBtn = Instance.new("TextButton")
+MinimizeRouteBtn.Parent = StopRouteContainer
+MinimizeRouteBtn.BackgroundTransparency = 1
+MinimizeRouteBtn.Position = UDim2.new(1, -30, 0, 0)
+MinimizeRouteBtn.Size = UDim2.new(0, 30, 1, 0)
+MinimizeRouteBtn.Font = Enum.Font.GothamBold
+MinimizeRouteBtn.Text = "_"
+MinimizeRouteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeRouteBtn.TextSize = 12
+
+local routeMinimized = false
+MinimizeRouteBtn.MouseButton1Click:Connect(function()
+    routeMinimized = not routeMinimized
+    if routeMinimized then
+        StopRouteContainer.Size = UDim2.new(0, 155, 0, 20)
+        StopRouteFloatingBtn.Visible = false
+        MinimizeRouteBtn.Text = "+"
+    else
+        StopRouteContainer.Size = UDim2.new(0, 155, 0, 35)
+        StopRouteFloatingBtn.Visible = true
+        MinimizeRouteBtn.Text = "_"
+    end
+end)
+
+-- ==========================================
+-- VENTANA DE PREGUNTA AL MORIR (SÍ / NO)
+-- ==========================================
+local PromptContainer = Instance.new("Frame")
+PromptContainer.Name = "PromptContainer"
+PromptContainer.Parent = ScreenGui
+PromptContainer.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+PromptContainer.Position = UDim2.new(0.5, -140, 0.4, -50)
+PromptContainer.Size = UDim2.new(0, 280, 0, 95)
+PromptContainer.Visible = false
+Instance.new("UICorner", PromptContainer).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", PromptContainer).Color = Color3.fromRGB(60, 60, 80)
+
+local PromptText = Instance.new("TextLabel")
+PromptText.Parent = PromptContainer
+PromptText.BackgroundTransparency = 1
+PromptText.Position = UDim2.new(0, 10, 0, 10)
+PromptText.Size = UDim2.new(1, -20, 0, 40)
+PromptText.Font = Enum.Font.GothamBold
+PromptText.Text = "¿Quieres retomar el recorrido?"
+PromptText.TextColor3 = Color3.fromRGB(240, 240, 245)
+PromptText.TextSize = 13
+PromptText.TextWrapped = true
+
+local YesBtn = Instance.new("TextButton")
+YesBtn.Parent = PromptContainer
+YesBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+YesBtn.Position = UDim2.new(0.1, 0, 0.65, 0)
+YesBtn.Size = UDim2.new(0, 100, 0, 28)
+YesBtn.Font = Enum.Font.GothamBold
+YesBtn.Text = "Sí"
+YesBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+YesBtn.TextSize = 12
+Instance.new("UICorner", YesBtn).CornerRadius = UDim.new(0, 6)
+
+local NoBtn = Instance.new("TextButton")
+NoBtn.Parent = PromptContainer
+NoBtn.BackgroundColor3 = Color3.fromRGB(140, 40, 40)
+NoBtn.Position = UDim2.new(0.55, 0, 0.65, 0)
+NoBtn.Size = UDim2.new(0, 100, 0, 28)
+NoBtn.Font = Enum.Font.GothamBold
+NoBtn.Text = "No"
+NoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+NoBtn.TextSize = 12
+Instance.new("UICorner", NoBtn).CornerRadius = UDim.new(0, 6)
+
+-- ==========================================
 -- VENTANA PRINCIPAL
 -- ==========================================
 local MainFrame = Instance.new("Frame")
@@ -142,7 +268,6 @@ Title.TextColor3 = Color3.fromRGB(240, 240, 245)
 Title.TextSize = 13
 Title.TextXAlignment = Enum.TextXAlignment.Left
 
--- Botón Minimizar (-)
 local MinimizeBtn = Instance.new("TextButton")
 MinimizeBtn.Parent = TopBar
 MinimizeBtn.BackgroundTransparency = 1
@@ -154,7 +279,7 @@ MinimizeBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
 MinimizeBtn.TextSize = 16
 
 -- ==========================================
--- BARRA LATERAL CON ORDEN ESTRICTO FORZADO
+-- BARRA LATERAL
 -- ==========================================
 local Sidebar = Instance.new("Frame")
 Sidebar.Parent = MainFrame
@@ -176,11 +301,7 @@ local function createLogoTab(name, symbol, order, isImage)
         local success, thumb = pcall(function()
             return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size42x42)
         end)
-        if success then
-            btn.Image = thumb
-        else
-            btn.Image = "rbxassetid://0"
-        end
+        if success then btn.Image = thumb else btn.Image = "rbxassetid://0" end
     else
         btn = Instance.new("TextButton")
         btn.Text = symbol
@@ -194,11 +315,7 @@ local function createLogoTab(name, symbol, order, isImage)
     btn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     btn.Size = UDim2.new(0, 38, 0, 38)
     btn.LayoutOrder = order
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = btn
-    
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     return btn
 end
 
@@ -209,9 +326,6 @@ local TabExtrasBtn = createLogoTab("TabExtrasBtn", "", 3, true)
 TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
 TabPlayerBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 
--- ==========================================
--- CONTENEDOR DE PÁGINAS Y TÍTULO DE APARTADO
--- ==========================================
 local ContentArea = Instance.new("Frame")
 ContentArea.Parent = MainFrame
 ContentArea.BackgroundTransparency = 1
@@ -230,23 +344,20 @@ SectionTitle.TextSize = 14
 SectionTitle.TextXAlignment = Enum.TextXAlignment.Left
 
 local function createScrollingPage(parent)
-    local scrollingFrame = Instance.new("ScrollingFrame")
-    scrollingFrame.Parent = parent
-    scrollingFrame.BackgroundTransparency = 1
-    scrollingFrame.Position = UDim2.new(0, 0, 0, 30)
-    scrollingFrame.Size = UDim2.new(1, 0, 1, -30)
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollingFrame.ScrollBarThickness = 3
-    scrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    local sf = Instance.new("ScrollingFrame")
+    sf.Parent = parent
+    sf.BackgroundTransparency = 1
+    sf.Position = UDim2.new(0, 0, 0, 30)
+    sf.Size = UDim2.new(1, 0, 1, -30)
+    sf.CanvasSize = UDim2.new(0, 0, 0, 0)
+    sf.ScrollBarThickness = 3
+    sf.AutomaticCanvasSize = Enum.AutomaticSize.Y
     
     local layout = Instance.new("UIListLayout")
-    layout.Parent = scrollingFrame
+    layout.Parent = sf
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Padding = UDim.new(0, 10)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-    layout.VerticalAlignment = Enum.VerticalAlignment.Top
-    
-    return scrollingFrame
+    return sf
 end
 
 local PlayerPage = createScrollingPage(ContentArea)
@@ -256,19 +367,14 @@ local ExtrasPage = createScrollingPage(ContentArea)
 ExtrasPage.Visible = false
 
 -- ==========================================
--- PROGRAMACIÓN DE LA PÁGINA "PLAYER"
+-- PÁGINA "PLAYER"
 -- ==========================================
 local speedEnabled, customSpeed = false, 16
 local originalWalkSpeed = nil
-
 local jumpEnabled, customJump = false, 50
-local originalJumpPower = nil
-local originalUseJumpPower = nil
-
+local originalJumpPower, originalUseJumpPower = nil, nil
 local infiniteJumpEnabled, noClipEnabled, floatEnabled = false, false, false
-local floatDistance = 3.0
 
--- 1. WalkSpeed
 local speedBox = Instance.new("TextBox")
 speedBox.Parent = PlayerPage
 speedBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -281,13 +387,8 @@ speedBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedBox.TextSize = 13
 speedBox.LayoutOrder = 1
 Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
+speedBox.FocusLost:Connect(function() local v = tonumber(speedBox.Text) if v then customSpeed = v end end)
 
-speedBox.FocusLost:Connect(function()
-    local val = tonumber(speedBox.Text)
-    if val then customSpeed = val end
-end)
-
--- 2. Botón Activar WalkSpeed
 local speedToggle = Instance.new("TextButton")
 speedToggle.Parent = PlayerPage
 speedToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -301,25 +402,20 @@ Instance.new("UICorner", speedToggle).CornerRadius = UDim.new(0, 6)
 
 speedToggle.MouseButton1Click:Connect(function()
     speedEnabled = not speedEnabled
-    local char = player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if speedEnabled then
         if hum then originalWalkSpeed = hum.WalkSpeed end
         speedToggle.Text = "Activar WalkSpeed: ON"
         speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
     else
-        if hum and originalWalkSpeed then
-            hum.WalkSpeed = originalWalkSpeed
-        end
+        if hum and originalWalkSpeed then hum.WalkSpeed = originalWalkSpeed end
         speedToggle.Text = "Activar WalkSpeed: OFF"
         speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     end
 end)
 
--- 3. JumpPower
 local jumpBox = Instance.new("TextBox")
 jumpBox.Parent = PlayerPage
 jumpBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -332,13 +428,8 @@ jumpBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 jumpBox.TextSize = 13
 jumpBox.LayoutOrder = 3
 Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 6)
+jumpBox.FocusLost:Connect(function() local v = tonumber(jumpBox.Text) if v then customJump = v end end)
 
-jumpBox.FocusLost:Connect(function()
-    local val = tonumber(jumpBox.Text)
-    if val then customJump = val end
-end)
-
--- 4. Botón Activar Salto
 local jumpToggle = Instance.new("TextButton")
 jumpToggle.Parent = PlayerPage
 jumpToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -352,14 +443,9 @@ Instance.new("UICorner", jumpToggle).CornerRadius = UDim.new(0, 6)
 
 jumpToggle.MouseButton1Click:Connect(function()
     jumpEnabled = not jumpEnabled
-    local char = player.Character
-    local hum = char and char:FindFirstChildOfClass("Humanoid")
-    
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if jumpEnabled then
-        if hum then
-            originalUseJumpPower = hum.UseJumpPower
-            originalJumpPower = hum.JumpPower
-        end
+        if hum then originalUseJumpPower, originalJumpPower = hum.UseJumpPower, hum.JumpPower end
         jumpToggle.Text = "Activar Salto: ON"
         jumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
@@ -374,7 +460,6 @@ jumpToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- 5. Noclip
 local noclipToggle = Instance.new("TextButton")
 noclipToggle.Parent = PlayerPage
 noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -399,7 +484,6 @@ noclipToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- 6. Infinitejump
 local infJumpToggle = Instance.new("TextButton")
 infJumpToggle.Parent = PlayerPage
 infJumpToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -434,229 +518,84 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- 7. Float
-local floatToggle = Instance.new("TextButton")
-floatToggle.Parent = PlayerPage
-floatToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-floatToggle.Size = UDim2.new(1, -10, 0, 32)
-floatToggle.Font = Enum.Font.GothamBold
-floatToggle.Text = "Float: OFF"
-floatToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-floatToggle.TextSize = 12
-floatToggle.LayoutOrder = 7
-Instance.new("UICorner", floatToggle).CornerRadius = UDim.new(0, 6)
-
-local floatPart = nil
-
-local function removeFloatPart()
-    if floatPart then
-        floatPart:Destroy()
-        floatPart = nil
-    end
-end
-
-floatToggle.MouseButton1Click:Connect(function()
-    floatEnabled = not floatEnabled
-    if floatEnabled then
-        floatToggle.Text = "Float: ON"
-        floatToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        floatToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-        
-        if not floatPart then
-            floatPart = Instance.new("Part")
-            floatPart.Name = "DeltaHubFloatBlock"
-            floatPart.Size = Vector3.new(4, 1, 4)
-            floatPart.Transparency = 0.3
-            floatPart.Color = Color3.fromRGB(0, 170, 255)
-            floatPart.Material = Enum.Material.SmoothPlastic
-            floatPart.Anchored = true
-            floatPart.CanCollide = true
-            floatPart.Parent = Workspace
-        end
-    else
-        floatToggle.Text = "Float: OFF"
-        floatToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        floatToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-        removeFloatPart()
-    end
-end)
-
--- 8. Slider Float
-local sliderContainer = Instance.new("Frame")
-sliderContainer.Parent = PlayerPage
-sliderContainer.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-sliderContainer.Size = UDim2.new(1, -10, 0, 32)
-sliderContainer.LayoutOrder = 8
-Instance.new("UICorner", sliderContainer).CornerRadius = UDim.new(0, 6)
-
-local sliderFill = Instance.new("Frame")
-sliderFill.Parent = sliderContainer
-sliderFill.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-sliderFill.Size = UDim2.new(0, 0, 1, 0)
-Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(0, 6)
-
-local sliderLabel = Instance.new("TextLabel")
-sliderLabel.Parent = sliderContainer
-sliderLabel.BackgroundTransparency = 1
-sliderLabel.Size = UDim2.new(1, 0, 1, 0)
-sliderLabel.Font = Enum.Font.GothamBold
-sliderLabel.Text = "Distancia Float: 3.0 Studs"
-sliderLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
-sliderLabel.TextSize = 12
-
-local sliding = false
-
-local function updateSlider(input)
-    local pos = sliderContainer.AbsolutePosition.X
-    local size = sliderContainer.AbsoluteSize.X
-    local mouseX = input.Position.X
-    local relativeX = math.clamp(mouseX - pos, 0, size)
-    local percentage = relativeX / size
-    
-    floatDistance = math.floor((3.0 + (percentage * 3.0)) * 10 + 0.5) / 10
-    sliderFill.Size = UDim2.new(percentage, 0, 1, 0)
-    sliderLabel.Text = string.format("Distancia Float: %.1f Studs", floatDistance)
-end
-
-sliderContainer.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        sliding = true
-        updateSlider(input)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        sliding = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        updateSlider(input)
-    end
-end)
-
 -- ==========================================
--- PROGRAMACIÓN DE LA PÁGINA "GAME" (RUTA DEFINITIVA Y 18 WINBLOCKS)
+-- PÁGINA "GAME" (RECORRIDOS Y WINBLOCKS)
 -- ==========================================
 local routeCFrames = {
-	CFrame.new(-435.693, 361.927, -760.763),
-	CFrame.new(-287.997, 361.927, -760.763),
-	CFrame.new(-213.647, 361.927, -784.381),
-	CFrame.new(-130.361, 361.927, -760.453),
-	CFrame.new(-50.731, 361.927, -760.453),
-	CFrame.new(-31.771, 361.927, -777.911),
-	CFrame.new(31.130, 361.927, -771.642),
-	CFrame.new(101.018, 361.927, -760.672),
-	CFrame.new(460.773, 361.927, -760.672),
-	CFrame.new(780.511, 361.927, -760.672),
-	CFrame.new(1140.496, 361.927, -760.672),
-	CFrame.new(1270.379, 361.997, -760.672),
-	CFrame.new(1280.998, 377.737, -738.093),
-	CFrame.new(1297.492, 361.638, -705.338),
-	CFrame.new(1401.413, 361.638, -724.702),
-	CFrame.new(1559.908, 361.638, -759.162),
-	CFrame.new(1702.539, 361.545, -759.157),
-	CFrame.new(1707.995, 374.570, -744.477),
-	CFrame.new(1716.221, 361.152, -705.920),
-	CFrame.new(1886.090, 361.152, -723.397),
-	CFrame.new(2138.640, 361.152, -759.041),
-	CFrame.new(2265.916, 361.152, -751.274),
-	CFrame.new(2270.003, 377.951, -735.012),
-	CFrame.new(2285.782, 361.159, -708.418),
-	CFrame.new(2457.524, 361.159, -759.113),
-	CFrame.new(2624.964, 361.159, -759.113),
-	CFrame.new(2643.614, 367.726, -759.113),
-	CFrame.new(2660.340, 388.255, -759.113),
-	CFrame.new(2660.340, 411.993, -759.113),
-	CFrame.new(2660.340, 788.906, -759.113),
-	CFrame.new(2665.575, 806.001, -759.113),
-	CFrame.new(2681.184, 827.657, -759.063),
-	CFrame.new(2708.067, 837.834, -759.063),
-	CFrame.new(2828.515, 837.840, -759.062),
-	CFrame.new(3697.022, 837.840, -759.062),
-	CFrame.new(3692.198, 743.349, -759.062),
-	CFrame.new(3725.390, 729.840, -759.062),
-	CFrame.new(3886.285, 729.840, -759.062),
-	CFrame.new(4511.477, 729.840, -759.062),
-	CFrame.new(4870.555, 729.840, -759.062),
-	CFrame.new(4888.657, 729.840, -759.062),
-	CFrame.new(6049.692, 719.156, -759.062),
-	CFrame.new(7052.929, 719.159, -759.062),
-	CFrame.new(7072.792, 719.159, -759.062),
-	CFrame.new(7146.325, 663.633, -759.062),
-	CFrame.new(8216.250, 663.635, -759.062),
-	CFrame.new(8379.097, 663.618, -759.020),
-	CFrame.new(8453.484, 679.745, -759.020),
-	CFrame.new(8538.094, 663.618, -756.396),
-	CFrame.new(8980.280, 663.618, -756.396),
-	CFrame.new(9073.453, 685.090, -756.396),
-	CFrame.new(9143.028, 663.618, -759.099),
-	CFrame.new(9261.694, 663.623, -759.099),
-	CFrame.new(9330.539, 663.623, -759.099),
-	CFrame.new(9434.235, 663.623, -786.653),
-	CFrame.new(9688.453, 659.851, -786.653),
-	CFrame.new(9806.080, 647.243, -722.658),
-	CFrame.new(9932.813, 643.745, -722.658),
-	CFrame.new(9999.714, 638.292, -747.295),
-	CFrame.new(10060.110, 638.292, -747.295),
-	CFrame.new(10139.361, 648.216, -747.295),
-	CFrame.new(10225.767, 638.292, -743.431),
-	CFrame.new(10326.116, 638.292, -743.431),
-	CFrame.new(10445.620, 663.056, -743.431),
-	CFrame.new(10567.388, 663.056, -762.885),
-	CFrame.new(10618.353, 659.948, -787.050),
-	CFrame.new(10876.531, 660.018, -787.050),
-	CFrame.new(10982.021, 647.152, -723.620),
-	CFrame.new(11108.985, 647.152, -723.620),
-	CFrame.new(11203.300, 638.292, -742.758),
-	CFrame.new(11315.171, 638.292, -766.449),
-	CFrame.new(11413.845, 615.546, -756.632),
-	CFrame.new(11439.310, 608.389, -756.632),
-	CFrame.new(11540.260, 608.392, -756.632),
-	CFrame.new(11698.120, 608.392, -756.632),
-	CFrame.new(11711.655, 608.392, -756.632),
-	CFrame.new(11728.162, 615.113, -756.632),
-	CFrame.new(11744.409, 622.929, -756.632),
-	CFrame.new(11762.873, 635.526, -756.632),
-	CFrame.new(11784.297, 648.514, -756.632),
-	CFrame.new(11813.029, 662.321, -756.632),
-	CFrame.new(11843.547, 673.301, -756.632),
-	CFrame.new(11893.351, 683.884, -756.632),
-	CFrame.new(11972.620, 683.884, -756.632),
-	CFrame.new(12129.640, 591.692, -756.632),
-	CFrame.new(12152.278, 585.245, -756.632),
-	CFrame.new(12218.881, 585.245, -756.632),
-	CFrame.new(12345.878, 596.594, -750.570),
-	CFrame.new(12421.213, 585.245, -750.570),
-	CFrame.new(12696.751, 585.245, -750.570),
-	CFrame.new(12696.751, 655.747, -750.570),
-	CFrame.new(13087.694, 659.298, -753.464),
-	CFrame.new(13108.172, 667.231, -753.464),
-	CFrame.new(13130.378, 679.868, -753.464),
-	CFrame.new(13199.058, 715.562, -753.464),
-	CFrame.new(13248.946, 728.836, -753.464),
-	CFrame.new(13528.126, 731.861, -749.979),
-	CFrame.new(13528.126, 585.245, -749.979),
-	CFrame.new(14177.896, 585.245, -749.979),
-	CFrame.new(14250.252, 597.628, -729.512),
-	CFrame.new(14509.779, 594.508, -729.512),
-	CFrame.new(14667.786, 594.508, -788.517),
-	CFrame.new(14738.088, 589.590, -788.517),
-	CFrame.new(14830.509, 581.210, -779.034),
-	CFrame.new(15086.807, 609.009, -760.857),
-	CFrame.new(15116.148, 609.009, -760.857),
-	CFrame.new(15194.064, 609.009, -760.857),
-	CFrame.new(15210.773, 612.071, -760.857),
-	CFrame.new(15226.294, 618.167, -760.857),
-	CFrame.new(15245.289, 634.983, -760.857),
-	CFrame.new(15253.709, 650.836, -760.787),
-	CFrame.new(15257.018, 688.222, -760.787),
-	CFrame.new(15257.022, 2692.689, -760.750),
-	CFrame.new(15267.024, 2765.408, -752.294),
-	CFrame.new(15267.024, 2712.354, -752.257),
-	CFrame.new(15400.190, 2705.219, -758.915),
+	CFrame.new(-439.445, 361.927, -760.224),
+	CFrame.new(-130.153, 361.927, -760.224),
+	CFrame.new(101.702, 361.927, -760.224),
+	CFrame.new(462.327, 361.927, -760.224),
+	CFrame.new(778.892, 361.927, -760.224),
+	CFrame.new(1140.095, 361.927, -760.224),
+	CFrame.new(1277.129, 361.927, -760.224),
+	CFrame.new(1283.684, 372.645, -740.397),
+	CFrame.new(1295.128, 361.635, -706.894),
+	CFrame.new(1559.212, 361.635, -759.120),
+	CFrame.new(1630.957, 361.635, -777.431),
+	CFrame.new(1678.383, 364.833, -815.559),
+	CFrame.new(2021.072, 364.833, -815.559),
+	CFrame.new(2078.998, 361.040, -777.765),
+	CFrame.new(2135.890, 365.147, -809.438),
+	CFrame.new(2390.501, 365.147, -809.438),
+	CFrame.new(2456.537, 361.789, -759.289),
+	CFrame.new(2552.646, 361.789, -759.289),
+	CFrame.new(2775.817, 837.840, -759.289),
+	CFrame.new(2828.483, 837.840, -759.341),
+	CFrame.new(2909.550, 837.840, -759.341),
+	CFrame.new(3187.282, 796.612, -759.341),
+	CFrame.new(3295.879, 796.612, -759.341),
+	CFrame.new(3560.709, 729.840, -759.341),
+	CFrame.new(3724.886, 729.840, -759.341),
+	CFrame.new(4509.716, 729.840, -759.341),
+	CFrame.new(4871.504, 729.840, -759.301),
+	CFrame.new(4890.246, 729.840, -759.301),
+	CFrame.new(6049.600, 719.156, -759.213),
+	CFrame.new(7052.664, 719.159, -759.213),
+	CFrame.new(7075.037, 719.159, -759.213),
+	CFrame.new(7256.834, 663.633, -759.213),
+	CFrame.new(8214.842, 663.635, -759.213),
+	CFrame.new(8381.715, 663.618, -759.213),
+	CFrame.new(8480.826, 676.422, -759.213),
+	CFrame.new(8542.151, 663.618, -759.213),
+	CFrame.new(8986.280, 663.618, -759.213),
+	CFrame.new(9081.086, 677.813, -763.091),
+	CFrame.new(9142.007, 663.618, -763.091),
+	CFrame.new(9261.211, 663.623, -758.372),
+	CFrame.new(9334.227, 663.623, -758.372),
+	CFrame.new(9433.871, 663.623, -787.987),
+	CFrame.new(9696.607, 663.626, -788.021),
+	CFrame.new(9809.643, 646.721, -722.551),
+	CFrame.new(9933.854, 646.721, -722.476),
+	CFrame.new(9997.435, 638.292, -742.968),
+	CFrame.new(10062.141, 638.292, -756.391),
+	CFrame.new(10330.216, 638.292, -759.016),
+	CFrame.new(10445.786, 663.056, -759.016),
+	CFrame.new(10567.568, 663.056, -759.016),
+	CFrame.new(10618.958, 660.299, -787.938),
+	CFrame.new(10879.082, 660.299, -787.938),
+	CFrame.new(11013.265, 648.276, -722.456),
+	CFrame.new(11112.087, 648.276, -722.456),
+	CFrame.new(11203.803, 638.292, -750.976),
+	CFrame.new(11316.102, 638.292, -754.782),
+	CFrame.new(11412.959, 608.389, -759.535),
+	CFrame.new(11539.680, 608.392, -759.535),
+	CFrame.new(11565.122, 608.392, -759.535),
+	CFrame.new(11688.051, 608.392, -759.535),
+	CFrame.new(11737.677, 619.172, -759.535),
+	CFrame.new(11788.092, 650.507, -759.535),
+	CFrame.new(11832.108, 669.584, -759.535),
+	CFrame.new(11895.821, 684.139, -759.535),
+	CFrame.new(11970.731, 684.139, -759.535),
+	CFrame.new(12225.005, 585.245, -759.535),
+	CFrame.new(14183.245, 585.245, -759.535),
+	CFrame.new(14253.055, 596.759, -728.807),
+	CFrame.new(14510.966, 596.858, -728.807),
+	CFrame.new(14625.793, 596.858, -788.633),
+	CFrame.new(14733.170, 596.858, -788.635),
+	CFrame.new(14887.158, 587.354, -762.779),
+	CFrame.new(15100.603, 610.474, -760.040),
+	CFrame.new(15115.760, 610.497, -760.040),
 }
 
 local orderedWinBlocks = {
@@ -677,7 +616,6 @@ local orderedWinBlocks = {
     {real = "WinBlock15", display = "+150K Wins", order = 15},
     {real = "WinBlock16", display = "+350K Wins", order = 16},
     {real = "WinBlock17", display = "+1M Wins", order = 17},
-    {real = "WinBlock18", display = "+2.5M Wins", order = 18},
 }
 
 local selectedRealName = "WinBlock1"
@@ -687,7 +625,6 @@ local delayTime = 0
 local infiniteRouteActive = false
 local routeRunning = false
 
--- Selector Desplegable con Sidebar
 local selectorMain = Instance.new("Frame")
 selectorMain.Parent = GamePage
 selectorMain.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -714,7 +651,6 @@ dropdownList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 dropdownList.ScrollBarThickness = 3
 dropdownList.LayoutOrder = 2
 Instance.new("UICorner", dropdownList).CornerRadius = UDim.new(0, 6)
-
 local dropLayout = Instance.new("UIListLayout")
 dropLayout.Parent = dropdownList
 dropLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -731,7 +667,6 @@ for _, info in ipairs(orderedWinBlocks) do
     opt.TextSize = 12
     opt.LayoutOrder = info.order
     Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 4)
-    
     opt.MouseButton1Click:Connect(function()
         selectedRealName = info.real
         selectedDisplayName = info.display
@@ -739,12 +674,8 @@ for _, info in ipairs(orderedWinBlocks) do
         dropdownList.Visible = false
     end)
 end
+selectorBtn.MouseButton1Click:Connect(function() dropdownList.Visible = not dropdownList.Visible end)
 
-selectorBtn.MouseButton1Click:Connect(function()
-    dropdownList.Visible = not dropdownList.Visible
-end)
-
--- Texto indicador "Win escogidas"
 local winChosenLabel = Instance.new("TextLabel")
 winChosenLabel.Parent = GamePage
 winChosenLabel.BackgroundTransparency = 1
@@ -755,12 +686,8 @@ winChosenLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
 winChosenLabel.TextSize = 12
 winChosenLabel.TextXAlignment = Enum.TextXAlignment.Left
 winChosenLabel.LayoutOrder = 3
+selectorBtn.MouseButton1Click:Connect(function() winChosenLabel.Text = "Win escogida: " .. selectedDisplayName end)
 
-selectorBtn.MouseButton1Click:Connect(function()
-    winChosenLabel.Text = "Win escogida: " .. selectedDisplayName
-end)
-
--- Botón "Iniciar recorrido"
 local startRouteBtn = Instance.new("TextButton")
 startRouteBtn.Parent = GamePage
 startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -772,7 +699,6 @@ startRouteBtn.TextSize = 12
 startRouteBtn.LayoutOrder = 4
 Instance.new("UICorner", startRouteBtn).CornerRadius = UDim.new(0, 6)
 
--- Textbox de velocidad de recorrido (1 a 500)
 local speedGameBox = Instance.new("TextBox")
 speedGameBox.Parent = GamePage
 speedGameBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -785,13 +711,8 @@ speedGameBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedGameBox.TextSize = 13
 speedGameBox.LayoutOrder = 5
 Instance.new("UICorner", speedGameBox).CornerRadius = UDim.new(0, 6)
+speedGameBox.FocusLost:Connect(function() local v = tonumber(speedGameBox.Text) if v then gameSpeed = math.clamp(v, 1, 500) end end)
 
-speedGameBox.FocusLost:Connect(function()
-    local val = tonumber(speedGameBox.Text)
-    if val then gameSpeed = math.clamp(val, 1, 500) end
-end)
-
--- Textbox de delay entre recorridos (0 a 10)
 local delayBox = Instance.new("TextBox")
 delayBox.Parent = GamePage
 delayBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -804,13 +725,8 @@ delayBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 delayBox.TextSize = 13
 delayBox.LayoutOrder = 6
 Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 6)
+delayBox.FocusLost:Connect(function() local v = tonumber(delayBox.Text) if v then delayTime = math.clamp(v, 0, 10) end end)
 
-delayBox.FocusLost:Connect(function()
-    local val = tonumber(delayBox.Text)
-    if val then delayTime = math.clamp(val, 0, 10) end
-end)
-
--- Botón Activar Recorrido Infinito
 local infRouteToggle = Instance.new("TextButton")
 infRouteToggle.Parent = GamePage
 infRouteToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -835,134 +751,33 @@ infRouteToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- Lógica principal del recorrido inteligente y asíncrono con la nueva ruta definitiva
-startRouteBtn.MouseButton1Click:Connect(function()
-    if routeRunning then return end
-    routeRunning = true
-    startRouteBtn.Text = "Iniciando Recorrido..."
-    startRouteBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-    startRouteBtn.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    
-    task.spawn(function()
-        while routeRunning do
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
-            if hrp then
-                noClipEnabled = true
-                noclipToggle.Text = "Noclip: ON"
-                noclipToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-                noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-                
-                local bv = Instance.new("BodyVelocity")
-                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bv.Parent = hrp
-                
-                hrp.CFrame = routeCFrames[1]
-                
-                local targetObject = nil
-                local targetFound = false
-                local closestIndex = #routeCFrames
-                
-                local searchCoroutine = task.spawn(function()
-                    while not targetFound and routeRunning do
-                        targetObject = Workspace:FindFirstChild(selectedRealName, true)
-                        if targetObject and (targetObject:IsA("BasePart") or (targetObject:IsA("Model") and targetObject.PrimaryPart)) then
-                            targetFound = true
-                            local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                            
-                            local shortestDist = math.huge
-                            for idx, cf in ipairs(routeCFrames) do
-                                local dist = (cf.Position - objPos).Magnitude
-                                if dist < shortestDist then
-                                    shortestDist = dist
-                                    closestIndex = idx
-                                end
-                            end
-                            break
-                        end
-                        task.wait(1)
-                    end
-                end)
-                
-                local currentIndex = 2
-                while currentIndex <= #routeCFrames and routeRunning do
-                    if currentIndex > closestIndex then
-                        break
-                    end
-                    
-                    local targetPos = routeCFrames[currentIndex].Position
-                    while hrp and (hrp.Position - targetPos).Magnitude > 5 and routeRunning do
-                        local dir = (targetPos - hrp.Position).Unit
-                        bv.Velocity = dir * gameSpeed
-                        RunService.Stepped:Wait()
-                    end
-                    currentIndex = currentIndex + 1
-                end
-                
-                while not targetObject and routeRunning do
-                    targetObject = Workspace:FindFirstChild(selectedRealName, true)
-                    task.wait(0.5)
-                end
-                
-                if targetObject and routeRunning then
-                    local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                    while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning do
-                        local dir = (objPos - hrp.Position).Unit
-                        bv.Velocity = dir * gameSpeed
-                        RunService.Stepped:Wait()
-                    end
-                end
-                
-                if bv then bv:Destroy() end
-                
-                if infiniteRouteActive and targetObject then
-                    local touched = false
-                    local touchConnection
-                    touchConnection = targetObject.Touched:Connect(function(hit)
-                        if hit.Parent == char or hit.IsDescendantOf(char) then
-                            touched = true
-                            if touchConnection then touchConnection:Disconnect() end
-                        end
-                    end)
-                    
-                    while routeRunning and infiniteRouteActive and not touched do
-                        task.wait(0.2)
-                    end
-                    if touchConnection then touchConnection:Disconnect() end
-                end
-            end
-            
-            if not infiniteRouteActive then
-                routeRunning = false
-                noClipEnabled = false
-                noclipToggle.Text = "Noclip: OFF"
-                noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-                noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-                
-                startRouteBtn.Text = "Iniciar Recorrido: OFF"
-                startRouteBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-                startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-                break
-            else
-                if delayTime > 0 then
-                    task.wait(delayTime)
-                end
-            end
-        end
-    end)
+local function stopRecorridoGeneral()
+    routeRunning = false
+    StopRouteContainer.Visible = false
+    noClipEnabled = false
+    noclipToggle.Text = "Noclip: OFF"
+    noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+    noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    startRouteBtn.Text = "Iniciar Recorrido: OFF"
+    startRouteBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+end
+
+StopRouteFloatingBtn.MouseButton1Click:Connect(function()
+    stopRecorridoGeneral()
+    showNotification("Recorrido terminado. Completará la vuelta actual.")
 end)
 
 -- ==========================================
--- PROGRAMACIÓN DE LA PÁGINA "EXTRAS" (ANTILAG, SPECIALKEYS Y NPC MODE)
+-- PÁGINA "EXTRAS" (ANTILAG, AUTO SPECIALKEYS, NPC MODE)
 -- ==========================================
 local antilagActive = false
 local autoSpecialKeysActive = false
 local specialKeysMode = "Tween"
 local npcModeActive = false
 local originalPosBeforeNpc = nil
+local specialKeysQueue = {}
 
--- 1. Botón Antilag
 local antilagToggle = Instance.new("TextButton")
 antilagToggle.Parent = ExtrasPage
 antilagToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -980,18 +795,11 @@ antilagToggle.MouseButton1Click:Connect(function()
         antilagToggle.Text = "Antilag: ON"
         antilagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antilagToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-        
-        pcall(function()
-            Lighting.GlobalShadows = false
-            Lighting.Brightness = 2
-        end)
-        
-        local antilagTargets = {"Keycaps", "Decorations", "Props"}
+        pcall(function() Lighting.GlobalShadows = false; Lighting.Brightness = 2 end)
+        local antilagTargets = {"Keycaps", "Decorations", "Props", "Keycap"}
         for _, obj in pairs(Workspace:GetDescendants()) do
             for _, name in ipairs(antilagTargets) do
-                if obj.Name == name then
-                    pcall(function() obj:Destroy() end)
-                end
+                if obj.Name == name then pcall(function() obj:Destroy() end) end
             end
         end
     else
@@ -1002,7 +810,6 @@ antilagToggle.MouseButton1Click:Connect(function()
     end
 end)
 
--- 2. Botón Auto SpecialKeys
 local specialKeysToggle = Instance.new("TextButton")
 specialKeysToggle.Parent = ExtrasPage
 specialKeysToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -1014,7 +821,19 @@ specialKeysToggle.TextSize = 12
 specialKeysToggle.LayoutOrder = 2
 Instance.new("UICorner", specialKeysToggle).CornerRadius = UDim.new(0, 6)
 
--- 3. Selector para SpecialKeys (Tween / Tp)
+specialKeysToggle.MouseButton1Click:Connect(function()
+    autoSpecialKeysActive = not autoSpecialKeysActive
+    if autoSpecialKeysActive then
+        specialKeysToggle.Text = "Auto SpecialKeys: ON"
+        specialKeysToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+        specialKeysToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
+    else
+        specialKeysToggle.Text = "Auto SpecialKeys: OFF"
+        specialKeysToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
+        specialKeysToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    end
+end)
+
 local skSelectorMain = Instance.new("Frame")
 skSelectorMain.Parent = ExtrasPage
 skSelectorMain.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -1038,7 +857,6 @@ skDropdown.Size = UDim2.new(1, -10, 0, 60)
 skDropdown.Visible = false
 skDropdown.LayoutOrder = 4
 Instance.new("UICorner", skDropdown).CornerRadius = UDim.new(0, 6)
-
 local skDropLayout = Instance.new("UIListLayout")
 skDropLayout.Parent = skDropdown
 skDropLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -1055,35 +873,16 @@ local function createSKOption(text, order)
     opt.TextSize = 12
     opt.LayoutOrder = order
     Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 4)
-    
     opt.MouseButton1Click:Connect(function()
         specialKeysMode = text
         skSelectorBtn.Text = "Modo SpecialKey: " .. text .. " ▾"
         skDropdown.Visible = false
     end)
 end
-
 createSKOption("Tween", 1)
 createSKOption("Tp", 2)
+skSelectorBtn.MouseButton1Click:Connect(function() skDropdown.Visible = not skDropdown.Visible end)
 
-skSelectorBtn.MouseButton1Click:Connect(function()
-    skDropdown.Visible = not skDropdown.Visible
-end)
-
-specialKeysToggle.MouseButton1Click:Connect(function()
-    autoSpecialKeysActive = not autoSpecialKeysActive
-    if autoSpecialKeysActive then
-        specialKeysToggle.Text = "Auto SpecialKeys: ON"
-        specialKeysToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        specialKeysToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    else
-        specialKeysToggle.Text = "Auto SpecialKeys: OFF"
-        specialKeysToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        specialKeysToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    end
-end)
-
--- 4. Botón "Convertirse en Npc"
 local npcToggle = Instance.new("TextButton")
 npcToggle.Parent = ExtrasPage
 npcToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -1099,58 +898,292 @@ npcToggle.MouseButton1Click:Connect(function()
     npcModeActive = not npcModeActive
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
     if npcModeActive then
         if hrp then
             originalPosBeforeNpc = hrp.CFrame
-            -- Teletransporte inicial inmediato al NPC
             local npc = Workspace:FindFirstChild("G2W1_NPC1", true)
             local npcHrp = npc and npc:FindFirstChild("HumanoidRootPart")
-            if npcHrp then
-                hrp.CFrame = npcHrp.CFrame
-            end
+            if npcHrp then hrp.CFrame = npcHrp.CFrame end
         end
         npcToggle.Text = "Convertirse en Npc: ON"
         npcToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         npcToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-        
-        -- Volver invisible al personaje
-        if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") or part:IsA("Decal") then
-                    part.Transparency = 1
-                end
-            end
-        end
+        if char then for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") or p:IsA("Decal") then p.Transparency = 1 end end end
     else
         npcToggle.Text = "Convertirse en Npc: OFF"
         npcToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         npcToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-        
-        -- Restaurar visibilidad y posición original
         if char then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                    part.Transparency = 0
-                elseif part:IsA("Decal") then
-                    part.Transparency = 0
-                end
+            for _, p in pairs(char:GetDescendants()) do
+                if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then p.Transparency = 0
+                elseif p:IsA("Decal") then p.Transparency = 0 end
             end
-            if hrp and originalPosBeforeNpc then
-                hrp.CFrame = originalPosBeforeNpc
-            end
+            if hrp and originalPosBeforeNpc then hrp.CFrame = originalPosBeforeNpc end
         end
     end
 end)
 
--- Bucle en segundo plano para SpecialKeys (cada 2 segundos) con notificaciones y velocidad personalizada
+-- ==========================================
+-- RUTINA DE CARGA INICIAL: RECORRIDO DE 3 EN 3 CFRAMES PARA LIMPIAR LAVA
+-- ==========================================
+task.spawn(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart", 5)
+    
+    if hrp and #routeCFrames > 0 then
+        for i = 1, #routeCFrames, 3 do
+            hrp.CFrame = routeCFrames[i]
+            
+            local floatBp = Instance.new("BodyPosition")
+            floatBp.MaxForce = Vector3.new(400000, 400000, 400000)
+            floatBp.Position = hrp.Position
+            floatBp.Parent = hrp
+            
+            task.wait(0.15)
+            
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local lowerName = string.lower(obj.Name)
+                if lowerName == "lava" then
+                    pcall(function()
+                        for _, child in pairs(obj:GetChildren()) do
+                            if child.ClassName == "TouchInterest" then
+                                child:Destroy()
+                            end
+                        end
+                        if obj:IsA("BasePart") then
+                            obj.CanTouch = false
+                        end
+                    end)
+                end
+            end
+            
+            if floatBp then floatBp:Destroy() end
+        end
+        
+        hrp.CFrame = routeCFrames[1]
+    end
+    
+    if LoadingScreen and LoadingScreen.Parent then
+        LoadingScreen:Destroy()
+    end
+    showNotification("¡Activos cargados correctamente!")
+end)
+
+-- ==========================================
+-- LÓGICA DE RECOGIDA DE SPECIALKEY CON RETORNO A POSICIÓN ORIGINAL
+-- ==========================================
+local function processSpecialKey(obj, hrp)
+    local itemPos = obj.Position or obj:GetPrimaryPartCFrame().Position
+    local originalPos = hrp.CFrame
+    
+    if specialKeysMode == "Tp" then
+        showNotification("SpecialKey encontrada haciendo tp a ella")
+        hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
+    elseif specialKeysMode == "Tween" then
+        showNotification("SpecialKey encontrada usando ruta de Wins")
+        local closestIdx = 1
+        local shortestDist = math.huge
+        for idx, cf in ipairs(routeCFrames) do
+            local dist = (cf.Position - itemPos).Magnitude
+            if dist < shortestDist then shortestDist = dist; closestIdx = idx end
+        end
+        
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Parent = hrp
+        
+        hrp.CFrame = routeCFrames[1]
+        for i = 2, closestIdx do
+            local targetPos = routeCFrames[i].Position
+            while hrp and (hrp.Position - targetPos).Magnitude > 5 and autoSpecialKeysActive do
+                bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+                RunService.Stepped:Wait()
+            end
+        end
+        while hrp and (hrp.Position - itemPos).Magnitude > 4 and autoSpecialKeysActive do
+            bv.Velocity = (itemPos - hrp.Position).Unit * gameSpeed
+            RunService.Stepped:Wait()
+        end
+        if bv then bv:Destroy() end
+    end
+    
+    local tStart = tick()
+    while obj and obj.Parent and autoSpecialKeysActive and (tick() - tStart < 10) do
+        pcall(function()
+            local fwd = hrp.CFrame.LookVector
+            hrp.CFrame = hrp.CFrame + (fwd * 3)
+            task.wait(0.15)
+            hrp.CFrame = hrp.CFrame - (fwd * 3)
+            task.wait(0.15)
+        end)
+    end
+    
+    if hrp then
+        hrp.CFrame = originalPos
+    end
+end
+
+-- ==========================================
+-- BUCLE PRINCIPAL DE RECORRIDOS Y MONITOREO DE VIDA
+-- ==========================================
+startRouteBtn.MouseButton1Click:Connect(function()
+    if routeRunning then return end
+    routeRunning = true
+    StopRouteContainer.Visible = true
+    startRouteBtn.Text = "Iniciando Recorrido..."
+    startRouteBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
+    startRouteBtn.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
+    
+    task.spawn(function()
+        while routeRunning do
+            local char = player.Character or player.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart", 5)
+            local hum = char:WaitForChild("Humanoid", 5)
+            
+            if hrp and hum and hum.Health > 0 then
+                noClipEnabled = true
+                noclipToggle.Text = "Noclip: ON"
+                noclipToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
+                noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
+                
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Parent = hrp
+                
+                hrp.CFrame = routeCFrames[1]
+                
+                local targetObject = nil
+                local targetFound = false
+                local closestIndex = #routeCFrames
+                
+                task.spawn(function()
+                    while not targetFound and routeRunning and hum.Health > 0 do
+                        targetObject = Workspace:FindFirstChild(selectedRealName, true)
+                        if targetObject and (targetObject:IsA("BasePart") or (targetObject:IsA("Model") and targetObject.PrimaryPart)) then
+                            targetFound = true
+                            local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
+                            local shortestDist = math.huge
+                            for idx, cf in ipairs(routeCFrames) do
+                                local dist = (cf.Position - objPos).Magnitude
+                                if dist < shortestDist then shortestDist = dist; closestIndex = idx end
+                            end
+                            break
+                        end
+                        task.wait(1)
+                    end
+                end)
+                
+                local lastCheckPos = hrp.Position
+                local lifeMonitor = task.spawn(function()
+                    while routeRunning and hum.Health > 0 do
+                        task.wait(2)
+                        if hum.Health <= 0 then break end
+                        
+                        if autoSpecialKeysActive then
+                            for _, obj in pairs(Workspace:GetDescendants()) do
+                                if obj.Name:find("SpecialKey") then
+                                    if (obj:IsA("BasePart") or (obj:IsA("Model") and obj.PrimaryPart)) then
+                                        local alreadyQueued = false
+                                        for _, qObj in ipairs(specialKeysQueue) do
+                                            if qObj == obj then alreadyQueued = true; break; end
+                                        end
+                                        if not alreadyQueued then
+                                            table.insert(specialKeysQueue, obj)
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                        
+                        lastCheckPos = hrp.Position
+                    end
+                end)
+                
+                local currentIndex = 2
+                while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
+                    if currentIndex > closestIndex then break end
+                    local targetPos = routeCFrames[currentIndex].Position
+                    while hrp and (hrp.Position - targetPos).Magnitude > 5 and routeRunning and hum.Health > 0 do
+                        bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+                        RunService.Stepped:Wait()
+                    end
+                    currentIndex = currentIndex + 1
+                end
+                
+                while not targetObject and routeRunning and hum.Health > 0 do
+                    targetObject = Workspace:FindFirstChild(selectedRealName, true)
+                    task.wait(0.5)
+                end
+                
+                if targetObject and routeRunning and hum.Health > 0 then
+                    local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
+                    while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
+                        bv.Velocity = (objPos - hrp.Position).Unit * gameSpeed
+                        RunService.Stepped:Wait()
+                    end
+                end
+                
+                if bv then bv:Destroy() end
+                pcall(function() task.cancel(lifeMonitor) end)
+                
+                if routeRunning and hum.Health > 0 then
+                    -- Espera exacta de 0.67 segundos para dar tiempo al SpawnLocation del WinBlock
+                    task.wait(0.67)
+                    
+                    if #specialKeysQueue > 0 then
+                        local keyObj = table.remove(specialKeysQueue, 1)
+                        if keyObj and keyObj.Parent then
+                            processSpecialKey(keyObj, hrp)
+                        end
+                    end
+                    
+                    hrp.CFrame = routeCFrames[1]
+                    local holdTime = 1 + delayTime
+                    local holdElapsed = 0
+                    while routeRunning and hum.Health > 0 and holdElapsed < holdTime do
+                        hrp.CFrame = routeCFrames[1]
+                        task.wait(0.1)
+                        holdElapsed = holdElapsed + 0.1
+                    end
+                end
+            else
+                if routeRunning then
+                    PromptContainer.Visible = true
+                    local choice = nil
+                    
+                    local connYes, connNo
+                    connYes = YesBtn.MouseButton1Click:Connect(function() choice = true; connYes:Disconnect(); connNo:Disconnect() end)
+                    connNo = NoBtn.MouseButton1Click:Connect(function() choice = false; connYes:Disconnect(); connNo:Disconnect() end)
+                    
+                    while choice == nil and routeRunning do task.wait(0.2) end
+                    PromptContainer.Visible = false
+                    
+                    if choice == true then
+                        player.CharacterAdded:Wait()
+                        task.wait(0.5)
+                        continue
+                    else
+                        stopRecorridoGeneral()
+                        break
+                    end
+                end
+            end
+            
+            if not infiniteRouteActive then
+                stopRecorridoGeneral()
+                break
+            end
+        end
+    end)
+end)
+
+-- Bucle independiente para SpecialKeys cuando NO hay recorrido activo
 task.spawn(function()
     while true do
         task.wait(2)
-        if autoSpecialKeysActive then
+        if autoSpecialKeysActive and not routeRunning then
             local char = player.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
             if hrp then
                 local foundKey = nil
                 for _, obj in pairs(Workspace:GetDescendants()) do
@@ -1161,56 +1194,8 @@ task.spawn(function()
                         end
                     end
                 end
-                
                 if foundKey then
-                    local keyPos = foundKey.Position or foundKey:GetPrimaryPartCFrame().Position
-                    
-                    if specialKeysMode == "Tp" then
-                        showNotification("SpecialKey encontrada haciendo tp a ella")
-                        hrp.CFrame = CFrame.new(keyPos + Vector3.new(0, 3, 0))
-                    elseif specialKeysMode == "Tween" then
-                        showNotification("SpecialKey encontrada usando ruta de Wins")
-                        local closestIdx = 1
-                        local shortestDist = math.huge
-                        for idx, cf in ipairs(routeCFrames) do
-                            local dist = (cf.Position - keyPos).Magnitude
-                            if dist < shortestDist then
-                                shortestDist = dist
-                                closestIdx = idx
-                            end
-                        end
-                        
-                        local bv = Instance.new("BodyVelocity")
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bv.Parent = hrp
-                        
-                        hrp.CFrame = routeCFrames[1]
-                        for i = 2, closestIdx do
-                            local targetPos = routeCFrames[i].Position
-                            while hrp and (hrp.Position - targetPos).Magnitude > 5 and autoSpecialKeysActive do
-                                bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
-                                RunService.Stepped:Wait()
-                            end
-                        end
-                        
-                        while hrp and (hrp.Position - keyPos).Magnitude > 4 and autoSpecialKeysActive do
-                            bv.Velocity = (keyPos - hrp.Position).Unit * gameSpeed
-                            RunService.Stepped:Wait()
-                        end
-                        if bv then bv:Destroy() end
-                    end
-                    
-                    -- Bucle físico de vaivén hasta que desaparezca
-                    local touchStartTime = tick()
-                    while foundKey and foundKey.Parent and autoSpecialKeysActive and (tick() - touchStartTime < 15) do
-                        pcall(function()
-                            local fwd = hrp.CFrame.LookVector
-                            hrp.CFrame = hrp.CFrame + (fwd * 3)
-                            task.wait(0.15)
-                            hrp.CFrame = hrp.CFrame - (fwd * 3)
-                            task.wait(0.15)
-                        end)
-                    end
+                    processSpecialKey(foundKey, hrp)
                 end
             end
         end
@@ -1218,104 +1203,56 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LÓGICA DE NAVEGACIÓN Y MINIMIZAR
+-- NAVEGACIÓN Y STEPS GENERALES
 -- ==========================================
-MinimizeBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    FloatingLogo.Visible = true
-end)
+MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; FloatingLogo.Visible = true end)
+FloatingLogo.MouseButton1Click:Connect(function() MainFrame.Visible = true; FloatingLogo.Visible = false end)
 
-FloatingLogo.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    FloatingLogo.Visible = false
-end)
-
-local function updateTabs(activeBtn, activePage, titleText)
-    PlayerPage.Visible = false
-    GamePage.Visible = false
-    ExtrasPage.Visible = false
-    
-    TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    TabPlayerBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
-    TabGameBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    TabGameBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
+local function updateTabs(btn, page, title)
+    PlayerPage.Visible = false; GamePage.Visible = false; ExtrasPage.Visible = false
+    TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabPlayerBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
+    TabGameBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabGameBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
     TabExtrasBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    
-    activePage.Visible = true
-    SectionTitle.Text = titleText
-    activeBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
-    if activeBtn ~= TabExtrasBtn then
-        activeBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-    end
+    page.Visible = true; SectionTitle.Text = title
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+    if btn ~= TabExtrasBtn then btn.TextColor3 = Color3.fromRGB(240, 240, 245) end
 end
 
-TabPlayerBtn.MouseButton1Click:Connect(function()
-    updateTabs(TabPlayerBtn, PlayerPage, "Player")
-end)
+TabPlayerBtn.MouseButton1Click:Connect(function() updateTabs(TabPlayerBtn, PlayerPage, "Player") end)
+TabGameBtn.MouseButton1Click:Connect(function() updateTabs(TabGameBtn, GamePage, "Game") end)
+TabExtrasBtn.MouseButton1Click:Connect(function() updateTabs(TabExtrasBtn, ExtrasPage, "Extras") end)
 
-TabGameBtn.MouseButton1Click:Connect(function()
-    updateTabs(TabGameBtn, GamePage, "Game")
-end)
-
-TabExtrasBtn.MouseButton1Click:Connect(function()
-    updateTabs(TabExtrasBtn, ExtrasPage, "Extras")
-end)
-
--- Bucle general en ejecución (Stepped) para Player, Float, Noclip y NPC Mode
 RunService.Stepped:Connect(function()
     local char = player.Character
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         local hrp = char:FindFirstChild("HumanoidRootPart")
-        
         if hum then
-            if speedEnabled then
-                hum.WalkSpeed = customSpeed
-            end
-            
-            if jumpEnabled then
-                hum.UseJumpPower = true
-                hum.JumpPower = customJump
-            end
+            if speedEnabled then hum.WalkSpeed = customSpeed end
+            if jumpEnabled then hum.UseJumpPower = true; hum.JumpPower = customJump end
         end
-        
         if noClipEnabled or npcModeActive then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
+            for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
         end
-        
-        -- Lógica corregida de NPC Mode: Altura fija en Y, movimiento libre en X y Z dentro del entorno, y Cámara Noclip real
         if npcModeActive and hrp then
             pcall(function()
                 local npc = Workspace:FindFirstChild("G2W1_NPC1", true)
                 local npcHrp = npc and npc:FindFirstChild("HumanoidRootPart")
                 if npcHrp then
-                    local currentPos = hrp.Position
-                    local npcPos = npcHrp.Position
-                    -- Mantiene la altura (Y) fija del NPC, pero permite movimiento libre en X y Z
-                    hrp.CFrame = CFrame.new(currentPos.X, npcPos.Y, currentPos.Z) * (hrp.CFrame - hrp.Position)
+                    local cp = hrp.Position
+                    local np = npcHrp.Position
+                    hrp.CFrame = CFrame.new(cp.X, np.Y, cp.Z) * (hrp.CFrame - hrp.Position)
                 end
             end)
-            
-            -- Forzar Noclip a la cámara del juego para que atraviese paredes y objetos
             pcall(function()
                 local cam = Workspace.CurrentCamera
                 if cam then
                     cam.CFrame = CFrame.new(cam.CFrame.Position) * (cam.CFrame - cam.CFrame.Position)
                     for _, p in pairs(Workspace:GetPartsInPart(cam)) do
-                        if p:IsA("BasePart") and not p.IsDescendantOf(char) then
-                            p.CanCollide = false
-                        end
+                        if p:IsA("BasePart") and not p.IsDescendantOf(char) then p.CanCollide = false end
                     end
                 end
             end)
-        end
-        
-        if floatEnabled and floatPart and hrp then
-            floatPart.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - floatDistance, hrp.Position.Z)
-        else
-            removeFloatPart()
         end
     end
 end)
