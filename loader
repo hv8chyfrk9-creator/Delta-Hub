@@ -1,0 +1,333 @@
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local configFileName = "DeltaHub_Data.json"
+
+local function saveConfig(data)
+    pcall(function()
+        writefile(configFileName, HttpService:JSONEncode(data))
+    end)
+end
+
+local function loadConfig()
+    local success, result = pcall(function()
+        if isfile and isfile(configFileName) then
+            return HttpService:JSONDecode(readfile(configFileName))
+        end
+    end)
+    if success and result then
+        result.visits = (result.visits or 0) + 1
+        saveConfig(result)
+        return result
+    end
+
+    local initialData = { autoExecute = false, visits = 1 }
+    saveConfig(initialData)
+    return initialData
+end
+
+local config = loadConfig()
+
+local ID_TECLADO = 9584852943
+local ID_MONO = 10144280947
+local GALAXIA_2_PLACE_ID = 75012837977315
+
+local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Mundo%203%20KeyBoard.lua"
+local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/galaxia%202%20Keyboard.lua"
+local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Escape%20del%20mono.lua"
+local URL_WINS = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/800BWins"
+
+local function guiExists(name)
+    return CoreGui:FindFirstChild(name) ~= nil or PlayerGui:FindFirstChild(name) ~= nil
+end
+
+local function hasActiveScript()
+    if getgenv and getgenv().DeltaHubActive then
+        return true
+    end
+    return guiExists("DeltaHubMinimal") or guiExists("DeltaHubCustom")
+end
+
+local function clearActiveGuis()
+    for _, name in ipairs({"DeltaHubMinimal", "DeltaHubCustom", "DeltaHubLoader"}) do
+        local a = CoreGui:FindFirstChild(name)
+        local b = PlayerGui:FindFirstChild(name)
+        if a then a:Destroy() end
+        if b then b:Destroy() end
+    end
+end
+
+local function loadRemote(url)
+    if getgenv then
+        getgenv().DeltaHubActive = true
+    end
+    clearActiveGuis()
+    loadstring(game:HttpGet(url))()
+end
+
+local function keyboardUrl()
+    local placeId = game.PlaceId
+    local currentId = game.GameId
+    if placeId == GALAXIA_2_PLACE_ID then
+        return URL_GALAXIA2
+    end
+    if currentId == ID_TECLADO or placeId == ID_TECLADO or placeId ~= ID_MONO then
+        return URL_MUNDO3
+    end
+    return URL_MUNDO3
+end
+
+local function autoUrl()
+    local placeId = game.PlaceId
+    local currentId = game.GameId
+    if placeId == GALAXIA_2_PLACE_ID then
+        return URL_GALAXIA2
+    elseif currentId == ID_TECLADO or placeId == ID_TECLADO then
+        return URL_MUNDO3
+    elseif currentId == ID_MONO or placeId == ID_MONO then
+        return URL_MONO
+    end
+    return nil
+end
+
+if CoreGui:FindFirstChild("DeltaHubLoader") then
+    CoreGui.DeltaHubLoader:Destroy()
+end
+if PlayerGui:FindFirstChild("DeltaHubLoader") then
+    PlayerGui.DeltaHubLoader:Destroy()
+end
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeltaHubLoader"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -155, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 310, 0, 250)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
+
+local TopBarFix = Instance.new("Frame")
+TopBarFix.Parent = TopBar
+TopBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+TopBarFix.BorderSizePixel = 0
+TopBarFix.Position = UDim2.new(0, 0, 1, -5)
+TopBarFix.Size = UDim2.new(1, 0, 0, 5)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 12
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Text = "Delta Hub | Loader"
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Parent = TopBar
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseBtn.Position = UDim2.new(1, -30, 0, 6)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 12
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+local function selectorTitle()
+    if config.visits == 1 then
+        return "Delta Hub | Loader"
+    elseif config.visits == 2 then
+        return "Hola de nuevo, " .. LocalPlayer.Name
+    end
+    return "Delta Hub | Visita #" .. config.visits
+end
+
+local Body = Instance.new("Frame")
+Body.Parent = MainFrame
+Body.BackgroundTransparency = 1
+Body.Position = UDim2.new(0, 16, 0, 48)
+Body.Size = UDim2.new(1, -32, 1, -60)
+
+local function clearBody()
+    for _, child in ipairs(Body:GetChildren()) do
+        child:Destroy()
+    end
+end
+
+local function makeList()
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = Body
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    return layout
+end
+
+local function makeButton(text, order, color)
+    local btn = Instance.new("TextButton")
+    btn.Parent = Body
+    btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 55)
+    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Font = Enum.Font.GothamBold
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.TextWrapped = true
+    btn.LayoutOrder = order
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local function makeLabel(text, order, height)
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = Body
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(1, 0, 0, height or 48)
+    lbl.Font = Enum.Font.Gotham
+    lbl.Text = text
+    lbl.TextColor3 = Color3.fromRGB(230, 230, 235)
+    lbl.TextSize = 13
+    lbl.TextWrapped = true
+    lbl.LayoutOrder = order
+    return lbl
+end
+
+local showWins = false
+
+local function openSelector()
+    clearBody()
+    makeList()
+    Title.Text = selectorTitle()
+    MainFrame.Size = UDim2.new(0, 310, 0, showWins and 280 or 230)
+
+    local teclado = makeButton("Teclado", 1)
+    teclado.MouseButton1Click:Connect(function()
+        teclado.Text = "Cargando..."
+        task.wait(0.3)
+        local url = keyboardUrl()
+        ScreenGui:Destroy()
+        loadRemote(url)
+    end)
+
+    local mono = makeButton("Escape del mono", 2)
+    mono.MouseButton1Click:Connect(function()
+        mono.Text = "Cargando..."
+        task.wait(0.3)
+        ScreenGui:Destroy()
+        loadRemote(URL_MONO)
+    end)
+
+    if showWins then
+        local wins = makeButton("800 Billones de Wins", 3, Color3.fromRGB(70, 55, 30))
+        wins.MouseButton1Click:Connect(function()
+            wins.Text = "Cargando..."
+            task.wait(0.3)
+            ScreenGui:Destroy()
+            loadRemote(URL_WINS)
+        end)
+    end
+
+    local ajustes = makeButton("Ajustes", 4, Color3.fromRGB(55, 55, 65))
+    ajustes.MouseButton1Click:Connect(function()
+        openSettings()
+    end)
+end
+
+function openSettings()
+    clearBody()
+    makeList()
+    Title.Text = "Delta Hub | Ajustes"
+    MainFrame.Size = UDim2.new(0, 310, 0, 200)
+
+    local auto = makeButton(config.autoExecute and "Auto Execute: ON" or "Auto Execute: OFF", 1, config.autoExecute and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(45, 45, 55))
+    auto.TextColor3 = config.autoExecute and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    auto.MouseButton1Click:Connect(function()
+        config.autoExecute = not config.autoExecute
+        saveConfig(config)
+        openSettings()
+    end)
+
+    local back = makeButton("Volver", 2, Color3.fromRGB(55, 55, 65))
+    back.MouseButton1Click:Connect(openSelector)
+end
+
+local function openActivePrompt()
+    clearBody()
+    makeList()
+    Title.Text = "Script activo"
+    MainFrame.Size = UDim2.new(0, 310, 0, 230)
+    makeLabel("Ya estas usando un script activo de Delta Hub. Quieres cerrar esta pestaña o cargar otro?", 1, 56)
+
+    local cerrar = makeButton("Cerrar pestaña", 2, Color3.fromRGB(90, 50, 50))
+    cerrar.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+
+    local otro = makeButton("Cargar otro", 3, Color3.fromRGB(40, 80, 40))
+    otro.MouseButton1Click:Connect(function()
+        showWins = true
+        openSelector()
+    end)
+end
+
+local active = hasActiveScript()
+if config.autoExecute and active then
+    openActivePrompt()
+elseif config.autoExecute then
+    clearBody()
+    Title.Text = "Auto Execute"
+    local status = makeLabel("Buscando juego...", 1, 40)
+    task.spawn(function()
+        local steps = {
+            {1, "Buscando juego..."},
+            {1, "Juego encontrado"},
+            {2, "Cargando script..."},
+            {1, "Script cargado completamente"},
+        }
+        for _, step in ipairs(steps) do
+            status.Text = step[2]
+            local elapsed = 0
+            while elapsed < step[1] do
+                if not ScreenGui.Parent then return end
+                elapsed += 0.1
+                task.wait(0.1)
+            end
+        end
+        if not config.autoExecute then
+            openSelector()
+            return
+        end
+        local url = autoUrl()
+        ScreenGui:Destroy()
+        if url then
+            loadRemote(url)
+        end
+    end)
+else
+    openSelector()
+end
