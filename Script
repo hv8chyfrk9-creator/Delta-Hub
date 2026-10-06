@@ -34,9 +34,9 @@ local ID_TECLADO = 9584852943
 local ID_MONO = 10144280947
 local GALAXIA_2_PLACE_ID = 75012837977315
 
-local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua"
-local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/teclado.lua2"
-local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/mono.lua"
+local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Mundo%203%20KeyBoard.lua"
+local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/galaxia%202%20Keyboard.lua"
+local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Escape%20del%20mono.lua"
 
 local function loadRemote(url)
     loadstring(game:HttpGet(url))()
