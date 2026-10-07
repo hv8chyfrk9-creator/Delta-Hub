@@ -12,6 +12,27 @@ local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
+local function waitAliveHrp(returnCf)
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp and hum and hum.Health > 0 then
+        return hrp
+    end
+    char = player.CharacterAdded:Wait()
+    hrp = char:WaitForChild("HumanoidRootPart", 8)
+    local newHum = char:WaitForChild("Humanoid", 8)
+    task.wait(0.35)
+    if hrp and returnCf then
+        hrp.CFrame = returnCf
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end
+    if newHum and newHum.Health <= 0 then
+        return waitAliveHrp(returnCf)
+    end
+    return hrp
+end
+
 -- ==========================================
 -- 0. LIMPIEZA INICIAL DE OBJETOS Y LAVA (DE FÁBRICA)
 -- ==========================================
@@ -50,6 +71,8 @@ ScreenGui.Name = "DeltaHubMinimal"
 ScreenGui.Parent = playerGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
 
 -- ==========================================
 -- PANTALLA NEGRA DE CARGA QUE ABARCA TODA LA PANTALLA
@@ -60,7 +83,7 @@ LoadingScreen.Parent = ScreenGui
 LoadingScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 LoadingScreen.Position = UDim2.new(0, 0, 0, 0)
 LoadingScreen.Size = UDim2.new(1, 0, 1, 0)
-LoadingScreen.ZIndex = 9999
+LoadingScreen.ZIndex = 10000
 
 local LoadingText = Instance.new("TextLabel")
 LoadingText.Parent = LoadingScreen
@@ -824,6 +847,43 @@ antilagToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+local autoRebirth = false
+local rebirthBtn = Instance.new("TextButton")
+rebirthBtn.Parent = ExtrasPage
+rebirthBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+rebirthBtn.Size = UDim2.new(1, -10, 0, 32)
+rebirthBtn.Font = Enum.Font.GothamBold
+rebirthBtn.Text = "Auto Rebirth: OFF"
+rebirthBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+rebirthBtn.TextSize = 12
+rebirthBtn.LayoutOrder = 6
+Instance.new("UICorner", rebirthBtn).CornerRadius = UDim.new(0, 6)
+rebirthBtn.MouseButton1Click:Connect(function()
+    autoRebirth = not autoRebirth
+    rebirthBtn.Text = autoRebirth and "Auto Rebirth: ON" or "Auto Rebirth: OFF"
+    rebirthBtn.TextColor3 = autoRebirth and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    rebirthBtn.BackgroundColor3 = autoRebirth and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
+end)
+task.spawn(function()
+    while true do
+        task.wait(1.5)
+        if autoRebirth then
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Rebirth:FireServer()
+            end)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if antilagActive and hideKeycaps then
+            hideKeycaps()
+        end
+    end
+end)
+
+
 local specialKeysToggle = Instance.new("TextButton")
 specialKeysToggle.Parent = ExtrasPage
 specialKeysToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -941,47 +1001,48 @@ end)
 -- RUTINA DE CARGA INICIAL: RECORRIDO DE 3 EN 3 CFRAMES PARA LIMPIAR LAVA
 -- ==========================================
 task.spawn(function()
-    local char = player.Character or player.CharacterAdded:Wait()
-    local hrp = char:WaitForChild("HumanoidRootPart", 5)
-    
+    local hrp = waitAliveHrp(routeCFrames[1])
     if hrp and #routeCFrames > 0 then
-        for i = 1, #routeCFrames, 3 do
-            hrp.CFrame = routeCFrames[i]
-            
+        local i = 1
+        while i <= #routeCFrames do
+            local spot = routeCFrames[i]
+            hrp = waitAliveHrp(spot)
+            if not hrp then break end
+            hrp.CFrame = spot
             local floatBp = Instance.new("BodyPosition")
             floatBp.MaxForce = Vector3.new(400000, 400000, 400000)
             floatBp.Position = hrp.Position
             floatBp.Parent = hrp
-            
             task.wait(0.15)
-            
-            for _, obj in pairs(Workspace:GetDescendants()) do
-                local lowerName = string.lower(obj.Name)
-                if lowerName == "lava" then
-                    pcall(function()
-                        for _, child in pairs(obj:GetChildren()) do
-                            if child.ClassName == "TouchInterest" then
-                                child:Destroy()
+            if not hrp.Parent or not player.Character or player.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
+                if floatBp then floatBp:Destroy() end
+                hrp = waitAliveHrp(spot)
+            else
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    local lowerName = string.lower(obj.Name)
+                    if lowerName == "lava" then
+                        pcall(function()
+                            for _, child in pairs(obj:GetChildren()) do
+                                if child.ClassName == "TouchInterest" then child:Destroy() end
                             end
-                        end
-                        if obj:IsA("BasePart") then
-                            obj.CanTouch = false
-                        end
-                    end)
+                            if obj:IsA("BasePart") then obj.CanTouch = false end
+                        end)
+                    end
+                    for _, name in ipairs(targetNamesToDestroy) do
+                        if obj.Name == name then pcall(function() obj:Destroy() end) end
+                    end
                 end
+                if floatBp then floatBp:Destroy() end
+                i = i + 3
             end
-            
-            if floatBp then floatBp:Destroy() end
         end
-        
-        hrp.CFrame = routeCFrames[1]
+        hrp = waitAliveHrp(routeCFrames[1])
+        if hrp then hrp.CFrame = routeCFrames[1] end
     end
-    
-    if LoadingScreen and LoadingScreen.Parent then
-        LoadingScreen:Destroy()
-    end
+    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
     showNotification("¡Activos cargados correctamente!")
 end)
+
 
 -- ==========================================
 -- LÓGICA DE RECOGIDA DE SPECIALKEY CON RETORNO A POSICIÓN ORIGINAL
