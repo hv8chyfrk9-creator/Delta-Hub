@@ -322,6 +322,7 @@ end
 local TabPlayerBtn = createLogoTab("TabPlayerBtn", "⚙", 1, false)
 local TabGameBtn = createLogoTab("TabGameBtn", "⚡", 2, false)
 local TabExtrasBtn = createLogoTab("TabExtrasBtn", "", 3, true)
+local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
 
 TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
 TabPlayerBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
@@ -365,6 +366,8 @@ local GamePage = createScrollingPage(ContentArea)
 GamePage.Visible = false
 local ExtrasPage = createScrollingPage(ContentArea)
 ExtrasPage.Visible = false
+local EventsPage = createScrollingPage(ContentArea)
+EventsPage.Visible = false
 
 -- ==========================================
 -- PÁGINA "PLAYER"
