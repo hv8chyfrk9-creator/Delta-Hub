@@ -821,9 +821,26 @@ infRouteToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+local finishAfterClaim = false
+
+local StopNowBtn = Instance.new("TextButton")
+StopNowBtn.Parent = ScreenGui
+StopNowBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
+StopNowBtn.Position = UDim2.new(1, -170, 0, 56)
+StopNowBtn.Size = UDim2.new(0, 155, 0, 28)
+StopNowBtn.Font = Enum.Font.GothamBold
+StopNowBtn.Text = "Terminar recorrido ahora"
+StopNowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopNowBtn.TextSize = 10
+StopNowBtn.Visible = false
+Instance.new("UICorner", StopNowBtn).CornerRadius = UDim.new(0, 6)
+
 local function stopRecorridoGeneral()
     routeRunning = false
+    finishAfterClaim = false
     StopRouteContainer.Visible = false
+    StopNowBtn.Visible = false
+    StopRouteFloatingBtn.Text = "Terminar Recorrido"
     noClipEnabled = false
     noclipToggle.Text = "Noclip: OFF"
     noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
@@ -831,11 +848,25 @@ local function stopRecorridoGeneral()
     startRouteBtn.Text = "Iniciar Recorrido: OFF"
     startRouteBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
     startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local bv = hrp:FindFirstChildOfClass("BodyVelocity")
+        if bv then bv:Destroy() end
+        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+    end
 end
 
 StopRouteFloatingBtn.MouseButton1Click:Connect(function()
+    finishAfterClaim = true
+    StopNowBtn.Visible = true
+    StopRouteFloatingBtn.Text = "Terminara al WinBlock"
+    showNotification("Sigue hasta tocar el WinBlock y volver al spawn.")
+end)
+
+StopNowBtn.MouseButton1Click:Connect(function()
     stopRecorridoGeneral()
-    showNotification("Recorrido terminado. Completará la vuelta actual.")
+    showNotification("Recorrido detenido ahora.")
 end)
 
 -- ==========================================
@@ -1274,10 +1305,14 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 
                 if targetObject and routeRunning and hum.Health > 0 then
                     local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                    while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
-                        RunService.Stepped:Wait()
+                    if (hrp.Position - objPos).Magnitude > 4 then
+                        while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
+                            objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
+                            bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
+                            RunService.Stepped:Wait()
+                        end
                     end
+                    if bv then bv.Velocity = Vector3.new(0, 0, 0) end
                 end
                 
                 if bv then bv:Destroy() end
@@ -1316,8 +1351,17 @@ startRouteBtn.MouseButton1Click:Connect(function()
                     PromptContainer.Visible = false
                     
                     if choice == true then
-                        player.CharacterAdded:Wait()
-                        task.wait(0.5)
+                        local char = player.Character
+                        local humNow = char and char:FindFirstChildOfClass("Humanoid")
+                        if not char or not humNow or humNow.Health <= 0 then
+                            char = player.CharacterAdded:Wait()
+                        end
+                        task.wait(0.4)
+                        local hrpNow = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrpNow and routeCFrames[1] then
+                            hrpNow.CFrame = routeCFrames[1]
+                            hrpNow.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        end
                         continue
                     else
                         stopRecorridoGeneral()
@@ -1326,7 +1370,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 end
             end
             
-            if not infiniteRouteActive then
+            if finishAfterClaim or not infiniteRouteActive then
                 stopRecorridoGeneral()
                 break
             end
