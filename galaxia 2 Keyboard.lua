@@ -649,13 +649,26 @@ local orderedWinBlocks = {
 local selectedRealName = "WinBlock1"
 local selectedDisplayName = "+1 Win"
 local gameSpeed = 250
-local function approachSpeed(distance)
+local routeMode = "normal"
+local function approachSpeed(distance, nextDistance)
     local maxSpeed = math.clamp(gameSpeed or 250, 1, 500)
-    if distance >= 18 then
+    if nextDistance and nextDistance < 5 then
         return maxSpeed
     end
-    local t = math.clamp(distance / 18, 0, 1)
-    return math.max(maxSpeed * t * t, 12)
+    local brake = 18
+    local floorSpeed = 12
+    if routeMode == "fast" then
+        brake = 8
+        floorSpeed = 50
+    elseif routeMode == "ultra" then
+        brake = 5
+        floorSpeed = 150
+    end
+    if distance >= brake then
+        return maxSpeed
+    end
+    local t = math.clamp(distance / brake, 0, 1)
+    return math.max(maxSpeed * t * t, floorSpeed)
 end
 local delayTime = 0
 local infiniteRouteActive = false
@@ -773,6 +786,33 @@ infRouteToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 infRouteToggle.TextSize = 12
 infRouteToggle.LayoutOrder = 7
 Instance.new("UICorner", infRouteToggle).CornerRadius = UDim.new(0, 6)
+
+
+local fastBtn = Instance.new("TextButton")
+fastBtn.Parent = GamePage
+fastBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+fastBtn.Size = UDim2.new(1, -10, 0, 32)
+fastBtn.Font = Enum.Font.GothamBold
+fastBtn.Text = "Recorrido: Normal"
+fastBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+fastBtn.TextSize = 12
+fastBtn.LayoutOrder = 8
+Instance.new("UICorner", fastBtn).CornerRadius = UDim.new(0, 6)
+local function paintRouteMode()
+    if routeMode == "fast" then
+        fastBtn.Text = "Recorrido: Rapido"
+    elseif routeMode == "ultra" then
+        fastBtn.Text = "Recorrido: Ultra rapido"
+    else
+        fastBtn.Text = "Recorrido: Normal"
+    end
+end
+fastBtn.MouseButton1Click:Connect(function()
+    if routeMode == "normal" then routeMode = "fast"
+    elseif routeMode == "fast" then routeMode = "ultra"
+    else routeMode = "normal" end
+    paintRouteMode()
+end)
 
 infRouteToggle.MouseButton1Click:Connect(function()
     infiniteRouteActive = not infiniteRouteActive
@@ -927,7 +967,8 @@ Instance.new("UICorner", antilagToggle).CornerRadius = UDim.new(0, 6)
 
 antilagToggle.MouseButton1Click:Connect(function()
     antilagActive = not antilagActive
-    if antilagActive then
+    if getgenv then getgenv().DeltaHubAntilagOn = antilagActive end
+    if antilagActive and not (getgenv and getgenv().DeltaHubAntilagWasOn) then
         antilagToggle.Text = "Antilag: ON"
         antilagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antilagToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
@@ -974,6 +1015,216 @@ task.spawn(function()
         end
     end
 end)
+
+local autoLoadScript = false
+local autoLoadBtn = Instance.new("TextButton")
+autoLoadBtn.Parent = ExtrasPage
+autoLoadBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+autoLoadBtn.Size = UDim2.new(1, -10, 0, 32)
+autoLoadBtn.Font = Enum.Font.GothamBold
+autoLoadBtn.Text = "Auto Load Script: OFF"
+autoLoadBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+autoLoadBtn.TextSize = 12
+autoLoadBtn.LayoutOrder = 8
+Instance.new("UICorner", autoLoadBtn).CornerRadius = UDim.new(0, 6)
+local function queueThisScript()
+    local url = getgenv and getgenv().DeltaHubCurrentUrl
+    if not url then return end
+    local src = 'loadstring(game:HttpGet("' .. url .. '"))()'
+    pcall(function()
+        if queue_on_teleport then queue_on_teleport(src)
+        elseif syn and syn.queue_on_teleport then syn.queue_on_teleport(src) end
+    end)
+end
+autoLoadBtn.MouseButton1Click:Connect(function()
+    autoLoadScript = not autoLoadScript
+    autoLoadBtn.Text = autoLoadScript and "Auto Load Script: ON" or "Auto Load Script: OFF"
+    autoLoadBtn.TextColor3 = autoLoadScript and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    autoLoadBtn.BackgroundColor3 = autoLoadScript and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
+    if autoLoadScript then queueThisScript() end
+end)
+
+local configFile = "DeltaHub_Configs_Keyboard.json"
+local configs = {default = {}}
+local autoConfigName = "default"
+local rememberOverwrite = false
+local function readConfigs()
+    pcall(function()
+        if isfile and isfile(configFile) then
+            local data = game:GetService("HttpService"):JSONDecode(readfile(configFile))
+            configs = data.configs or {default = {}}
+            autoConfigName = data.autoConfigName or "default"
+            rememberOverwrite = data.rememberOverwrite and true or false
+            if not configs.default then configs.default = {} end
+        end
+    end)
+end
+local function writeConfigs()
+    pcall(function()
+        writefile(configFile, game:GetService("HttpService"):JSONEncode({
+            configs = configs,
+            autoConfigName = autoConfigName,
+            rememberOverwrite = rememberOverwrite,
+        }))
+    end)
+end
+local function captureConfig()
+    return {
+        gameSpeed = gameSpeed,
+        delayTime = delayTime,
+        infiniteRouteActive = infiniteRouteActive,
+        routeMode = routeMode,
+        antilagActive = antilagActive,
+        autoRebirth = autoRebirth,
+        autoLoadScript = autoLoadScript,
+    }
+end
+local function applyConfig(data)
+    data = data or {}
+    if data.gameSpeed then gameSpeed = data.gameSpeed speedGameBox.Text = tostring(gameSpeed) end
+    if data.delayTime then delayTime = data.delayTime delayBox.Text = tostring(delayTime) end
+    if data.routeMode then routeMode = data.routeMode paintRouteMode() end
+    infiniteRouteActive = data.infiniteRouteActive and true or false
+    infRouteToggle.Text = infiniteRouteActive and "Recorrido Infinito: ON" or "Recorrido Infinito: OFF"
+    if data.antilagActive and not antilagActive then antilagToggle.Text = "Antilag: ON" antilagActive = true end
+    if data.autoRebirth ~= nil and autoRebirth ~= nil then autoRebirth = data.autoRebirth end
+end
+readConfigs()
+
+local configNameBox = Instance.new("TextBox")
+configNameBox.Parent = ExtrasPage
+configNameBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+configNameBox.Size = UDim2.new(1, -10, 0, 32)
+configNameBox.Font = Enum.Font.Gotham
+configNameBox.PlaceholderText = "Nombre de configuracion"
+configNameBox.Text = ""
+configNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+configNameBox.TextSize = 13
+configNameBox.LayoutOrder = 9
+Instance.new("UICorner", configNameBox).CornerRadius = UDim.new(0, 6)
+
+local saveConfigBtn = Instance.new("TextButton")
+saveConfigBtn.Parent = ExtrasPage
+saveConfigBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+saveConfigBtn.Size = UDim2.new(1, -10, 0, 32)
+saveConfigBtn.Font = Enum.Font.GothamBold
+saveConfigBtn.Text = "Guardar configuracion"
+saveConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveConfigBtn.TextSize = 12
+saveConfigBtn.LayoutOrder = 10
+Instance.new("UICorner", saveConfigBtn).CornerRadius = UDim.new(0, 6)
+
+local configListOpen = false
+local configSelector = Instance.new("TextButton")
+configSelector.Parent = ExtrasPage
+configSelector.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+configSelector.Size = UDim2.new(1, -10, 0, 32)
+configSelector.Font = Enum.Font.GothamBold
+configSelector.Text = "Configuraciones: default"
+configSelector.TextColor3 = Color3.fromRGB(255, 255, 255)
+configSelector.TextSize = 12
+configSelector.LayoutOrder = 11
+Instance.new("UICorner", configSelector).CornerRadius = UDim.new(0, 6)
+local configList = Instance.new("Frame")
+configList.Parent = ExtrasPage
+configList.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
+configList.Size = UDim2.new(1, -10, 0, 120)
+configList.Visible = false
+configList.LayoutOrder = 12
+Instance.new("UICorner", configList).CornerRadius = UDim.new(0, 6)
+local configScroll = Instance.new("ScrollingFrame")
+configScroll.Parent = configList
+configScroll.BackgroundTransparency = 1
+configScroll.Size = UDim2.new(1, 0, 1, 0)
+configScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+configScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+configScroll.ScrollBarThickness = 4
+local configLayout = Instance.new("UIListLayout")
+configLayout.Parent = configScroll
+configLayout.Padding = UDim.new(0, 4)
+
+local selectedConfigName = "default"
+local function rebuildConfigList()
+    for _, child in ipairs(configScroll:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    for name, _ in pairs(configs) do
+        local b = Instance.new("TextButton")
+        b.Parent = configScroll
+        b.Size = UDim2.new(1, -8, 0, 26)
+        b.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+        b.Font = Enum.Font.Gotham
+        b.Text = name .. (name == autoConfigName and "  [auto]" or "")
+        b.TextColor3 = Color3.fromRGB(255, 255, 255)
+        b.TextSize = 12
+        b.MouseButton1Click:Connect(function()
+            selectedConfigName = name
+            configSelector.Text = "Configuraciones: " .. name
+        end)
+    end
+end
+configSelector.MouseButton1Click:Connect(function()
+    configListOpen = not configListOpen
+    configList.Visible = configListOpen
+    if configListOpen then rebuildConfigList() end
+end)
+
+local function doSave(name)
+    configs[name] = captureConfig()
+    writeConfigs()
+    configSelector.Text = "Configuraciones: " .. name
+    selectedConfigName = name
+    showNotification("Configuracion guardada: " .. name)
+end
+saveConfigBtn.MouseButton1Click:Connect(function()
+    local name = configNameBox.Text
+    if name == "" or name == "default" then
+        showNotification("Escribe un nombre. default no se reemplaza.")
+        return
+    end
+    if configs[name] and not rememberOverwrite then
+        showNotification("Ya existe. Se reemplaza si guardas otra vez y marcas recordar.")
+        rememberOverwrite = true
+        writeConfigs()
+        return
+    end
+    if configs[name] and not rememberOverwrite then return end
+    doSave(name)
+end)
+
+local loadConfigBtn = Instance.new("TextButton")
+loadConfigBtn.Parent = ExtrasPage
+loadConfigBtn.BackgroundColor3 = Color3.fromRGB(45, 70, 110)
+loadConfigBtn.Size = UDim2.new(1, -10, 0, 32)
+loadConfigBtn.Font = Enum.Font.GothamBold
+loadConfigBtn.Text = "Cargar configuracion"
+loadConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadConfigBtn.TextSize = 12
+loadConfigBtn.LayoutOrder = 13
+Instance.new("UICorner", loadConfigBtn).CornerRadius = UDim.new(0, 6)
+loadConfigBtn.MouseButton1Click:Connect(function()
+    applyConfig(configs[selectedConfigName] or configs.default)
+    showNotification("Configuracion cargada: " .. selectedConfigName)
+end)
+
+local autoConfigBtn = Instance.new("TextButton")
+autoConfigBtn.Parent = ExtrasPage
+autoConfigBtn.BackgroundColor3 = Color3.fromRGB(70, 55, 30)
+autoConfigBtn.Size = UDim2.new(1, -10, 0, 32)
+autoConfigBtn.Font = Enum.Font.GothamBold
+autoConfigBtn.Text = "Autoload config: " .. autoConfigName
+autoConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoConfigBtn.TextSize = 12
+autoConfigBtn.LayoutOrder = 14
+Instance.new("UICorner", autoConfigBtn).CornerRadius = UDim.new(0, 6)
+autoConfigBtn.MouseButton1Click:Connect(function()
+    autoConfigName = selectedConfigName or "default"
+    writeConfigs()
+    autoConfigBtn.Text = "Autoload config: " .. autoConfigName
+    showNotification("Al iniciar cargara: " .. autoConfigName)
+end)
+if configs[autoConfigName] then applyConfig(configs[autoConfigName]) end
+
 task.spawn(function()
     while true do
         task.wait(0.5)
@@ -1101,6 +1352,11 @@ end)
 -- RUTINA DE CARGA INICIAL: RECORRIDO DE 3 EN 3 CFRAMES PARA LIMPIAR LAVA
 -- ==========================================
 task.spawn(function()
+    if getgenv and getgenv().DeltaHubSkipAssets then
+        if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
+        if getgenv().DeltaHubAntilagWasOn then antilagActive = true end
+        return
+    end
     local hrp = waitAliveHrp(routeCFrames[1])
     if hrp and #routeCFrames > 0 then
         local i = 1
@@ -1171,7 +1427,7 @@ local function processSpecialKey(obj, hrp)
         for i = 2, closestIdx do
             local targetPos = routeCFrames[i].Position
             while hrp and (hrp.Position - targetPos).Magnitude > 1 and autoSpecialKeysActive do
-                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
+                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude, routeCFrames[i + 1] and (routeCFrames[i + 1].Position - targetPos).Magnitude)
                 RunService.Stepped:Wait()
             end
         end
@@ -1279,7 +1535,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                     if currentIndex > closestIndex then break end
                     local targetPos = routeCFrames[currentIndex].Position
                     while hrp and (hrp.Position - targetPos).Magnitude > 1 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
+                        bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude, routeCFrames[i + 1] and (routeCFrames[i + 1].Position - targetPos).Magnitude)
                         RunService.Stepped:Wait()
                     end
                     currentIndex = currentIndex + 1

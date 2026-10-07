@@ -63,8 +63,16 @@ end
 local function loadRemote(url)
     if getgenv then
         getgenv().DeltaHubActive = true
+        local same = getgenv().DeltaHubCurrentUrl == url and (guiExists("DeltaHubMinimal") or guiExists("DeltaHubCustom"))
+        getgenv().DeltaHubSkipAssets = same and true or false
+        getgenv().DeltaHubAntilagWasOn = same and getgenv().DeltaHubAntilagOn or false
+        if same then
+            clearActiveGuis()
+        end
+        getgenv().DeltaHubCurrentUrl = url
+    else
+        clearActiveGuis()
     end
-    clearActiveGuis()
     loadstring(game:HttpGet(url))()
 end
 
