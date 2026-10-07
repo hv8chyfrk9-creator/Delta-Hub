@@ -15,7 +15,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 -- ==========================================
 -- 0. LIMPIEZA INICIAL DE OBJETOS Y LAVA (DE FÁBRICA)
 -- ==========================================
-local targetNamesToDestroy = {"ReversePad", "JumpWall", "EyesLaser", "Hitbox", "Tsunami1", "LavaTower", "ZonePad", "MeteorArea"}
+local targetNamesToDestroy = {"ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1", "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone", "Decorations", "Props", "Halloween", "HallowenMeshes", "Keycaps", "Keycap"}
 for _, obj in pairs(Workspace:GetDescendants()) do
     for _, name in ipairs(targetNamesToDestroy) do
         if obj.Name == name then
@@ -522,80 +522,79 @@ end)
 -- PÁGINA "GAME" (RECORRIDOS Y WINBLOCKS)
 -- ==========================================
 local routeCFrames = {
-	CFrame.new(-439.445, 361.927, -760.224),
-	CFrame.new(-130.153, 361.927, -760.224),
-	CFrame.new(101.702, 361.927, -760.224),
-	CFrame.new(462.327, 361.927, -760.224),
-	CFrame.new(778.892, 361.927, -760.224),
-	CFrame.new(1140.095, 361.927, -760.224),
-	CFrame.new(1277.129, 361.927, -760.224),
-	CFrame.new(1283.684, 372.645, -740.397),
-	CFrame.new(1295.128, 361.635, -706.894),
-	CFrame.new(1559.212, 361.635, -759.120),
-	CFrame.new(1630.957, 361.635, -777.431),
-	CFrame.new(1678.383, 364.833, -815.559),
-	CFrame.new(2021.072, 364.833, -815.559),
-	CFrame.new(2078.998, 361.040, -777.765),
-	CFrame.new(2135.890, 365.147, -809.438),
-	CFrame.new(2390.501, 365.147, -809.438),
-	CFrame.new(2456.537, 361.789, -759.289),
-	CFrame.new(2552.646, 361.789, -759.289),
-	CFrame.new(2775.817, 837.840, -759.289),
-	CFrame.new(2828.483, 837.840, -759.341),
-	CFrame.new(2909.550, 837.840, -759.341),
-	CFrame.new(3187.282, 796.612, -759.341),
-	CFrame.new(3295.879, 796.612, -759.341),
-	CFrame.new(3560.709, 729.840, -759.341),
-	CFrame.new(3724.886, 729.840, -759.341),
-	CFrame.new(4509.716, 729.840, -759.341),
-	CFrame.new(4871.504, 729.840, -759.301),
-	CFrame.new(4890.246, 729.840, -759.301),
-	CFrame.new(6049.600, 719.156, -759.213),
-	CFrame.new(7052.664, 719.159, -759.213),
-	CFrame.new(7075.037, 719.159, -759.213),
-	CFrame.new(7256.834, 663.633, -759.213),
-	CFrame.new(8214.842, 663.635, -759.213),
-	CFrame.new(8381.715, 663.618, -759.213),
-	CFrame.new(8480.826, 676.422, -759.213),
-	CFrame.new(8542.151, 663.618, -759.213),
-	CFrame.new(8986.280, 663.618, -759.213),
-	CFrame.new(9081.086, 677.813, -763.091),
-	CFrame.new(9142.007, 663.618, -763.091),
-	CFrame.new(9261.211, 663.623, -758.372),
-	CFrame.new(9334.227, 663.623, -758.372),
-	CFrame.new(9433.871, 663.623, -787.987),
-	CFrame.new(9696.607, 663.626, -788.021),
-	CFrame.new(9809.643, 646.721, -722.551),
-	CFrame.new(9933.854, 646.721, -722.476),
-	CFrame.new(9997.435, 638.292, -742.968),
-	CFrame.new(10062.141, 638.292, -756.391),
-	CFrame.new(10330.216, 638.292, -759.016),
-	CFrame.new(10445.786, 663.056, -759.016),
-	CFrame.new(10567.568, 663.056, -759.016),
-	CFrame.new(10618.958, 660.299, -787.938),
-	CFrame.new(10879.082, 660.299, -787.938),
-	CFrame.new(11013.265, 648.276, -722.456),
-	CFrame.new(11112.087, 648.276, -722.456),
-	CFrame.new(11203.803, 638.292, -750.976),
-	CFrame.new(11316.102, 638.292, -754.782),
-	CFrame.new(11412.959, 608.389, -759.535),
-	CFrame.new(11539.680, 608.392, -759.535),
-	CFrame.new(11565.122, 608.392, -759.535),
-	CFrame.new(11688.051, 608.392, -759.535),
-	CFrame.new(11737.677, 619.172, -759.535),
-	CFrame.new(11788.092, 650.507, -759.535),
-	CFrame.new(11832.108, 669.584, -759.535),
-	CFrame.new(11895.821, 684.139, -759.535),
-	CFrame.new(11970.731, 684.139, -759.535),
-	CFrame.new(12225.005, 585.245, -759.535),
-	CFrame.new(14183.245, 585.245, -759.535),
-	CFrame.new(14253.055, 596.759, -728.807),
-	CFrame.new(14510.966, 596.858, -728.807),
-	CFrame.new(14625.793, 596.858, -788.633),
-	CFrame.new(14733.170, 596.858, -788.635),
-	CFrame.new(14887.158, 587.354, -762.779),
-	CFrame.new(15100.603, 610.474, -760.040),
-	CFrame.new(15115.760, 610.497, -760.040),
+    CFrame.new(-440.38330078125, 361.92694091796875, -759.8446044921875),
+    CFrame.new(-130.13021850585938, 361.3833923339844, -760.8226318359375),
+    CFrame.new(102.61224365234375, 361.39892578125, -760.7482299804688),
+    CFrame.new(463.5228576660156, 361.3988952636719, -760.4751586914062),
+    CFrame.new(781.8070068359375, 361.39837646484375, -759.7503051757812),
+    CFrame.new(1141.7806396484375, 361.39764404296875, -759.6134033203125),
+    CFrame.new(1277.7493896484375, 361.4492492675781, -756.4906616210938),
+    CFrame.new(1297.6243896484375, 361.015625, -713.5008544921875),
+    CFrame.new(1403.256103515625, 361.3271484375, -724.1265258789062),
+    CFrame.new(1559.3822021484375, 361.9882507324219, -759.294677734375),
+    CFrame.new(1628.4879150390625, 361.0229797363281, -774.3330688476562),
+    CFrame.new(1739.0810546875, 365.5611572265625, -815.9473266601562),
+    CFrame.new(2004.09716796875, 364.81549072265625, -816.4194946289062),
+    CFrame.new(2079.80126953125, 361.04034423828125, -783.0150146484375),
+    CFrame.new(2137.33154296875, 364.9627990722656, -810.2340087890625),
+    CFrame.new(2394.031982421875, 366.2619934082031, -810.7460327148438),
+    CFrame.new(2456.599853515625, 361.78863525390625, -760.1548461914062),
+    CFrame.new(2565.0771484375, 361.78863525390625, -759.7837524414062),
+    CFrame.new(2776.43408203125, 837.8399047851562, -759.7169189453125),
+    CFrame.new(2828.546142578125, 837.8399047851562, -759.8732299804688),
+    CFrame.new(3705.980224609375, 844.3345336914062, -761.0584716796875),
+    CFrame.new(3705.980224609375, 729.8399047851562, -761.0584716796875),
+    CFrame.new(3726.34375, 729.8399047851562, -759.70849609375),
+    CFrame.new(4511.1708984375, 729.13134765625, -759.2071533203125),
+    CFrame.new(4872.0771484375, 729.13134765625, -760.1740112304688),
+    CFrame.new(6050.4501953125, 719.1561889648438, -759.3504638671875),
+    CFrame.new(7054.529296875, 719.1592407226562, -759.0474243164062),
+    CFrame.new(7072.26123046875, 719.1592407226562, -759.3761596679688),
+    CFrame.new(7281.005859375, 663.6329956054688, -760.5911254882812),
+    CFrame.new(8216.5498046875, 663.6351318359375, -759.349609375),
+    CFrame.new(8379.78515625, 663.6180419921875, -760.164306640625),
+    CFrame.new(8459.8525390625, 679.3387451171875, -760.4544677734375),
+    CFrame.new(8541.248046875, 663.6180419921875, -759.7352905273438),
+    CFrame.new(8983.1181640625, 663.6180419921875, -759.728271484375),
+    CFrame.new(9056.5302734375, 678.7879638671875, -760.2889404296875),
+    CFrame.new(9143.6484375, 663.6180419921875, -759.6319580078125),
+    CFrame.new(9262.5146484375, 663.6226806640625, -759.2718505859375),
+    CFrame.new(10566.734375, 663.0563354492188, -760.960693359375),
+    CFrame.new(11202.3046875, 638.2919921875, -760.2417602539062),
+    CFrame.new(11315.927734375, 638.2919921875, -759.7529907226562),
+    CFrame.new(11414.8388671875, 608.3887329101562, -761.3040161132812),
+    CFrame.new(11541.4169921875, 608.3922729492188, -759.5479125976562),
+    CFrame.new(11566.38671875, 609.4844360351562, -759.0453491210938),
+    CFrame.new(11684.69921875, 609.4865112304688, -761.5023803710938),
+    CFrame.new(11716.7880859375, 611.7996215820312, -761.750244140625),
+    CFrame.new(11741.4384765625, 621.2305908203125, -761.7488403320312),
+    CFrame.new(11765.333984375, 637.152099609375, -761.5225219726562),
+    CFrame.new(11792.8662109375, 652.941162109375, -761.662353515625),
+    CFrame.new(11822.3154296875, 665.982421875, -762.25146484375),
+    CFrame.new(11865.81640625, 679.0281982421875, -762.2486572265625),
+    CFrame.new(11909.8955078125, 685.5263671875, -762.2811889648438),
+    CFrame.new(11971.763671875, 686.2445068359375, -762.1334838867188),
+    CFrame.new(12221.97265625, 585.2445068359375, -760.0919799804688),
+    CFrame.new(14179.33984375, 585.5997314453125, -760.1315307617188),
+    CFrame.new(14788.927734375, 576.699951171875, -761.97900390625),
+    CFrame.new(15097.1396484375, 610.1297607421875, -760.3917846679688),
+    CFrame.new(15116.7431640625, 610.49658203125, -760.1701049804688),
+    CFrame.new(15189.39453125, 610.4378051757812, -760.591552734375),
+    CFrame.new(15216.447265625, 613.7432861328125, -761.0140380859375),
+    CFrame.new(15240.0517578125, 628.7255859375, -761.2734985351562),
+    CFrame.new(15252.8349609375, 648.4100952148438, -761.8596801757812),
+    CFrame.new(15257.01953125, 671.851318359375, -762.2672729492188),
+    CFrame.new(15257.0205078125, 2699.50341796875, -761.6668701171875),
+    CFrame.new(15287.9189453125, 2760.457275390625, -759.0579223632812),
+    CFrame.new(15287.412109375, 2705.197021484375, -759.059326171875),
+    CFrame.new(15396.9208984375, 2705.218505859375, -761.7806396484375),
+    CFrame.new(16470.859375, 2704.299072265625, -760.9381103515625),
+    CFrame.new(16541.8046875, 2712.464111328125, -761.35888671875),
+    CFrame.new(16876.66796875, 2704.299072265625, -759.4518432617188),
+    CFrame.new(16985.974609375, 2812.8984375, -760.7992553710938),
+    CFrame.new(17240.263671875, 2812.895263671875, -759.5662231445312),
+    CFrame.new(18024.396484375, 2812.886474609375, -223.57559204101562),
+    CFrame.new(18023.5234375, 2812.886474609375, 1761.0914306640625)
 }
 
 local orderedWinBlocks = {
@@ -603,7 +602,7 @@ local orderedWinBlocks = {
     {real = "WinBlock2", display = "+3 Wins", order = 2},
     {real = "WinBlock3", display = "+10 Wins", order = 3},
     {real = "WinBlock4", display = "+20 Wins", order = 4},
-    {real = "WinBlock5", display = "+50Wins", order = 5},
+    {real = "WinBlock5", display = "+50 Wins", order = 5},
     {real = "WinBlock6", display = "+100 Wins", order = 6},
     {real = "WinBlock7", display = "+150 Wins", order = 7},
     {real = "WinBlock8", display = "+300 Wins", order = 8},
@@ -616,11 +615,22 @@ local orderedWinBlocks = {
     {real = "WinBlock15", display = "+150K Wins", order = 15},
     {real = "WinBlock16", display = "+350K Wins", order = 16},
     {real = "WinBlock17", display = "+1M Wins", order = 17},
+    {real = "WinBlock18", display = "+2.5M Wins", order = 18},
+    {real = "WinBlock19", display = "+6.5M Wins", order = 19},
+    {real = "WinBlock20", display = "+15M Wins", order = 20},
 }
 
 local selectedRealName = "WinBlock1"
 local selectedDisplayName = "+1 Win"
-local gameSpeed = 50
+local gameSpeed = 250
+local function approachSpeed(distance)
+    local maxSpeed = math.clamp(gameSpeed or 250, 1, 500)
+    if distance >= 18 then
+        return maxSpeed
+    end
+    local t = math.clamp(distance / 18, 0, 1)
+    return math.max(maxSpeed * t * t, 12)
+end
 local delayTime = 0
 local infiniteRouteActive = false
 local routeRunning = false
@@ -705,7 +715,7 @@ speedGameBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 speedGameBox.Size = UDim2.new(1, -10, 0, 32)
 speedGameBox.Font = Enum.Font.Gotham
 speedGameBox.PlaceholderText = "Velocidad Recorrido (1 - 500)"
-speedGameBox.Text = "50"
+speedGameBox.Text = "250"
 speedGameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedGameBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedGameBox.TextSize = 13
@@ -796,7 +806,7 @@ antilagToggle.MouseButton1Click:Connect(function()
         antilagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antilagToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
         pcall(function() Lighting.GlobalShadows = false; Lighting.Brightness = 2 end)
-        local antilagTargets = {"Keycaps", "Decorations", "Props", "Keycap"}
+        local antilagTargets = {"Keycaps", "Keycap", "Decorations", "Props", "Halloween", "HallowenMeshes", "ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1", "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone"}
         for _, obj in pairs(Workspace:GetDescendants()) do
             for _, name in ipairs(antilagTargets) do
                 if obj.Name == name then pcall(function() obj:Destroy() end) end
@@ -995,13 +1005,13 @@ local function processSpecialKey(obj, hrp)
         hrp.CFrame = routeCFrames[1]
         for i = 2, closestIdx do
             local targetPos = routeCFrames[i].Position
-            while hrp and (hrp.Position - targetPos).Magnitude > 5 and autoSpecialKeysActive do
-                bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+            while hrp and (hrp.Position - targetPos).Magnitude > 3 and autoSpecialKeysActive do
+                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
                 RunService.Stepped:Wait()
             end
         end
-        while hrp and (hrp.Position - itemPos).Magnitude > 4 and autoSpecialKeysActive do
-            bv.Velocity = (itemPos - hrp.Position).Unit * gameSpeed
+        while hrp and (hrp.Position - itemPos).Magnitude > 3 and autoSpecialKeysActive do
+            bv.Velocity = (itemPos - hrp.Position).Unit * approachSpeed((itemPos - hrp.Position).Magnitude)
             RunService.Stepped:Wait()
         end
         if bv then bv:Destroy() end
@@ -1103,8 +1113,8 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
                     if currentIndex > closestIndex then break end
                     local targetPos = routeCFrames[currentIndex].Position
-                    while hrp and (hrp.Position - targetPos).Magnitude > 5 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+                    while hrp and (hrp.Position - targetPos).Magnitude > 3 and routeRunning and hum.Health > 0 do
+                        bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
                         RunService.Stepped:Wait()
                     end
                     currentIndex = currentIndex + 1
@@ -1117,8 +1127,8 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 
                 if targetObject and routeRunning and hum.Health > 0 then
                     local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                    while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (objPos - hrp.Position).Unit * gameSpeed
+                    while hrp and (hrp.Position - objPos).Magnitude > 3 and routeRunning and hum.Health > 0 do
+                        bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
                         RunService.Stepped:Wait()
                     end
                 end
