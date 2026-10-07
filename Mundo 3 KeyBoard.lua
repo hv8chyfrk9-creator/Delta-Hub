@@ -1388,10 +1388,9 @@ local eventXp = false
 local eventQueue = {}
 local eventSeen = {}
 
-local function hideKeycaps()
+function hideKeycaps()
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        local n = string.lower(obj.Name)
-        if n == "keycaps" or n == "keycap" or n == "eastereggkeycaps" or n == "eastereggkeycapvisuals" then
+        if string.lower(obj.Name) == "keycaps" then
             for _, d in ipairs(obj:GetDescendants()) do
                 if d:IsA("BasePart") then
                     d.Transparency = 1
@@ -1463,10 +1462,6 @@ local function rememberEvent(obj)
     return pos
 end
 
-local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
-local EventsPage = createScrollingPage(ContentArea)
-EventsPage.Visible = false
-
 local function eventButton(text, order)
     local b = Instance.new("TextButton")
     b.Parent = EventsPage
@@ -1505,7 +1500,6 @@ btnXp.MouseButton1Click:Connect(function()
 end)
 
 task.spawn(function()
-    hideKeycaps()
     local anchored = false
     local lastWide = 0
     local lastNear = 0
