@@ -656,7 +656,15 @@ local orderedWinBlocks = {
 
 local selectedRealName = "WinBlock32"
 local selectedDisplayName = "+300M Wins"
-local gameSpeed = 50
+local gameSpeed = 250
+local function approachSpeed(distance)
+    local maxSpeed = math.clamp(gameSpeed or 250, 1, 500)
+    if distance >= 18 then
+        return maxSpeed
+    end
+    local t = math.clamp(distance / 18, 0, 1)
+    return math.max(maxSpeed * t * t, 12)
+end
 local delayTime = 0
 local infiniteRouteActive = false
 local routeRunning = false
@@ -741,7 +749,7 @@ speedGameBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 speedGameBox.Size = UDim2.new(1, -10, 0, 32)
 speedGameBox.Font = Enum.Font.Gotham
 speedGameBox.PlaceholderText = "Velocidad Recorrido (1 - 500)"
-speedGameBox.Text = "50"
+speedGameBox.Text = "250"
 speedGameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedGameBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedGameBox.TextSize = 13
@@ -832,7 +840,8 @@ antilagToggle.MouseButton1Click:Connect(function()
         antilagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         antilagToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
         pcall(function() Lighting.GlobalShadows = false; Lighting.Brightness = 2 end)
-        local antilagTargets = {"FloatFolder", "Keycaps", "Decorations"} -- Actualizado a Keycaps
+        local antilagTargets = {"FloatFolder", "Decorations", "Props", "Halloween", "HallowenMeshes"}
+        if hideKeycaps then hideKeycaps() end
         for _, obj in pairs(Workspace:GetDescendants()) do
             for _, name in ipairs(antilagTargets) do
                 if obj.Name == name then pcall(function() obj:Destroy() end) end
@@ -1091,13 +1100,13 @@ local function processSpecialKey(obj, hrp)
         hrp.CFrame = routeCFrames[1]
         for i = 2, closestIdx do
             local targetPos = routeCFrames[i].Position
-            while hrp and (hrp.Position - targetPos).Magnitude > 5 and autoSpecialKeysActive do
-                bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+            while hrp and (hrp.Position - targetPos).Magnitude > 1 and autoSpecialKeysActive do
+                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
                 RunService.Stepped:Wait()
             end
         end
         while hrp and (hrp.Position - itemPos).Magnitude > 4 and autoSpecialKeysActive do
-            bv.Velocity = (itemPos - hrp.Position).Unit * gameSpeed
+            bv.Velocity = (itemPos - hrp.Position).Unit * approachSpeed((itemPos - hrp.Position).Magnitude)
             RunService.Stepped:Wait()
         end
         if bv then bv:Destroy() end
@@ -1199,8 +1208,8 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
                     if currentIndex > closestIndex then break end
                     local targetPos = routeCFrames[currentIndex].Position
-                    while hrp and (hrp.Position - targetPos).Magnitude > 5 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (targetPos - hrp.Position).Unit * gameSpeed
+                    while hrp and (hrp.Position - targetPos).Magnitude > 1 and routeRunning and hum.Health > 0 do
+                        bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude)
                         RunService.Stepped:Wait()
                     end
                     currentIndex = currentIndex + 1
@@ -1214,7 +1223,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 if targetObject and routeRunning and hum.Health > 0 then
                     local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
                     while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (objPos - hrp.Position).Unit * gameSpeed
+                        bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
                         RunService.Stepped:Wait()
                     end
                 end
@@ -1306,9 +1315,11 @@ FloatingLogo.MouseButton1Click:Connect(function() MainFrame.Visible = true; Floa
 
 local function updateTabs(btn, page, title)
     PlayerPage.Visible = false; GamePage.Visible = false; ExtrasPage.Visible = false
+    if EventsPage then EventsPage.Visible = false end
     TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabPlayerBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
     TabGameBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabGameBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
     TabExtrasBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    if TabEventsBtn then TabEventsBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabEventsBtn.TextColor3 = Color3.fromRGB(160, 160, 175) end
     page.Visible = true; SectionTitle.Text = title
     btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
     if btn ~= TabExtrasBtn then btn.TextColor3 = Color3.fromRGB(240, 240, 245) end
@@ -1317,6 +1328,7 @@ end
 TabPlayerBtn.MouseButton1Click:Connect(function() updateTabs(TabPlayerBtn, PlayerPage, "Player") end)
 TabGameBtn.MouseButton1Click:Connect(function() updateTabs(TabGameBtn, GamePage, "Game") end)
 TabExtrasBtn.MouseButton1Click:Connect(function() updateTabs(TabExtrasBtn, ExtrasPage, "Extras") end)
+TabEventsBtn.MouseButton1Click:Connect(function() updateTabs(TabEventsBtn, EventsPage, "Events") end)
 
 RunService.Stepped:Connect(function()
     local char = player.Character
@@ -1365,6 +1377,194 @@ RunService.Stepped:Connect(function()
                     end
                 end
             end)
+        end
+    end
+end)
+
+
+local eventChocolate = false
+local eventCoin = false
+local eventXp = false
+local eventQueue = {}
+local eventSeen = {}
+
+local function hideKeycaps()
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        local n = string.lower(obj.Name)
+        if n == "keycaps" or n == "keycap" or n == "eastereggkeycaps" or n == "eastereggkeycapvisuals" then
+            for _, d in ipairs(obj:GetDescendants()) do
+                if d:IsA("BasePart") then
+                    d.Transparency = 1
+                    d.CanCollide = false
+                    d.CanTouch = false
+                    d.CanQuery = false
+                end
+            end
+        end
+    end
+end
+
+local function restoreKeycap(obj)
+    local function fix(p)
+        if p:IsA("BasePart") then
+            p.Transparency = 0
+            p.CanCollide = true
+            p.CanTouch = true
+            p.CanQuery = true
+        end
+    end
+    if obj:IsA("BasePart") then fix(obj) end
+    for _, d in ipairs(obj:GetDescendants()) do fix(d) end
+    local parent = obj.Parent
+    if parent then
+        local pn = string.lower(parent.Name)
+        if string.find(pn, "keycap", 1, true) then
+            for _, d in ipairs(parent:GetDescendants()) do fix(d) end
+        end
+    end
+end
+
+local function objectPosition(obj)
+    if not obj then return nil end
+    if obj:IsA("BasePart") then return obj.Position end
+    local ok, pivot = pcall(function() return obj:GetPivot() end)
+    if ok and pivot then return pivot.Position end
+    local ok2, wp = pcall(function() return obj.WorldPivot end)
+    if ok2 and wp then return wp.Position end
+    if obj.PrimaryPart then return obj.PrimaryPart.Position end
+    local part = obj:FindFirstChildWhichIsA("BasePart", true)
+    if part then return part.Position end
+    return nil
+end
+
+local function eventKind(name)
+    local n = string.lower(name or "")
+    if eventChocolate and (string.find(n, "chocolatehuntcollectible", 1, true) or (string.find(n, "chocolate", 1, true) and string.find(n, "collect", 1, true))) then
+        return "chocolate"
+    end
+    if eventCoin and string.find(n, "coinbattlecoin", 1, true) then
+        return "coin"
+    end
+    if eventXp and string.find(n, "electrifiedkeycap", 1, true) then
+        return "xp"
+    end
+    return nil
+end
+
+local function rememberEvent(obj)
+    if not obj or eventSeen[obj] then return nil end
+    local kind = eventKind(obj.Name)
+    if not kind then return nil end
+    local pos = objectPosition(obj)
+    if not pos then return nil end
+    eventSeen[obj] = true
+    if kind == "xp" then restoreKeycap(obj) end
+    table.insert(eventQueue, {obj = obj, pos = pos, kind = kind})
+    return pos
+end
+
+local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
+local EventsPage = createScrollingPage(ContentArea)
+EventsPage.Visible = false
+
+local function eventButton(text, order)
+    local b = Instance.new("TextButton")
+    b.Parent = EventsPage
+    b.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    b.Size = UDim2.new(1, -10, 0, 32)
+    b.Font = Enum.Font.GothamBold
+    b.Text = text .. ": OFF"
+    b.TextColor3 = Color3.fromRGB(255, 100, 100)
+    b.TextSize = 12
+    b.LayoutOrder = order
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    return b
+end
+
+local btnChocolate = eventButton("Auto Chocolate Hunt", 1)
+local btnCoin = eventButton("Auto Battle Coin", 2)
+local btnXp = eventButton("Auto XP Event Key", 3)
+
+local function paintEvent(btn, on, label)
+    btn.Text = label .. (on and ": ON" or ": OFF")
+    btn.TextColor3 = on and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    btn.BackgroundColor3 = on and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
+end
+
+btnChocolate.MouseButton1Click:Connect(function()
+    eventChocolate = not eventChocolate
+    paintEvent(btnChocolate, eventChocolate, "Auto Chocolate Hunt")
+end)
+btnCoin.MouseButton1Click:Connect(function()
+    eventCoin = not eventCoin
+    paintEvent(btnCoin, eventCoin, "Auto Battle Coin")
+end)
+btnXp.MouseButton1Click:Connect(function()
+    eventXp = not eventXp
+    paintEvent(btnXp, eventXp, "Auto XP Event Key")
+end)
+
+task.spawn(function()
+    hideKeycaps()
+    local anchored = false
+    local lastWide = 0
+    local lastNear = 0
+    while true do
+        task.wait(0.1)
+        local anyOn = eventChocolate or eventCoin or eventXp
+        if not anyOn then
+            anchored = false
+            eventQueue = {}
+            eventSeen = {}
+        else
+            local now = tick()
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                if not anchored and now - lastWide >= 1 then
+                    lastWide = now
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
+                        if rememberEvent(obj) then break end
+                    end
+                    if #eventQueue > 0 then
+                        local first = table.remove(eventQueue, 1)
+                        hrp.CFrame = CFrame.new(first.pos + Vector3.new(0, 3, 0))
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        anchored = true
+                    end
+                elseif anchored and now - lastNear >= 0.3 then
+                    lastNear = now
+                    for _, obj in ipairs(Workspace:GetDescendants()) do
+                        local pos = objectPosition(obj)
+                        if pos and (pos - hrp.Position).Magnitude <= 100 then
+                            rememberEvent(obj)
+                        end
+                    end
+                    if #eventQueue > 0 then
+                        local nextItem = eventQueue[1]
+                        local pos = objectPosition(nextItem.obj) or nextItem.pos
+                        if (hrp.Position - pos).Magnitude <= 4 then
+                            table.remove(eventQueue, 1)
+                        else
+                            local bv = hrp:FindFirstChild("DeltaEventBV")
+                            if not bv then
+                                bv = Instance.new("BodyVelocity")
+                                bv.Name = "DeltaEventBV"
+                                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                                bv.Parent = hrp
+                            end
+                            local delta = pos - hrp.Position
+                            if delta.Magnitude > 0.1 then
+                                local spd = math.clamp(gameSpeed or 250, 1, 500)
+                                bv.Velocity = delta.Unit * spd
+                            end
+                        end
+                    else
+                        local bv = hrp:FindFirstChild("DeltaEventBV")
+                        if bv then bv:Destroy() end
+                    end
+                end
+            end
         end
     end
 end)
