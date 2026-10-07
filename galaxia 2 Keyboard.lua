@@ -830,7 +830,12 @@ local function refreshWinsCounter(lastGain)
     end
 end
 
+local streakBlock = nil
 local function addRouteWins()
+    if streakBlock ~= selectedRealName then
+        winStreakBonus = 0
+        streakBlock = selectedRealName
+    end
     local infoText = selectedRealName or ""
     for _, info in ipairs(orderedWinBlocks) do
         if info.real == selectedRealName then
@@ -848,6 +853,7 @@ end
 
 local function resetWinStreak()
     winStreakBonus = 0
+    streakBlock = nil
     refreshWinsCounter()
 end
 
