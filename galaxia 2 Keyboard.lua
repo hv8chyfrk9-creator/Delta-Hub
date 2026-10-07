@@ -1176,20 +1176,38 @@ local function doSave(name)
     selectedConfigName = name
     showNotification("Configuracion guardada: " .. name)
 end
+local pendingOverwrite = nil
 saveConfigBtn.MouseButton1Click:Connect(function()
     local name = configNameBox.Text
     if name == "" or name == "default" then
-        showNotification("Escribe un nombre. default no se reemplaza.")
+        showNotification("Escribe un nombre. default no se puede borrar.")
         return
     end
     if configs[name] and not rememberOverwrite then
-        showNotification("Ya existe. Se reemplaza si guardas otra vez y marcas recordar.")
-        rememberOverwrite = true
-        writeConfigs()
+        pendingOverwrite = name
+        showNotification("Ya existe " .. name .. ". Vuelve a picar Guardar para reemplazarla.")
         return
     end
-    if configs[name] and not rememberOverwrite then return end
-    doSave(name)
+    if pendingOverwrite == name or rememberOverwrite or not configs[name] then
+        doSave(name)
+        pendingOverwrite = nil
+    end
+end)
+local rememberBtn = Instance.new("TextButton")
+rememberBtn.Parent = ExtrasPage
+rememberBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+rememberBtn.Size = UDim2.new(1, -10, 0, 32)
+rememberBtn.Font = Enum.Font.GothamBold
+rememberBtn.Text = "Recordar reemplazo: OFF"
+rememberBtn.TextColor3 = Color3.fromRGB(255, 180, 80)
+rememberBtn.TextSize = 12
+rememberBtn.LayoutOrder = 15
+Instance.new("UICorner", rememberBtn).CornerRadius = UDim.new(0, 6)
+rememberBtn.MouseButton1Click:Connect(function()
+    rememberOverwrite = not rememberOverwrite
+    writeConfigs()
+    rememberBtn.Text = rememberOverwrite and "Recordar reemplazo: ON" or "Recordar reemplazo: OFF"
+    rememberBtn.TextColor3 = rememberOverwrite and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 180, 80)
 end)
 
 local loadConfigBtn = Instance.new("TextButton")
