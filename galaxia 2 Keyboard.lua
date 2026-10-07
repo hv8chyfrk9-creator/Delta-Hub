@@ -789,6 +789,69 @@ end)
 
 local finishAfterClaim = false
 
+local routeWinsSession = 0
+local winStreakBonus = 0
+
+local function parseWinAmount(text)
+    local n, suf = string.match(string.lower(text or ""), "([%d%.]+)%s*([kmbqt]?)")
+    local value = tonumber(n) or 0
+    local mult = {k = 1e3, m = 1e6, b = 1e9, t = 1e12, q = 1e15}
+    if suf and mult[suf] then value = value * mult[suf] end
+    return value
+end
+
+local function formatWins(n)
+    local units = {{1e15, "Q"}, {1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
+    for _, u in ipairs(units) do
+        if n >= u[1] then
+            return string.format("%.2f%s", n / u[1], u[2])
+        end
+    end
+    return tostring(math.floor(n))
+end
+
+local WinsCounter = Instance.new("TextLabel")
+WinsCounter.Parent = ScreenGui
+WinsCounter.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+WinsCounter.Position = UDim2.new(1, -210, 0, 90)
+WinsCounter.Size = UDim2.new(0, 195, 0, 36)
+WinsCounter.Font = Enum.Font.GothamBold
+WinsCounter.Text = "Wins ruta: 0 | racha +0%"
+WinsCounter.TextColor3 = Color3.fromRGB(255, 220, 80)
+WinsCounter.TextSize = 11
+WinsCounter.Visible = false
+Instance.new("UICorner", WinsCounter).CornerRadius = UDim.new(0, 6)
+
+local function refreshWinsCounter(lastGain)
+    WinsCounter.Visible = true
+    WinsCounter.Text = "Wins ruta: " .. formatWins(routeWinsSession) .. " | racha +" .. tostring(math.floor(winStreakBonus * 100)) .. "%"
+    if lastGain then
+        showNotification("+" .. formatWins(lastGain) .. " Wins")
+    end
+end
+
+local function addRouteWins()
+    local infoText = selectedRealName or ""
+    for _, info in ipairs(orderedWinBlocks) do
+        if info.real == selectedRealName then
+            infoText = info.display
+            break
+        end
+    end
+    local base = parseWinAmount(infoText)
+    local gain = base * (1 + winStreakBonus)
+    routeWinsSession = routeWinsSession + gain
+    refreshWinsCounter(gain)
+    winStreakBonus = math.min(1, winStreakBonus + 0.1)
+    refreshWinsCounter()
+end
+
+local function resetWinStreak()
+    winStreakBonus = 0
+    refreshWinsCounter()
+end
+
+
 local StopNowBtn = Instance.new("TextButton")
 StopNowBtn.Parent = ScreenGui
 StopNowBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
@@ -1239,6 +1302,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 if routeRunning and hum.Health > 0 then
                     -- Espera exacta de 0.67 segundos para dar tiempo al SpawnLocation del WinBlock
                     task.wait(0.67)
+                    addRouteWins()
                     
                     if #specialKeysQueue > 0 then
                         local keyObj = table.remove(specialKeysQueue, 1)
@@ -1259,6 +1323,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
             else
                 if routeRunning then
                     PromptContainer.Visible = true
+                    resetWinStreak()
                     local choice = nil
                     
                     local connYes, connNo
