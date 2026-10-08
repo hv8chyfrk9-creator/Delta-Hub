@@ -1552,9 +1552,30 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
                     if currentIndex > closestIndex then break end
                     local targetPos = routeCFrames[currentIndex].Position
-                    while hrp and (hrp.Position - targetPos).Magnitude > 1 and routeRunning and hum.Health > 0 do
-                        bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
+                    local mustPlant = currentIndex == 63
+                    local reach = mustPlant and 0.2 or 1
+                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
+                        local dist = (hrp.Position - targetPos).Magnitude
+                        local spd
+                        if mustPlant then
+                            spd = math.clamp(dist * 6, 0, gameSpeed or 250)
+                            if dist < 3 then spd = math.clamp(dist * 3, 0, 40) end
+                            if dist < 0.8 then spd = 0 end
+                        else
+                            spd = approachSpeed(dist, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
+                        end
+                        if dist > 0.05 then
+                            bv.Velocity = (targetPos - hrp.Position).Unit * spd
+                        else
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                        end
                         RunService.Stepped:Wait()
+                    end
+                    if mustPlant and hrp then
+                        bv.Velocity = Vector3.new(0, 0, 0)
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        hrp.CFrame = routeCFrames[63] * CFrame.new(0, 0, -1.5)
+                        task.wait(0.2)
                     end
                     currentIndex = currentIndex + 1
                 end
