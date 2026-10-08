@@ -1446,6 +1446,56 @@ npcToggle.MouseButton1Click:Connect(function()
     end
 end)
 
+
+local bestTreadmill = "Normal"
+local function treadmillShop()
+    local gui = player:FindFirstChild("PlayerGui")
+    local speedUi = gui and gui:FindFirstChild("SpeedGameUI")
+    local modals = speedUi and speedUi:FindFirstChild("Modals")
+    return modals and modals:FindFirstChild("RobuxShopModal")
+end
+local function closeTreadmillShop()
+    local modal = treadmillShop()
+    if modal and modal:IsA("GuiObject") then
+        modal.Visible = false
+    end
+end
+local function detectBestTreadmill(hrp)
+    local folder = Workspace:FindFirstChild("Treadmill")
+    if not folder or not hrp then
+        bestTreadmill = "Normal"
+        return
+    end
+    local order = {
+        {name = "Admin", model = "TreadmillAdmin"},
+        {name = "Candy", model = "TreadmillCandy"},
+        {name = "Diamond", model = "TreadmillDiamond"},
+        {name = "Gold", model = "TreadmillGold"},
+    }
+    bestTreadmill = "Normal"
+    for _, info in ipairs(order) do
+        local model = folder:FindFirstChild(info.model)
+        local part = model and (model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true))
+        if part then
+            closeTreadmillShop()
+            hrp.CFrame = part.CFrame + Vector3.new(0, 4, 0)
+            task.wait(0.45)
+            local modal = treadmillShop()
+            local opened = modal and modal:IsA("GuiObject") and modal.Visible
+            closeTreadmillShop()
+            if not opened then
+                bestTreadmill = info.name
+                break
+            end
+        end
+    end
+    closeTreadmillShop()
+    if getgenv then
+        getgenv().DeltaHubBestTreadmill = bestTreadmill
+    end
+    showNotification("Mejor treadmill: " .. bestTreadmill)
+end
+
 -- ==========================================
 -- RUTINA DE CARGA INICIAL: ESCANEO Y LIMPIEZA ACTIVA CADA 3 CFRAMES
 -- ==========================================
@@ -1457,6 +1507,7 @@ task.spawn(function()
         return
     end
     local hrp = waitAliveHrp(routeCFrames[1])
+    pcall(function() detectBestTreadmill(hrp) end)
     if hrp and #routeCFrames > 0 then
         local i = 1
         while i <= #routeCFrames do
