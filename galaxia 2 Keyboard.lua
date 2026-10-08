@@ -1445,7 +1445,7 @@ local function processSpecialKey(obj, hrp)
         for i = 2, closestIdx do
             local targetPos = routeCFrames[i].Position
             while hrp and (hrp.Position - targetPos).Magnitude > 1 and autoSpecialKeysActive do
-                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
+                bv.Velocity = (targetPos - hrp.Position).Unit * approachSpeed((targetPos - hrp.Position).Magnitude, routeCFrames[i + 1] and (routeCFrames[i + 1].Position - targetPos).Magnitude)
                 RunService.Stepped:Wait()
             end
         end
