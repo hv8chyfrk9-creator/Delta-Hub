@@ -1413,7 +1413,7 @@ local function detectBestTreadmill(hrp)
     if getgenv then
         getgenv().DeltaHubBestTreadmill = bestTreadmill
     end
-    showNotification("Mejor treadmill: " .. bestTreadmill)
+    if getgenv then getgenv().DeltaHubBestTreadmill = bestTreadmill end
 end
 
 -- ==========================================
@@ -1977,3 +1977,256 @@ task.spawn(function()
         end
     end
 end)
+
+
+Sidebar.Visible = false
+PlayerPage.Visible = false
+GamePage.Visible = false
+ExtrasPage.Visible = false
+EventsPage.Visible = false
+SectionTitle.Visible = false
+
+local function treadmillLabel()
+    local best = bestTreadmill or "Normal"
+    local mult = {Admin = "x100", Candy = "x25", Diamond = "x9", Gold = "x3", Normal = "x1"}
+    return "Best treadmill: " .. (mult[best] or "x1") .. " Treadmill"
+end
+
+local function makeSwitch(parent, text, order)
+    local row = Instance.new("Frame")
+    row.Parent = parent
+    row.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
+    row.Size = UDim2.new(1, -8, 0, 36)
+    row.LayoutOrder = order
+    Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+    local label = Instance.new("TextLabel")
+    label.Parent = row
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, -58, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.Font = Enum.Font.GothamBold
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(240, 240, 245)
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    local hit = Instance.new("TextButton")
+    hit.Parent = row
+    hit.BackgroundColor3 = Color3.fromRGB(70, 70, 78)
+    hit.Position = UDim2.new(1, -46, 0.5, -11)
+    hit.Size = UDim2.new(0, 36, 0, 22)
+    hit.Text = ""
+    Instance.new("UICorner", hit).CornerRadius = UDim.new(1, 0)
+    local knob = Instance.new("Frame")
+    knob.Parent = hit
+    knob.BackgroundColor3 = Color3.fromRGB(230, 230, 235)
+    knob.Position = UDim2.new(0, 2, 0, 2)
+    knob.Size = UDim2.new(0, 18, 0, 18)
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    local on = false
+    local function paint()
+        hit.BackgroundColor3 = on and Color3.fromRGB(70, 190, 90) or Color3.fromRGB(70, 70, 78)
+        knob.Position = on and UDim2.new(1, -20, 0, 2) or UDim2.new(0, 2, 0, 2)
+    end
+    return row, function(state)
+        on = state and true or false
+        paint()
+    end, function()
+        return on
+    end, hit
+end
+
+local function section(parent, title, order)
+    local wrap = Instance.new("Frame")
+    wrap.Parent = parent
+    wrap.BackgroundTransparency = 1
+    wrap.Size = UDim2.new(1, -8, 0, 34)
+    wrap.AutomaticSize = Enum.AutomaticSize.Y
+    wrap.LayoutOrder = order
+    local head = Instance.new("TextButton")
+    head.Parent = wrap
+    head.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+    head.Size = UDim2.new(1, 0, 0, 32)
+    head.Font = Enum.Font.GothamBold
+    head.Text = "  >  " .. title
+    head.TextColor3 = Color3.fromRGB(240, 240, 245)
+    head.TextSize = 13
+    head.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", head).CornerRadius = UDim.new(0, 6)
+    local body = Instance.new("Frame")
+    body.Parent = wrap
+    body.BackgroundTransparency = 1
+    body.Position = UDim2.new(0, 10, 0, 36)
+    body.Size = UDim2.new(1, -10, 0, 0)
+    body.AutomaticSize = Enum.AutomaticSize.Y
+    body.Visible = false
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = body
+    layout.Padding = UDim.new(0, 6)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    head.MouseButton1Click:Connect(function()
+        body.Visible = not body.Visible
+        head.Text = (body.Visible and "  v  " or "  >  ") .. title
+    end)
+    return body
+end
+
+local farmPage = createScrollingPage(ContentArea)
+local playerNew = createScrollingPage(ContentArea)
+playerNew.Visible = false
+local eventsNew = createScrollingPage(ContentArea)
+eventsNew.Visible = false
+
+local function showPage(page, title)
+    farmPage.Visible = false
+    playerNew.Visible = false
+    eventsNew.Visible = false
+    page.Visible = true
+    SectionTitle.Visible = true
+    SectionTitle.Text = title
+end
+
+TabPlayerBtn.Text = "P"
+TabGameBtn.Text = "F"
+TabEventsBtn.Text = "E"
+TabPlayerBtn.Visible = true
+TabGameBtn.Visible = true
+TabEventsBtn.Visible = true
+Sidebar.Visible = true
+TabExtrasBtn.Visible = false
+TabGameBtn.MouseButton1Click:Connect(function() showPage(farmPage, "Farm") end)
+TabPlayerBtn.MouseButton1Click:Connect(function() showPage(playerNew, "Player") end)
+TabEventsBtn.MouseButton1Click:Connect(function() showPage(eventsNew, "Events") end)
+showPage(farmPage, "Farm")
+
+local winsBody = section(farmPage, "Wins", 1)
+selectorMain.Parent = winsBody
+selectorMain.LayoutOrder = 1
+speedGameBox.Parent = winsBody
+speedGameBox.LayoutOrder = 2
+fastBtn.Parent = winsBody
+fastBtn.LayoutOrder = 3
+local modeInfo = Instance.new("TextLabel")
+modeInfo.Parent = winsBody
+modeInfo.BackgroundTransparency = 1
+modeInfo.Size = UDim2.new(1, 0, 0, 48)
+modeInfo.Font = Enum.Font.Gotham
+modeInfo.Text = "Normal: slows to a stop. Fast: stays at 50. Super Fast: stays at 150."
+modeInfo.TextColor3 = Color3.fromRGB(180, 180, 190)
+modeInfo.TextSize = 11
+modeInfo.TextWrapped = true
+modeInfo.LayoutOrder = 4
+startRouteBtn.Parent = winsBody
+startRouteBtn.LayoutOrder = 5
+startRouteBtn.Text = "Iniciar recorrido"
+local routeClickState = 0
+startRouteBtn.MouseButton1Click:Connect(function()
+    if not routeRunning then
+        routeClickState = 1
+        startRouteBtn.Text = "Terminar recorrido"
+    elseif routeClickState == 1 then
+        finishAfterClaim = true
+        routeClickState = 2
+        startRouteBtn.Text = "Terminar ahora"
+        showNotification("Sigue hasta el WinBlock y vuelve al spawn.")
+    else
+        stopRecorridoGeneral()
+        routeClickState = 0
+        startRouteBtn.Text = "Iniciar recorrido"
+    end
+end)
+
+local millBody = section(farmPage, "Treadmill", 2)
+local _, setMill, _, millHit = makeSwitch(millBody, "Auto Treadmill", 1)
+local bestLabel = Instance.new("TextLabel")
+bestLabel.Parent = millBody
+bestLabel.BackgroundTransparency = 1
+bestLabel.Size = UDim2.new(1, 0, 0, 22)
+bestLabel.Font = Enum.Font.GothamBold
+bestLabel.Text = "Best treadmill: --"
+bestLabel.TextColor3 = Color3.fromRGB(255, 210, 80)
+bestLabel.TextSize = 12
+bestLabel.TextXAlignment = Enum.TextXAlignment.Left
+bestLabel.Visible = false
+bestLabel.LayoutOrder = 2
+local autoMill = false
+millHit.MouseButton1Click:Connect(function()
+    autoMill = not autoMill
+    setMill(autoMill)
+    bestLabel.Visible = autoMill
+    bestLabel.Text = treadmillLabel()
+    if not autoMill then return end
+    task.spawn(function()
+        local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold", Normal = "Treadmill"}
+        while autoMill do
+            local folder = Workspace:FindFirstChild("Treadmill")
+            local model = folder and folder:FindFirstChild(names[bestTreadmill] or "Treadmill")
+            local part = model and (model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true))
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and part then
+                hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
+            end
+            task.wait(1)
+        end
+    end)
+end)
+
+local moveBody = section(playerNew, "Movement", 1)
+local function sliderRow(parent, title, order, minV, maxV, apply)
+    local box = Instance.new("TextBox")
+    box.Parent = parent
+    box.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+    box.Size = UDim2.new(1, -8, 0, 28)
+    box.Font = Enum.Font.Gotham
+    box.Text = tostring(minV)
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.TextSize = 12
+    box.LayoutOrder = order
+    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
+    local bar = Instance.new("TextButton")
+    bar.Parent = parent
+    bar.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+    bar.Size = UDim2.new(1, -8, 0, 18)
+    bar.Text = title
+    bar.Font = Enum.Font.Gotham
+    bar.TextSize = 11
+    bar.TextColor3 = Color3.fromRGB(220, 220, 225)
+    bar.LayoutOrder = order + 1
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 6)
+    local function setValue(v)
+        v = math.clamp(tonumber(v) or minV, minV, maxV)
+        box.Text = tostring(math.floor(v))
+        apply(v)
+    end
+    box.FocusLost:Connect(function() setValue(box.Text) end)
+    bar.MouseButton1Click:Connect(function()
+        local x = game:GetService("UserInputService"):GetMouseLocation().X
+        local rel = math.clamp((x - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1), 0, 1)
+        setValue(minV + (maxV - minV) * rel)
+    end)
+end
+sliderRow(moveBody, "Speed", 1, 1, 1000, function(v) customSpeed = v speedEnabled = true end)
+sliderRow(moveBody, "JumpPower", 3, 1, 1000, function(v) customJump = v jumpEnabled = true end)
+local _, setJumpInf, _, infHit = makeSwitch(moveBody, "InfiniteJump", 5)
+infHit.MouseButton1Click:Connect(function()
+    infJumpToggle.MouseButton1Click:Fire()
+    setJumpInf(infJumpToggle.Text:find("ON") ~= nil)
+end)
+
+local npcBody = section(playerNew, "NPC", 2)
+npcToggle.Parent = npcBody
+npcToggle.Size = UDim2.new(1, -8, 0, 32)
+npcToggle.LayoutOrder = 1
+
+local abuseBody = section(eventsNew, "Admin abuse", 1)
+btnChocolate.Parent = abuseBody
+btnCoin.Parent = abuseBody
+btnXp.Parent = abuseBody
+btnChocolate.LayoutOrder = 1
+btnCoin.LayoutOrder = 2
+btnXp.LayoutOrder = 3
+
+local dailyBody = section(eventsNew, "Daily", 2)
+specialKeysToggle.Parent = dailyBody
+specialKeysToggle.Size = UDim2.new(1, -8, 0, 32)
+specialKeysToggle.Text = "Special Keys"
+specialKeysToggle.LayoutOrder = 1
