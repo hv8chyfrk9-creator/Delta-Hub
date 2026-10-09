@@ -1391,14 +1391,23 @@ local bestTreadmill = "Normal"
 local conveyorHome = nil
 local conveyorPart = nil
 local millWins = false
+local function partOf(obj)
+    if not obj then return nil end
+    if obj:IsA("BasePart") then return obj end
+    if obj:IsA("Model") then
+        return obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart", true)
+    end
+    return nil
+end
 local function findConveyor(model)
     if not model then return nil end
     for _, d in ipairs(model:GetDescendants()) do
-        if string.lower(d.Name) == "conveyor" and d:IsA("BasePart") then
-            return d
+        if string.find(string.lower(d.Name), "conveyor", 1, true) then
+            local part = partOf(d)
+            if part then return part end
         end
     end
-    return model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true)
+    return partOf(model)
 end
 local function bestConveyor()
     local folder = Workspace:FindFirstChild("Treadmill")
@@ -1427,9 +1436,13 @@ end
 local function sendToBestTreadmill()
     local conv = bestConveyor()
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if hrp and conv then
-        hrp.CFrame = conv.CFrame + Vector3.new(0, 3, 0)
+    if not hrp or not conv then
+        showNotification("No encontre el conveyor de la treadmill")
+        return false
     end
+    hrp.CFrame = conv.CFrame + Vector3.new(0, 4, 0)
+    showNotification("Enviado a treadmill " .. tostring(bestTreadmill))
+    return true
 end
 local function restoreConveyor()
     if conveyorPart and conveyorHome then
@@ -2258,6 +2271,7 @@ millHit.MouseButton1Click:Connect(function()
     bestLabel.Visible = autoMill
     bestLabel.Text = treadmillLabel()
     if not autoMill then return end
+    sendToBestTreadmill()
     task.spawn(function()
         local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold", Normal = "Treadmill"}
         while autoMill do
@@ -2311,12 +2325,55 @@ local function sliderRow(parent, title, order, minV, maxV, apply)
         setValue(minV + (maxV - minV) * rel)
     end)
 end
-sliderRow(moveBody, "Speed", 1, 1, 1000, function(v) customSpeed = v end)
-sliderRow(moveBody, "JumpPower", 3, 1, 1000, function(v) customJump = v end)
+local _, setSpeedOn, _, speedHit = makeSwitch(moveBody, "Speed", 1)
+local speedValueBox = Instance.new("TextBox")
+speedValueBox.Parent = moveBody
+speedValueBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+speedValueBox.Size = UDim2.new(1, -8, 0, 28)
+speedValueBox.Font = Enum.Font.Gotham
+speedValueBox.Text = "16"
+speedValueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+speedValueBox.TextSize = 12
+speedValueBox.LayoutOrder = 2
+Instance.new("UICorner", speedValueBox).CornerRadius = UDim.new(0, 6)
+speedValueBox.FocusLost:Connect(function()
+    local v = tonumber(speedValueBox.Text)
+    customSpeed = math.clamp(v or customSpeed or 16, 1, 1000)
+    speedValueBox.Text = tostring(math.floor(customSpeed))
+end)
+speedHit.MouseButton1Click:Connect(function()
+    local v = tonumber(speedValueBox.Text)
+    customSpeed = math.clamp(v or customSpeed or 16, 1, 1000)
+    speedEnabled = not speedEnabled
+    setSpeedOn(speedEnabled)
+end)
+local _, setJumpOn, _, jumpHit = makeSwitch(moveBody, "Jump", 3)
+local jumpValueBox = Instance.new("TextBox")
+jumpValueBox.Parent = moveBody
+jumpValueBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+jumpValueBox.Size = UDim2.new(1, -8, 0, 28)
+jumpValueBox.Font = Enum.Font.Gotham
+jumpValueBox.Text = "50"
+jumpValueBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+jumpValueBox.TextSize = 12
+jumpValueBox.LayoutOrder = 4
+Instance.new("UICorner", jumpValueBox).CornerRadius = UDim.new(0, 6)
+jumpValueBox.FocusLost:Connect(function()
+    local v = tonumber(jumpValueBox.Text)
+    customJump = math.clamp(v or customJump or 50, 1, 1000)
+    jumpValueBox.Text = tostring(math.floor(customJump))
+end)
+jumpHit.MouseButton1Click:Connect(function()
+    local v = tonumber(jumpValueBox.Text)
+    customJump = math.clamp(v or customJump or 50, 1, 1000)
+    jumpEnabled = not jumpEnabled
+    setJumpOn(jumpEnabled)
+end)
 local _, setJumpInf, _, infHit = makeSwitch(moveBody, "InfiniteJump", 5)
 infHit.MouseButton1Click:Connect(function()
-    infJumpToggle.MouseButton1Click:Fire()
-    setJumpInf(infJumpToggle.Text:find("ON") ~= nil)
+    infiniteJumpEnabled = not infiniteJumpEnabled
+    setJumpInf(infiniteJumpEnabled)
+    infJumpToggle.Text = infiniteJumpEnabled and "Infinitejump: ON" or "Infinitejump: OFF"
 end)
 
 local npcBody = section(playerNew, "NPC", 2)
@@ -2335,8 +2392,42 @@ btnXp.LayoutOrder = 3
 local dailyBody = section(eventsNew, "Daily", 2)
 specialKeysToggle.Parent = dailyBody
 specialKeysToggle.Size = UDim2.new(1, -8, 0, 32)
-specialKeysToggle.Text = "Special Keys"
+specialKeysToggle.Text = "Auto SpecialKeys: OFF"
 specialKeysToggle.LayoutOrder = 1
+local skRow = Instance.new("Frame")
+skRow.Parent = dailyBody
+skRow.BackgroundTransparency = 1
+skRow.Size = UDim2.new(1, -8, 0, 26)
+skRow.Visible = false
+skRow.LayoutOrder = 2
+local function skChoice(text, x)
+    local b = Instance.new("TextButton")
+    b.Parent = skRow
+    b.Size = UDim2.new(0, 72, 0, 22)
+    b.Position = UDim2.new(0, x, 0, 2)
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+    b.Font = Enum.Font.Gotham
+    b.Text = text
+    b.TextSize = 11
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        specialKeysMode = text
+        b.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+        for _, other in ipairs(skRow:GetChildren()) do
+            if other:IsA("TextButton") and other ~= b then
+                other.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+            end
+        end
+    end)
+    return b
+end
+local tweenBtn = skChoice("Tween", 0)
+tweenBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+skChoice("Tp", 80)
+specialKeysToggle.MouseButton1Click:Connect(function()
+    skRow.Visible = autoSpecialKeysActive
+end)
 
 
 MainFrame.BackgroundTransparency = 0.25
@@ -2491,17 +2582,7 @@ if humNow then
     customSpeed = humNow.WalkSpeed
     customJump = humNow.JumpPower
 end
-local _, setSpeedOn, _, speedHit = makeSwitch(moveBody, "Speed", 0)
-local _, setJumpOn, _, jumpHit = makeSwitch(moveBody, "Jump", 2)
-speedHit.MouseButton1Click:Connect(function()
-    speedEnabled = not speedEnabled
-    setSpeedOn(speedEnabled)
-    if speedEnabled and humNow then customSpeed = customSpeed or humNow.WalkSpeed end
-end)
-jumpHit.MouseButton1Click:Connect(function()
-    jumpEnabled = not jumpEnabled
-    setJumpOn(jumpEnabled)
-end)
+
 
 pcall(function()
     ScreenGui.Parent = playerGui
