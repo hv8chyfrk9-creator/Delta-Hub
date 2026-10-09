@@ -40,6 +40,8 @@ end
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "DeltaHubMinimal"
 ScreenGui.Parent = playerGui
+ScreenGui.Enabled = true
+ScreenGui.DisplayOrder = 50
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
@@ -2136,12 +2138,8 @@ task.spawn(function()
 end)
 
 
-Sidebar.Visible = false
-PlayerPage.Visible = false
-GamePage.Visible = false
-ExtrasPage.Visible = false
-EventsPage.Visible = false
-SectionTitle.Visible = false
+MainFrame.Visible = true
+ScreenGui.Enabled = true
 
 local function treadmillLabel()
     local best = bestTreadmill or "Normal"
@@ -2393,7 +2391,7 @@ specialKeysToggle.Text = "Special Keys"
 specialKeysToggle.LayoutOrder = 1
 
 
-MainFrame.BackgroundTransparency = 0.72
+MainFrame.BackgroundTransparency = 0.25
 ContentArea.BackgroundTransparency = 1
 dropdownList.Visible = false
 skDropdown.Visible = false
@@ -2412,7 +2410,7 @@ local extrasPage = createScrollingPage(ContentArea)
 extrasPage.Visible = false
 table.insert(tabNames, {btn = TabExtrasBtn, name = "Extras", page = extrasPage})
 Sidebar.Parent = ScreenGui
-Sidebar.Position = UDim2.new(0, MainFrame.AbsolutePosition.X - 78, 0, MainFrame.AbsolutePosition.Y + 46)
+Sidebar.Position = UDim2.new(0, 8, 0.5, -100)
 Sidebar.Size = UDim2.new(0, 70, 0, 210)
 for i, info in ipairs(tabNames) do
     info.btn.Parent = Sidebar
@@ -2556,3 +2554,10 @@ jumpHit.MouseButton1Click:Connect(function()
     jumpEnabled = not jumpEnabled
     setJumpOn(jumpEnabled)
 end)
+
+pcall(function()
+    ScreenGui.Parent = playerGui
+    ScreenGui.Enabled = true
+    MainFrame.Visible = true
+end)
+print("Delta Hub visible en PlayerGui")
