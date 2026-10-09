@@ -2149,6 +2149,7 @@ task.spawn(function()
 end)
 
 
+local function buildHubUi()
 MainFrame.Visible = true
 ScreenGui.Enabled = true
 
@@ -2572,3 +2573,5 @@ pcall(function()
     MainFrame.Visible = true
 end)
 print("Delta Hub visible en PlayerGui")
+end
+buildHubUi()
