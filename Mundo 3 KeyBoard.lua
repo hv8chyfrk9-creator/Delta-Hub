@@ -2152,15 +2152,7 @@ task.spawn(function()
 end)
 
 
-local function task.spawn(function()
-    task.wait(0.2)
-    if LoadingText then LoadingText.Text = "Parte 4/7  Farm" end
-    buildHubUi()
-    if LoadingText then LoadingText.Text = "Parte 7/7  Listo" end
-    task.wait(0.4)
-    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
-    print("Delta Hub partes listas")
-end)
+local function buildHubUi()
 MainFrame.Visible = true
 ScreenGui.Enabled = true
 
@@ -2585,4 +2577,12 @@ pcall(function()
 end)
 print("Delta Hub visible en PlayerGui")
 end
-buildHubUi()
+task.spawn(function()
+    task.wait(0.2)
+    if LoadingText then LoadingText.Text = "Parte 4/7  Farm" end
+    buildHubUi()
+    if LoadingText then LoadingText.Text = "Parte 7/7  Listo" end
+    task.wait(0.4)
+    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
+    print("Delta Hub partes listas")
+end)
