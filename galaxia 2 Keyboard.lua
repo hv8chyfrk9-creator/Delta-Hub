@@ -103,7 +103,7 @@ LoadingText.Parent = LoadingScreen
 LoadingText.BackgroundTransparency = 1
 LoadingText.Size = UDim2.new(1, 0, 1, 0)
 LoadingText.Font = Enum.Font.GothamBold
-LoadingText.Text = "Cargando activos..."
+LoadingText.Text = "Parte 1/7  Pantalla"
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
 LoadingText.TextSize = 24
 LoadingText.ZIndex = 10000
@@ -1499,7 +1499,7 @@ local function detectBestTreadmill(hrp)
 end
 
 -- ==========================================
--- RUTINA DE CARGA INICIAL: RECORRIDO DE 3 EN 3 CFRAMES PARA LIMPIAR LAVA
+-- RUTINA DE CARGA INICIAL: RECORRIDO DE 5 EN 5 CFRAMES PARA LIMPIAR LAVA
 -- ==========================================
 task.spawn(function()
     if getgenv and getgenv().DeltaHubSkipAssets then
@@ -1508,7 +1508,10 @@ task.spawn(function()
         return
     end
     local hrp = waitAliveHrp(routeCFrames[1])
+    if LoadingText then LoadingText.Text = "Parte 2/7  Caminadoras" end
+    task.wait(0.1)
     pcall(function() detectBestTreadmill(hrp) end)
+    if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
     if hrp and #routeCFrames > 0 then
         local i = 1
         while i <= #routeCFrames do
@@ -1540,7 +1543,7 @@ task.spawn(function()
                     end
                 end
                 if floatBp then floatBp:Destroy() end
-                i = i + 3
+                i = i + 5
             end
         end
         hrp = waitAliveHrp(routeCFrames[1])
@@ -2072,7 +2075,15 @@ task.spawn(function()
 end)
 
 
-local function buildHubUi()
+local function task.spawn(function()
+    task.wait(0.2)
+    if LoadingText then LoadingText.Text = "Parte 4/7  Farm" end
+    buildHubUi()
+    if LoadingText then LoadingText.Text = "Parte 7/7  Listo" end
+    task.wait(0.4)
+    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
+    print("Delta Hub partes listas")
+end)
 MainFrame.Visible = true
 ScreenGui.Enabled = true
 
