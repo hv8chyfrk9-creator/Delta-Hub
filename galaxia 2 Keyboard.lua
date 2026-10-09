@@ -2344,7 +2344,14 @@ end)
 speedHit.MouseButton1Click:Connect(function()
     local v = tonumber(speedValueBox.Text)
     customSpeed = math.clamp(v or customSpeed or 16, 1, 1000)
-    speedEnabled = not speedEnabled
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if not speedEnabled then
+        if hum then originalWalkSpeed = hum.WalkSpeed end
+        speedEnabled = true
+    else
+        speedEnabled = false
+        if hum and originalWalkSpeed then hum.WalkSpeed = originalWalkSpeed end
+    end
     setSpeedOn(speedEnabled)
 end)
 local _, setJumpOn, _, jumpHit = makeSwitch(moveBody, "Jump", 3)
@@ -2366,7 +2373,17 @@ end)
 jumpHit.MouseButton1Click:Connect(function()
     local v = tonumber(jumpValueBox.Text)
     customJump = math.clamp(v or customJump or 50, 1, 1000)
-    jumpEnabled = not jumpEnabled
+    local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    if not jumpEnabled then
+        if hum then originalUseJumpPower, originalJumpPower = hum.UseJumpPower, hum.JumpPower end
+        jumpEnabled = true
+    else
+        jumpEnabled = false
+        if hum then
+            if originalUseJumpPower ~= nil then hum.UseJumpPower = originalUseJumpPower end
+            if originalJumpPower ~= nil then hum.JumpPower = originalJumpPower end
+        end
+    end
     setJumpOn(jumpEnabled)
 end)
 local _, setJumpInf, _, infHit = makeSwitch(moveBody, "InfiniteJump", 5)
@@ -2589,6 +2606,65 @@ pcall(function()
     ScreenGui.Enabled = true
     MainFrame.Visible = true
 end)
+
+
+local winPanel = Instance.new("Frame")
+winPanel.Name = "WinPanel"
+winPanel.Parent = ScreenGui
+winPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+winPanel.BackgroundTransparency = 0.08
+winPanel.Position = UDim2.new(0.5, 235, 0.5, -150)
+winPanel.Size = UDim2.new(0, 150, 0, 280)
+winPanel.Visible = false
+winPanel.ZIndex = 20
+Instance.new("UICorner", winPanel).CornerRadius = UDim.new(0, 8)
+local winTitle = Instance.new("TextLabel")
+winTitle.Parent = winPanel
+winTitle.BackgroundTransparency = 1
+winTitle.Size = UDim2.new(1, 0, 0, 24)
+winTitle.Font = Enum.Font.GothamBold
+winTitle.Text = "WinBlocks"
+winTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+winTitle.TextSize = 12
+winTitle.ZIndex = 21
+local winScroll = Instance.new("ScrollingFrame")
+winScroll.Parent = winPanel
+winScroll.BackgroundTransparency = 1
+winScroll.Position = UDim2.new(0, 6, 0, 26)
+winScroll.Size = UDim2.new(1, -12, 1, -32)
+winScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+winScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+winScroll.ScrollBarThickness = 3
+winScroll.ZIndex = 21
+local winLayout = Instance.new("UIListLayout")
+winLayout.Parent = winScroll
+winLayout.Padding = UDim.new(0, 4)
+winLayout.SortOrder = Enum.SortOrder.LayoutOrder
+for _, info in ipairs(orderedWinBlocks) do
+    local opt = Instance.new("TextButton")
+    opt.Parent = winScroll
+    opt.BackgroundColor3 = Color3.fromRGB(36, 36, 42)
+    opt.Size = UDim2.new(1, -4, 0, 24)
+    opt.Font = Enum.Font.Gotham
+    opt.Text = info.display
+    opt.TextColor3 = Color3.fromRGB(240, 240, 245)
+    opt.TextSize = 11
+    opt.LayoutOrder = info.order
+    opt.ZIndex = 22
+    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 5)
+    opt.MouseButton1Click:Connect(function()
+        selectedRealName = info.real
+        selectedDisplayName = info.display
+        selectorBtn.Text = "Seleccionar Win: " .. info.display .. " ▾"
+        if winChosenLabel then winChosenLabel.Text = "Win escogida: " .. info.display end
+        winPanel.Visible = false
+    end)
+end
+selectorBtn.MouseButton1Click:Connect(function()
+    dropdownList.Visible = false
+    winPanel.Visible = not winPanel.Visible
+end)
+MinimizeBtn.MouseButton1Click:Connect(function() winPanel.Visible = false end)
 
 if boot then boot:Destroy() end
 GamePage.Visible = false
