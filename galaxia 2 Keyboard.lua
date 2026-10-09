@@ -686,6 +686,7 @@ end
 local delayTime = 0
 local infiniteRouteActive = false
 local routeRunning = false
+local routeClickState = 0
 
 local selectorMain = Instance.new("Frame")
 selectorMain.Parent = GamePage
@@ -773,7 +774,11 @@ speedGameBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedGameBox.TextSize = 13
 speedGameBox.LayoutOrder = 5
 Instance.new("UICorner", speedGameBox).CornerRadius = UDim.new(0, 6)
-speedGameBox.FocusLost:Connect(function() local v = tonumber(speedGameBox.Text) if v then gameSpeed = math.clamp(v, 1, 500) end end)
+speedGameBox.FocusLost:Connect(function()
+    local v = tonumber(speedGameBox.Text)
+    gameSpeed = math.clamp(v or gameSpeed or 250, 1, 500)
+    speedGameBox.Text = tostring(gameSpeed)
+end)
 
 local delayBox = Instance.new("TextBox")
 delayBox.Parent = GamePage
@@ -933,8 +938,9 @@ local function stopRecorridoGeneral()
     noclipToggle.Text = "Noclip: OFF"
     noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
     noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    startRouteBtn.Text = "Iniciar Recorrido: OFF"
-    startRouteBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    routeClickState = 0
+    startRouteBtn.Text = "Iniciar recorrido"
+    startRouteBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
     startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1623,8 +1629,11 @@ end
 -- ==========================================
 startRouteBtn.MouseButton1Click:Connect(function()
     if routeRunning then return end
+    local typed = tonumber(speedGameBox.Text)
+    gameSpeed = math.clamp(typed or gameSpeed or 250, 1, 500)
+    speedGameBox.Text = tostring(gameSpeed)
     routeRunning = true
-    StopRouteContainer.Visible = true
+    StopRouteContainer.Visible = false
     startRouteBtn.Text = "Iniciando Recorrido..."
     startRouteBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
     startRouteBtn.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
@@ -2206,24 +2215,30 @@ modeInfo.LayoutOrder = 4
 startRouteBtn.Parent = winsBody
 startRouteBtn.LayoutOrder = 5
 startRouteBtn.Text = "Iniciar recorrido"
-local routeClickState = 0
+routeClickState = 0
 startRouteBtn.MouseButton1Click:Connect(function()
-    if not routeRunning then
-        routeClickState = 1
-        startRouteBtn.Text = "Terminar recorrido"
-    elseif routeClickState == 1 then
-        finishAfterClaim = true
-        routeClickState = 2
-        startRouteBtn.Text = "Terminar ahora"
-        showNotification("Sigue hasta el WinBlock y vuelve al spawn.")
-    else
-        stopRecorridoGeneral()
-        routeClickState = 0
-        startRouteBtn.Text = "Iniciar recorrido"
-    end
+    task.defer(function()
+        if routeRunning and routeClickState == 0 then
+            routeClickState = 1
+            startRouteBtn.Text = "Terminar recorrido"
+            startRouteBtn.TextColor3 = Color3.fromRGB(255, 220, 120)
+            return
+        end
+        if routeClickState == 1 then
+            finishAfterClaim = true
+            routeClickState = 2
+            startRouteBtn.Text = "Terminar ahora"
+            showNotification("Sigue hasta el WinBlock y vuelve al spawn.")
+        elseif routeClickState == 2 then
+            stopRecorridoGeneral()
+            routeClickState = 0
+            startRouteBtn.Text = "Iniciar recorrido"
+            startRouteBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
+        end
+    end)
 end)
 
-local millBody = section(farmPage, "Treadmill", 2)
+local millBody = section(farmPage, "Autofunciones", 2)
 local _, setMill, _, millHit = makeSwitch(millBody, "Auto Treadmill", 1)
 local bestLabel = Instance.new("TextLabel")
 bestLabel.Parent = millBody
@@ -2296,8 +2311,8 @@ local function sliderRow(parent, title, order, minV, maxV, apply)
         setValue(minV + (maxV - minV) * rel)
     end)
 end
-sliderRow(moveBody, "Speed", 1, 1, 1000, function(v) customSpeed = v speedEnabled = true end)
-sliderRow(moveBody, "JumpPower", 3, 1, 1000, function(v) customJump = v jumpEnabled = true end)
+sliderRow(moveBody, "Speed", 1, 1, 1000, function(v) customSpeed = v end)
+sliderRow(moveBody, "JumpPower", 3, 1, 1000, function(v) customJump = v end)
 local _, setJumpInf, _, infHit = makeSwitch(moveBody, "InfiniteJump", 5)
 infHit.MouseButton1Click:Connect(function()
     infJumpToggle.MouseButton1Click:Fire()
@@ -2344,7 +2359,7 @@ extrasPage.Visible = false
 table.insert(tabNames, {btn = TabExtrasBtn, name = "Extras", page = extrasPage})
 Sidebar.Parent = ScreenGui
 Sidebar.Position = UDim2.new(0, 8, 0.5, -100)
-Sidebar.Size = UDim2.new(0, 70, 0, 210)
+Sidebar.Size = UDim2.new(0, 78, 0, 250)
 for i, info in ipairs(tabNames) do
     info.btn.Parent = Sidebar
     info.btn.Size = UDim2.new(0, 66, 0, 32)
