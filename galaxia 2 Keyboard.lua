@@ -1472,11 +1472,21 @@ end)
 -- ==========================================
 -- LÓGICA DE RECOGIDA DE SPECIALKEY CON RETORNO A POSICIÓN ORIGINAL
 -- ==========================================
+local specialKeyCount = 0
+local specialKeyWins = 0
+local function readExactWins()
+    local ls = player:FindFirstChild("leaderstats")
+    local w = ls and ls:FindFirstChild("Wins")
+    return w and tonumber(w.Value) or 0
+end
 local function processSpecialKey(obj, hrp)
+    local beforeWins = readExactWins()
     local itemPos = obj.Position or obj:GetPrimaryPartCFrame().Position
     local originalPos = hrp.CFrame
     
     if specialKeysMode == "Tp" then
+        specialKeyCount = specialKeyCount + 1
+        specialKeyWins = specialKeyWins + math.max(0, readExactWins() - beforeWins)
         showNotification("SpecialKey encontrada haciendo tp a ella")
         hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
     elseif specialKeysMode == "Tween" then
@@ -2230,3 +2240,150 @@ specialKeysToggle.Parent = dailyBody
 specialKeysToggle.Size = UDim2.new(1, -8, 0, 32)
 specialKeysToggle.Text = "Special Keys"
 specialKeysToggle.LayoutOrder = 1
+
+
+MainFrame.BackgroundTransparency = 0.72
+ContentArea.BackgroundTransparency = 1
+dropdownList.Visible = false
+skDropdown.Visible = false
+dropdownList.Parent = winsBody
+skDropdown.Parent = dailyBody
+selectorBtn.MouseButton1Click:Connect(function()
+    dropdownList.Visible = not dropdownList.Visible
+end)
+
+local tabNames = {
+    {btn = TabGameBtn, name = "Farm", page = farmPage},
+    {btn = TabPlayerBtn, name = "Player", page = playerNew},
+    {btn = TabEventsBtn, name = "Events", page = eventsNew},
+}
+local extrasPage = createScrollingPage(ContentArea)
+extrasPage.Visible = false
+table.insert(tabNames, {btn = TabExtrasBtn, name = "Extras", page = extrasPage})
+Sidebar.Parent = ScreenGui
+Sidebar.Position = UDim2.new(0, MainFrame.AbsolutePosition.X - 78, 0, MainFrame.AbsolutePosition.Y + 46)
+Sidebar.Size = UDim2.new(0, 70, 0, 210)
+for i, info in ipairs(tabNames) do
+    info.btn.Parent = Sidebar
+    info.btn.Size = UDim2.new(0, 66, 0, 32)
+    info.btn.Text = info.name
+    info.btn.Font = Enum.Font.GothamBold
+    info.btn.TextSize = 12
+    info.btn.BackgroundColor3 = Color3.fromRGB(170, 35, 35)
+    info.btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    info.btn.LayoutOrder = i
+    info.btn.Visible = true
+    info.btn.MouseButton1Click:Connect(function()
+        farmPage.Visible = false
+        playerNew.Visible = false
+        eventsNew.Visible = false
+        extrasPage.Visible = false
+        info.page.Visible = true
+        SectionTitle.Text = info.name
+    end)
+end
+TabExtrasBtn.Visible = true
+MinimizeBtn.MouseButton1Click:Connect(function()
+    Sidebar.Visible = MainFrame.Visible
+end)
+
+local antiBody = section(extrasPage, "Antilag", 1)
+antilagToggle.Parent = antiBody
+antilagToggle.LayoutOrder = 1
+
+local renderBody = section(extrasPage, "No render", 2)
+local _, setRender, _, renderHit = makeSwitch(renderBody, "No render", 1)
+local colorRow = Instance.new("Frame")
+colorRow.Parent = renderBody
+colorRow.BackgroundTransparency = 1
+colorRow.Size = UDim2.new(1, -8, 0, 28)
+colorRow.Visible = false
+colorRow.LayoutOrder = 2
+local noRender = Instance.new("Frame")
+noRender.Parent = ScreenGui
+noRender.Size = UDim2.new(1, 0, 1, 0)
+noRender.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+noRender.Visible = false
+noRender.ZIndex = 20
+noRender.Active = false
+local renderOn = false
+local renderWhite = true
+local function paintRender()
+    noRender.BackgroundColor3 = renderWhite and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(0, 0, 0)
+    noRender.Visible = renderOn
+end
+for _, name in ipairs({"Blanco", "Negro"}) do
+    local b = Instance.new("TextButton")
+    b.Parent = colorRow
+    b.Size = UDim2.new(0, 70, 0, 24)
+    b.Position = name == "Blanco" and UDim2.new(0, 0, 0, 0) or UDim2.new(0, 78, 0, 0)
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+    b.Font = Enum.Font.Gotham
+    b.Text = name
+    b.TextSize = 11
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.MouseButton1Click:Connect(function()
+        renderWhite = name == "Blanco"
+        paintRender()
+    end)
+end
+renderHit.MouseButton1Click:Connect(function()
+    renderOn = not renderOn
+    setRender(renderOn)
+    colorRow.Visible = renderOn
+    paintRender()
+end)
+
+local statsBody = section(extrasPage, "Stats", 3)
+local _, setStats, _, statsHit = makeSwitch(statsBody, "Stats", 1)
+local sessionStart = tick()
+local function statCard(text, y)
+    local f = Instance.new("TextLabel")
+    f.Parent = ScreenGui
+    f.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+    f.BackgroundTransparency = 0.25
+    f.Position = UDim2.new(0, 12, 0, y)
+    f.Size = UDim2.new(0, 180, 0, 36)
+    f.Font = Enum.Font.GothamBold
+    f.Text = text
+    f.TextColor3 = Color3.fromRGB(255, 255, 255)
+    f.TextSize = 12
+    f.Visible = false
+    f.Active = true
+    f.Draggable = true
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
+    return f
+end
+local cardWins = statCard("Wins ruta: 0", 80)
+local cardTime = statCard("Sesion: 0s", 122)
+local cardKeys = statCard("SpecialKeys: 0", 164)
+local cardKeyWins = statCard("Wins keys: 0", 206)
+local statsOn = false
+statsHit.MouseButton1Click:Connect(function()
+    statsOn = not statsOn
+    setStats(statsOn)
+    cardWins.Visible = statsOn
+    cardTime.Visible = statsOn
+    cardKeys.Visible = statsOn
+    cardKeyWins.Visible = statsOn
+    if statsOn then
+        for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+            if gui ~= ScreenGui and gui:IsA("ScreenGui") then gui.Enabled = false end
+        end
+    else
+        for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+            if gui:IsA("ScreenGui") then gui.Enabled = true end
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if statsOn then
+            cardWins.Text = "Wins ruta: " .. formatWins(routeWinsSession or 0)
+            cardTime.Text = "Sesion: " .. tostring(math.floor(tick() - sessionStart)) .. "s"
+            cardKeys.Text = "SpecialKeys: " .. tostring(specialKeyCount or 0)
+            cardKeyWins.Text = "Wins keys: " .. formatWins(specialKeyWins or 0)
+        end
+    end
+end)
