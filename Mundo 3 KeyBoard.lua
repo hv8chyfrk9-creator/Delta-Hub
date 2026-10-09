@@ -1479,14 +1479,9 @@ local function partOf(obj)
     end
     return nil
 end
-local function findNamed(root, name)
-    if not root then return nil end
-    local direct = root:FindFirstChild(name)
-    if direct then return direct end
-    for _, d in ipairs(root:GetDescendants()) do
-        if d.Name == name then return d end
-    end
-    return nil
+local function treadmillFolder()
+    local lobby = Workspace:FindFirstChild("Lobby")
+    return lobby and lobby:FindFirstChild("Treadmills")
 end
 local function findConveyor(model)
     if not model then return nil end
@@ -1494,43 +1489,34 @@ local function findConveyor(model)
     if exact then
         local part = partOf(exact)
         if part then return part end
-        if exact:IsA("Model") then return exact end
     end
     for _, d in ipairs(model:GetDescendants()) do
-        if string.lower(d.Name) == "conveyor" then
+        if d.Name == "Conveyor" or string.lower(d.Name) == "conveyor" then
             local part = partOf(d)
             if part then return part end
         end
     end
     return nil
 end
-local function goldPivot()
-    local gold = findNamed(Workspace, "TreadmillGold") or findNamed(Workspace, "GoldTreadmill")
-    if not gold then return Vector3.new() end
-    if gold:IsA("Model") then return gold:GetPivot().Position end
-    if gold:IsA("BasePart") then return gold.Position end
-    local part = partOf(gold)
-    return part and part.Position or Vector3.new()
-end
 local function bestConveyor()
+    local folder = treadmillFolder()
+    if not folder then return nil end
     local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold"}
     if bestTreadmill ~= "Normal" then
-        local model = findNamed(Workspace, names[bestTreadmill])
-        return findConveyor(model)
+        return findConveyor(folder:FindFirstChild(names[bestTreadmill]))
     end
-    local goldPos = goldPivot()
+    local gold = folder:FindFirstChild("TreadmillGold")
+    local goldPos = gold and (gold:IsA("Model") and gold:GetPivot().Position or (partOf(gold) and partOf(gold).Position)) or Vector3.new()
     local chosen, chosenDist
-    for _, child in ipairs(Workspace:GetDescendants()) do
-        if child.Name == "Treadmill" and child ~= Workspace:FindFirstChild("Treadmill") then
+    for _, child in ipairs(folder:GetChildren()) do
+        if child.Name == "Treadmill" then
             local conv = findConveyor(child)
             if conv then
-                local pos = conv:IsA("BasePart") and conv.Position or (conv:IsA("Model") and conv:GetPivot().Position)
-                if pos then
-                    local dist = (pos - goldPos).Magnitude
-                    if not chosenDist or dist < chosenDist then
-                        chosen = conv
-                        chosenDist = dist
-                    end
+                local pos = conv.Position
+                local dist = (pos - goldPos).Magnitude
+                if not chosenDist or dist < chosenDist then
+                    chosen = conv
+                    chosenDist = dist
                 end
             end
         end
@@ -1591,7 +1577,7 @@ local function closeTreadmillShop()
     end
 end
 local function detectBestTreadmill(hrp)
-    local folder = Workspace:FindFirstChild("Treadmill")
+    local folder = treadmillFolder()
     if not folder or not hrp then
         bestTreadmill = "Normal"
         return
@@ -2388,7 +2374,7 @@ millHit.MouseButton1Click:Connect(function()
     task.spawn(function()
         local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold", Normal = "Treadmill"}
         while autoMill do
-            local folder = Workspace:FindFirstChild("Treadmill")
+            local folder = treadmillFolder()
             local model = folder and folder:FindFirstChild(names[bestTreadmill] or "Treadmill")
             sendToBestTreadmill()
             task.wait(1)
@@ -2860,44 +2846,38 @@ configSelector.Parent = configPage
 configList.Parent = configPage
 
 local function buildWinSelector()
-    if selectorMain then selectorMain.Visible = false end
-    if dropdownList then dropdownList.Visible = false end
+    if selectorMain then selectorMain:Destroy() end
+    if dropdownList then dropdownList:Destroy() end
     local panel = ScreenGui:FindFirstChild("WinPanel")
-    if panel then panel.Visible = false end
-    local pick = Instance.new("TextButton")
-    pick.Name = "WinSelectButton"
-    pick.Parent = winsBody
-    pick.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
-    pick.Size = UDim2.new(1, -8, 0, 36)
-    pick.Font = Enum.Font.GothamBold
-    pick.Text = "Seleccionar Win: " .. selectedDisplayName .. "  v"
-    pick.TextColor3 = Color3.fromRGB(255, 255, 255)
-    pick.TextSize = 13
-    pick.LayoutOrder = 1
-    pick.Active = true
-    pick.AutoButtonColor = true
-    pick.ZIndex = 5
-    Instance.new("UICorner", pick).CornerRadius = UDim.new(0, 6)
+    if panel then panel:Destroy() end
+    local head = Instance.new("TextButton")
+    head.Name = "WinSelectButton"
+    head.Parent = winsBody
+    head.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+    head.Size = UDim2.new(1, -8, 0, 32)
+    head.Font = Enum.Font.GothamBold
+    head.Text = "  >  WinBlock: " .. selectedDisplayName
+    head.TextXAlignment = Enum.TextXAlignment.Left
+    head.TextColor3 = Color3.fromRGB(240, 240, 245)
+    head.TextSize = 13
+    head.LayoutOrder = 1
+    head.Active = true
+    head.AutoButtonColor = true
+    Instance.new("UICorner", head).CornerRadius = UDim.new(0, 6)
     local list = Instance.new("Frame")
     list.Name = "WinSelectList"
     list.Parent = winsBody
-    list.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    list.BackgroundTransparency = 1
     list.Size = UDim2.new(1, -8, 0, 0)
     list.AutomaticSize = Enum.AutomaticSize.Y
     list.Visible = false
     list.LayoutOrder = 2
-    list.ZIndex = 5
-    Instance.new("UICorner", list).CornerRadius = UDim.new(0, 6)
-    local pad = Instance.new("UIPadding")
-    pad.Parent = list
-    pad.PaddingTop = UDim.new(0, 4)
-    pad.PaddingBottom = UDim.new(0, 4)
-    pad.PaddingLeft = UDim.new(0, 4)
-    pad.PaddingRight = UDim.new(0, 4)
     local layout = Instance.new("UIListLayout")
     layout.Parent = list
     layout.Padding = UDim.new(0, 4)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
+    if speedGameBox then speedGameBox.LayoutOrder = 3 end
+    if fastBtn then fastBtn.LayoutOrder = 4 end
     for _, info in ipairs(orderedWinBlocks) do
         local opt = Instance.new("TextButton")
         opt.Parent = list
@@ -2914,14 +2894,14 @@ local function buildWinSelector()
         opt.MouseButton1Click:Connect(function()
             selectedRealName = info.real
             selectedDisplayName = info.display
-            pick.Text = "Seleccionar Win: " .. info.display .. "  v"
+            head.Text = "  >  WinBlock: " .. info.display
             list.Visible = false
             showNotification("Win: " .. info.display)
         end)
     end
-    pick.MouseButton1Click:Connect(function()
+    head.MouseButton1Click:Connect(function()
         list.Visible = not list.Visible
-        pick.Text = "Seleccionar Win: " .. selectedDisplayName .. (list.Visible and "  ^" or "  v")
+        head.Text = (list.Visible and "  v  " or "  >  ") .. "WinBlock: " .. selectedDisplayName
         showNotification(list.Visible and "Selector abierto" or "Selector cerrado")
     end)
 end
