@@ -1368,6 +1368,75 @@ end)
 
 
 local bestTreadmill = "Normal"
+
+local conveyorHome = nil
+local conveyorPart = nil
+local millWins = false
+local function findConveyor(model)
+    if not model then return nil end
+    for _, d in ipairs(model:GetDescendants()) do
+        if string.lower(d.Name) == "conveyor" and d:IsA("BasePart") then
+            return d
+        end
+    end
+    return model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true)
+end
+local function bestConveyor()
+    local folder = Workspace:FindFirstChild("Treadmill")
+    if not folder then return nil end
+    local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold"}
+    if bestTreadmill ~= "Normal" then
+        return findConveyor(folder:FindFirstChild(names[bestTreadmill]))
+    end
+    local gold = folder:FindFirstChild("TreadmillGold")
+    local goldPos = gold and gold:GetPivot().Position or Vector3.new()
+    local chosen, chosenDist
+    for _, child in ipairs(folder:GetChildren()) do
+        if child.Name == "Treadmill" then
+            local conv = findConveyor(child)
+            if conv then
+                local dist = (conv.Position - goldPos).Magnitude
+                if not chosenDist or dist < chosenDist then
+                    chosen = conv
+                    chosenDist = dist
+                end
+            end
+        end
+    end
+    return chosen
+end
+local function sendToBestTreadmill()
+    local conv = bestConveyor()
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp and conv then
+        hrp.CFrame = conv.CFrame + Vector3.new(0, 3, 0)
+    end
+end
+local function restoreConveyor()
+    if conveyorPart and conveyorHome then
+        conveyorPart.CFrame = conveyorHome
+    end
+    conveyorPart = nil
+    conveyorHome = nil
+end
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if millWins and routeRunning then
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if not conveyorPart then
+                conveyorPart = bestConveyor()
+                if conveyorPart then conveyorHome = conveyorPart.CFrame end
+            end
+            if hrp and conveyorPart then
+                conveyorPart.Anchored = true
+                conveyorPart.CFrame = hrp.CFrame * CFrame.new(0, -3, 0)
+            end
+        elseif conveyorPart then
+            restoreConveyor()
+        end
+    end
+end)
 local function treadmillShop()
     local gui = player:FindFirstChild("PlayerGui")
     local speedUi = gui and gui:FindFirstChild("SpeedGameUI")
@@ -1666,13 +1735,6 @@ startRouteBtn.MouseButton1Click:Connect(function()
                     task.wait(0.67)
                     addRouteWins()
                     
-                    if #specialKeysQueue > 0 then
-                        local keyObj = table.remove(specialKeysQueue, 1)
-                        if keyObj and keyObj.Parent then
-                            processSpecialKey(keyObj, hrp)
-                        end
-                    end
-                    
                     hrp.CFrame = routeCFrames[1]
                     local holdTime = 1 + delayTime
                     local holdElapsed = 0
@@ -1716,8 +1778,16 @@ startRouteBtn.MouseButton1Click:Connect(function()
             end
             
             if finishAfterClaim or not infiniteRouteActive then
+                while #specialKeysQueue > 0 do
+                    local keyObj = table.remove(specialKeysQueue, 1)
+                    if keyObj and keyObj.Parent then processSpecialKey(keyObj, hrp) end
+                end
                 stopRecorridoGeneral()
                 break
+            end
+            while #specialKeysQueue > 0 and routeRunning do
+                local keyObj = table.remove(specialKeysQueue, 1)
+                if keyObj and keyObj.Parent then processSpecialKey(keyObj, hrp) end
             end
         end
     end)
@@ -2170,14 +2240,18 @@ millHit.MouseButton1Click:Connect(function()
         while autoMill do
             local folder = Workspace:FindFirstChild("Treadmill")
             local model = folder and folder:FindFirstChild(names[bestTreadmill] or "Treadmill")
-            local part = model and (model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true))
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp and part then
-                hrp.CFrame = part.CFrame + Vector3.new(0, 3, 0)
-            end
+            sendToBestTreadmill()
             task.wait(1)
         end
     end)
+end)
+
+
+local _, setMillWins, _, millWinsHit = makeSwitch(millBody, "Treadmill in wins", 3)
+millWinsHit.MouseButton1Click:Connect(function()
+    millWins = not millWins
+    setMillWins(millWins)
+    if not millWins then restoreConveyor() end
 end)
 
 local moveBody = section(playerNew, "Movement", 1)
