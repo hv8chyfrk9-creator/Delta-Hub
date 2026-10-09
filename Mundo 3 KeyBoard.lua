@@ -2830,6 +2830,74 @@ autoLoadBtn.Parent = configPage
 configSelector.Parent = configPage
 configList.Parent = configPage
 
+local function buildWinSelector()
+    if selectorMain then selectorMain.Visible = false end
+    if dropdownList then dropdownList.Visible = false end
+    local panel = ScreenGui:FindFirstChild("WinPanel")
+    if panel then panel.Visible = false end
+    local pick = Instance.new("TextButton")
+    pick.Name = "WinSelectButton"
+    pick.Parent = winsBody
+    pick.BackgroundColor3 = Color3.fromRGB(40, 40, 48)
+    pick.Size = UDim2.new(1, -8, 0, 36)
+    pick.Font = Enum.Font.GothamBold
+    pick.Text = "Seleccionar Win: " .. selectedDisplayName .. "  v"
+    pick.TextColor3 = Color3.fromRGB(255, 255, 255)
+    pick.TextSize = 13
+    pick.LayoutOrder = 1
+    pick.Active = true
+    pick.AutoButtonColor = true
+    pick.ZIndex = 5
+    Instance.new("UICorner", pick).CornerRadius = UDim.new(0, 6)
+    local list = Instance.new("Frame")
+    list.Name = "WinSelectList"
+    list.Parent = winsBody
+    list.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    list.Size = UDim2.new(1, -8, 0, 0)
+    list.AutomaticSize = Enum.AutomaticSize.Y
+    list.Visible = false
+    list.LayoutOrder = 2
+    list.ZIndex = 5
+    Instance.new("UICorner", list).CornerRadius = UDim.new(0, 6)
+    local pad = Instance.new("UIPadding")
+    pad.Parent = list
+    pad.PaddingTop = UDim.new(0, 4)
+    pad.PaddingBottom = UDim.new(0, 4)
+    pad.PaddingLeft = UDim.new(0, 4)
+    pad.PaddingRight = UDim.new(0, 4)
+    local layout = Instance.new("UIListLayout")
+    layout.Parent = list
+    layout.Padding = UDim.new(0, 4)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    for _, info in ipairs(orderedWinBlocks) do
+        local opt = Instance.new("TextButton")
+        opt.Parent = list
+        opt.BackgroundColor3 = Color3.fromRGB(36, 36, 42)
+        opt.Size = UDim2.new(1, 0, 0, 28)
+        opt.Font = Enum.Font.Gotham
+        opt.Text = info.display
+        opt.TextColor3 = Color3.fromRGB(240, 240, 245)
+        opt.TextSize = 12
+        opt.LayoutOrder = info.order
+        opt.Active = true
+        opt.ZIndex = 6
+        Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 4)
+        opt.MouseButton1Click:Connect(function()
+            selectedRealName = info.real
+            selectedDisplayName = info.display
+            pick.Text = "Seleccionar Win: " .. info.display .. "  v"
+            list.Visible = false
+            showNotification("Win: " .. info.display)
+        end)
+    end
+    pick.MouseButton1Click:Connect(function()
+        list.Visible = not list.Visible
+        pick.Text = "Seleccionar Win: " .. selectedDisplayName .. (list.Visible and "  ^" or "  v")
+        showNotification(list.Visible and "Selector abierto" or "Selector cerrado")
+    end)
+end
+buildWinSelector()
+
 print("Delta Hub visible en PlayerGui")
 end
 task.spawn(function()
