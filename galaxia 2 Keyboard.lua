@@ -2387,3 +2387,21 @@ task.spawn(function()
         end
     end
 end)
+
+
+local humNow = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+if humNow then
+    customSpeed = humNow.WalkSpeed
+    customJump = humNow.JumpPower
+end
+local _, setSpeedOn, _, speedHit = makeSwitch(moveBody, "Speed", 0)
+local _, setJumpOn, _, jumpHit = makeSwitch(moveBody, "Jump", 2)
+speedHit.MouseButton1Click:Connect(function()
+    speedEnabled = not speedEnabled
+    setSpeedOn(speedEnabled)
+    if speedEnabled and humNow then customSpeed = customSpeed or humNow.WalkSpeed end
+end)
+jumpHit.MouseButton1Click:Connect(function()
+    jumpEnabled = not jumpEnabled
+    setJumpOn(jumpEnabled)
+end)
