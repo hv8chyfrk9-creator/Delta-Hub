@@ -1902,15 +1902,10 @@ MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; Floa
 FloatingLogo.MouseButton1Click:Connect(function() MainFrame.Visible = true; FloatingLogo.Visible = false end)
 
 local function updateTabs(btn, page, title)
-    PlayerPage.Visible = false; GamePage.Visible = false; ExtrasPage.Visible = false
+    PlayerPage.Visible = false
+    GamePage.Visible = false
+    ExtrasPage.Visible = false
     if EventsPage then EventsPage.Visible = false end
-    TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabPlayerBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
-    TabGameBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabGameBtn.TextColor3 = Color3.fromRGB(160, 160, 175)
-    TabExtrasBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    if TabEventsBtn then TabEventsBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34); TabEventsBtn.TextColor3 = Color3.fromRGB(160, 160, 175) end
-    page.Visible = true; SectionTitle.Text = title
-    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
-    if btn ~= TabExtrasBtn then btn.TextColor3 = Color3.fromRGB(240, 240, 245) end
 end
 
 TabPlayerBtn.MouseButton1Click:Connect(function() updateTabs(TabPlayerBtn, PlayerPage, "Player") end)
@@ -2653,4 +2648,18 @@ task.spawn(function()
     task.wait(0.4)
     if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
     print("Delta Hub partes listas")
+    if boot then boot:Destroy() end
+end)
+
+
+task.defer(function()
+    if boot then boot:Destroy() end
+    GamePage.Visible = false
+    PlayerPage.Visible = false
+    ExtrasPage.Visible = false
+    EventsPage.Visible = false
+    for _, obj in ipairs({speedToggle, jumpToggle, noclipToggle, floatToggle, speedBox, jumpBox, infJumpToggle}) do
+        if obj then obj.Visible = false end
+    end
+    Sidebar.Size = UDim2.new(0, 78, 0, 250)
 end)
