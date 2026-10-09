@@ -73,7 +73,22 @@ local function loadRemote(url)
     else
         clearActiveGuis()
     end
-    loadstring(game:HttpGet(url))()
+    local okFetch, body = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not okFetch or type(body) ~= "string" then
+        warn("Delta Hub no pudo bajar el script")
+        return
+    end
+    local fn, err = loadstring(body)
+    if not fn then
+        warn("Delta Hub error de script: " .. tostring(err))
+        return
+    end
+    local okRun, runErr = pcall(fn)
+    if not okRun then
+        warn("Delta Hub error al correr: " .. tostring(runErr))
+    end
 end
 
 local function keyboardUrl()

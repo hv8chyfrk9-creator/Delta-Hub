@@ -11,6 +11,30 @@ local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+print("Delta Hub empezando")
+
+local oldGui = playerGui:FindFirstChild("DeltaHubMinimal")
+if oldGui then oldGui:Destroy() end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "DeltaHubMinimal"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Enabled = true
+ScreenGui.Parent = playerGui
+
+local boot = Instance.new("TextLabel")
+boot.Parent = ScreenGui
+boot.Size = UDim2.new(0, 220, 0, 36)
+boot.Position = UDim2.new(0.5, -110, 0, 40)
+boot.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+boot.Text = "Delta Hub cargando"
+boot.TextColor3 = Color3.fromRGB(255, 255, 255)
+boot.Font = Enum.Font.GothamBold
+boot.TextSize = 14
+boot.ZIndex = 20
+
 
 local function waitAliveHrp(returnCf)
     local char = player.Character
@@ -62,19 +86,6 @@ for _, obj in pairs(Workspace:GetDescendants()) do
     end
 end
 
-if playerGui:FindFirstChild("DeltaHubMinimal") then
-    playerGui.DeltaHubMinimal:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaHubMinimal"
-ScreenGui.Parent = playerGui
-ScreenGui.Enabled = true
-ScreenGui.DisplayOrder = 50
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 999
 
 -- ==========================================
 -- PANTALLA NEGRA DE CARGA QUE ABARCA TODA LA PANTALLA
