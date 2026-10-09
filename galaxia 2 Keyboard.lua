@@ -2498,6 +2498,74 @@ pcall(function()
     ScreenGui.Enabled = true
     MainFrame.Visible = true
 end)
+
+if boot then boot:Destroy() end
+GamePage.Visible = false
+PlayerPage.Visible = false
+ExtrasPage.Visible = false
+EventsPage.Visible = false
+delayBox.Parent = winsBody
+delayBox.LayoutOrder = 6
+delayBox.PlaceholderText = "Retraso entre recorridos"
+infRouteToggle.Parent = winsBody
+infRouteToggle.LayoutOrder = 7
+dropdownList.Parent = winsBody
+dropdownList.LayoutOrder = 2
+dropdownList.Visible = false
+selectorBtn.MouseButton1Click:Connect(function()
+    dropdownList.Visible = not dropdownList.Visible
+end)
+speedToggle.Visible = false
+jumpToggle.Visible = false
+noclipToggle.Visible = false
+floatToggle.Visible = false
+speedBox.Visible = false
+jumpBox.Visible = false
+
+local rebirthOn = false
+local _, setRebirth, _, rebirthHit = makeSwitch(millBody, "Auto Rebirth", 4)
+rebirthHit.MouseButton1Click:Connect(function()
+    rebirthOn = not rebirthOn
+    setRebirth(rebirthOn)
+    if not rebirthOn then return end
+    task.spawn(function()
+        while rebirthOn do
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Rebirth:FireServer()
+            end)
+            task.wait(1)
+        end
+    end)
+end)
+
+local configPage = createScrollingPage(ContentArea)
+configPage.Visible = false
+local configTab = Instance.new("TextButton")
+configTab.Parent = Sidebar
+configTab.Size = UDim2.new(0, 66, 0, 32)
+configTab.BackgroundColor3 = Color3.fromRGB(170, 35, 35)
+configTab.Font = Enum.Font.GothamBold
+configTab.Text = "Config"
+configTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+configTab.TextSize = 12
+configTab.LayoutOrder = 5
+Instance.new("UICorner", configTab).CornerRadius = UDim.new(0, 6)
+configTab.MouseButton1Click:Connect(function()
+    farmPage.Visible = false
+    playerNew.Visible = false
+    eventsNew.Visible = false
+    extrasPage.Visible = false
+    configPage.Visible = true
+    SectionTitle.Text = "Config"
+end)
+configNameBox.Parent = configPage
+saveConfigBtn.Parent = configPage
+loadConfigBtn.Parent = configPage
+autoConfigBtn.Parent = configPage
+autoLoadBtn.Parent = configPage
+configSelector.Parent = configPage
+configList.Parent = configPage
+
 print("Delta Hub visible en PlayerGui")
 end
 task.spawn(function()
