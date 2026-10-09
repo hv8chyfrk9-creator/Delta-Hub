@@ -1479,34 +1479,58 @@ local function partOf(obj)
     end
     return nil
 end
+local function findNamed(root, name)
+    if not root then return nil end
+    local direct = root:FindFirstChild(name)
+    if direct then return direct end
+    for _, d in ipairs(root:GetDescendants()) do
+        if d.Name == name then return d end
+    end
+    return nil
+end
 local function findConveyor(model)
     if not model then return nil end
+    local exact = model:FindFirstChild("Conveyor", true)
+    if exact then
+        local part = partOf(exact)
+        if part then return part end
+        if exact:IsA("Model") then return exact end
+    end
     for _, d in ipairs(model:GetDescendants()) do
-        if string.find(string.lower(d.Name), "conveyor", 1, true) then
+        if string.lower(d.Name) == "conveyor" then
             local part = partOf(d)
             if part then return part end
         end
     end
-    return partOf(model)
+    return nil
+end
+local function goldPivot()
+    local gold = findNamed(Workspace, "TreadmillGold") or findNamed(Workspace, "GoldTreadmill")
+    if not gold then return Vector3.new() end
+    if gold:IsA("Model") then return gold:GetPivot().Position end
+    if gold:IsA("BasePart") then return gold.Position end
+    local part = partOf(gold)
+    return part and part.Position or Vector3.new()
 end
 local function bestConveyor()
-    local folder = Workspace:FindFirstChild("Treadmill")
-    if not folder then return nil end
     local names = {Admin = "TreadmillAdmin", Candy = "TreadmillCandy", Diamond = "TreadmillDiamond", Gold = "TreadmillGold"}
     if bestTreadmill ~= "Normal" then
-        return findConveyor(folder:FindFirstChild(names[bestTreadmill]))
+        local model = findNamed(Workspace, names[bestTreadmill])
+        return findConveyor(model)
     end
-    local gold = folder:FindFirstChild("TreadmillGold")
-    local goldPos = gold and gold:GetPivot().Position or Vector3.new()
+    local goldPos = goldPivot()
     local chosen, chosenDist
-    for _, child in ipairs(folder:GetChildren()) do
-        if child.Name == "Treadmill" then
+    for _, child in ipairs(Workspace:GetDescendants()) do
+        if child.Name == "Treadmill" and child ~= Workspace:FindFirstChild("Treadmill") then
             local conv = findConveyor(child)
             if conv then
-                local dist = (conv.Position - goldPos).Magnitude
-                if not chosenDist or dist < chosenDist then
-                    chosen = conv
-                    chosenDist = dist
+                local pos = conv:IsA("BasePart") and conv.Position or (conv:IsA("Model") and conv:GetPivot().Position)
+                if pos then
+                    local dist = (pos - goldPos).Magnitude
+                    if not chosenDist or dist < chosenDist then
+                        chosen = conv
+                        chosenDist = dist
+                    end
                 end
             end
         end
@@ -1520,8 +1544,13 @@ local function sendToBestTreadmill()
         showNotification("No encontre el conveyor de la treadmill")
         return false
     end
-    hrp.CFrame = conv.CFrame + Vector3.new(0, 4, 0)
-    showNotification("Enviado a treadmill " .. tostring(bestTreadmill))
+    local cf = conv:IsA("BasePart") and conv.CFrame or (conv:IsA("Model") and conv:GetPivot())
+    if not cf then
+        showNotification("No encontre el Conveyor")
+        return false
+    end
+    hrp.CFrame = cf + Vector3.new(0, 4, 0)
+    showNotification("Enviado a Conveyor " .. tostring(bestTreadmill))
     return true
 end
 local function restoreConveyor()
