@@ -1920,8 +1920,15 @@ end)
 -- ==========================================
 -- NAVEGACIÓN Y STEPS GENERALES
 -- ==========================================
-MinimizeBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false; FloatingLogo.Visible = true end)
-FloatingLogo.MouseButton1Click:Connect(function() MainFrame.Visible = true; FloatingLogo.Visible = false end)
+local function setHubOpen(open)
+    MainFrame.Visible = open
+    FloatingLogo.Visible = not open
+    if Sidebar then Sidebar.Visible = open end
+    local panel = ScreenGui:FindFirstChild("WinPanel")
+    if panel then panel.Visible = false end
+end
+MinimizeBtn.MouseButton1Click:Connect(function() setHubOpen(false) end)
+FloatingLogo.MouseButton1Click:Connect(function() setHubOpen(true) end)
 
 local function updateTabs(btn, page, title)
     PlayerPage.Visible = false
@@ -2543,14 +2550,18 @@ local extrasPage = createScrollingPage(ContentArea)
 extrasPage.Visible = false
 table.insert(tabNames, {btn = TabExtrasBtn, name = "Extras", page = extrasPage})
 Sidebar.Parent = ScreenGui
-Sidebar.Position = UDim2.new(0, 8, 0.5, -100)
-Sidebar.Size = UDim2.new(0, 78, 0, 250)
+local tabCount = #tabNames
+local tabW, tabH, gap = 92, 42, 26
+local stack = tabCount * tabH + (tabCount - 1) * gap
+Sidebar.Size = UDim2.new(0, tabW, 0, stack)
+Sidebar.Position = UDim2.new(0.5, -225 - tabW - 18, 0.5, -stack / 2)
+UIListSidebar.Padding = UDim.new(0, gap)
 for i, info in ipairs(tabNames) do
     info.btn.Parent = Sidebar
-    info.btn.Size = UDim2.new(0, 66, 0, 32)
+    info.btn.Size = UDim2.new(0, tabW, 0, tabH)
     info.btn.Text = info.name
     info.btn.Font = Enum.Font.GothamBold
-    info.btn.TextSize = 12
+    info.btn.TextSize = 14
     info.btn.BackgroundColor3 = Color3.fromRGB(170, 35, 35)
     info.btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     info.btn.LayoutOrder = i
@@ -2566,7 +2577,9 @@ for i, info in ipairs(tabNames) do
 end
 TabExtrasBtn.Visible = true
 MinimizeBtn.MouseButton1Click:Connect(function()
-    Sidebar.Visible = MainFrame.Visible
+    Sidebar.Visible = false
+    local panel = ScreenGui:FindFirstChild("WinPanel")
+    if panel then panel.Visible = false end
 end)
 
 local antiBody = section(extrasPage, "Antilag", 1)
@@ -2737,9 +2750,16 @@ for _, info in ipairs(orderedWinBlocks) do
         winPanel.Visible = false
     end)
 end
-selectorBtn.MouseButton1Click:Connect(function()
+local function openWinPanel()
     dropdownList.Visible = false
+    winPanel.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset + MainFrame.Size.X.Offset + 12, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset + 40)
     winPanel.Visible = not winPanel.Visible
+end
+selectorBtn.MouseButton1Click:Connect(openWinPanel)
+selectorMain.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        openWinPanel()
+    end
 end)
 MinimizeBtn.MouseButton1Click:Connect(function() winPanel.Visible = false end)
 
