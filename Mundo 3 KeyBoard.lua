@@ -1577,25 +1577,21 @@ local function closeTreadmillShop()
     end
 end
 local function detectBestTreadmill(hrp)
-    local folder = treadmillFolder()
-    if not folder or not hrp then
-        bestTreadmill = "Normal"
-        return
-    end
-    local order = {
-        {name = "Admin", model = "TreadmillAdmin"},
-        {name = "Candy", model = "TreadmillCandy"},
-        {name = "Diamond", model = "TreadmillDiamond"},
-        {name = "Gold", model = "TreadmillGold"},
-    }
     bestTreadmill = "Normal"
-    for _, info in ipairs(order) do
-        local model = folder:FindFirstChild(info.model)
-        local part = model and (model:IsA("BasePart") and model or model:FindFirstChildWhichIsA("BasePart", true))
-        if part then
-            closeTreadmillShop()
-            hrp.CFrame = part.CFrame + Vector3.new(0, 4, 0)
-            task.wait(0.45)
+    local folder = treadmillFolder()
+    if not folder or not hrp then return end
+    local checks = {
+        {name = "Admin", remote = "PromptAdminTreadmill"},
+        {name = "Candy", remote = "PromptCandyTreadmill"},
+        {name = "Diamond", remote = "PromptDiamondTreadmill"},
+        {name = "Gold", remote = "PromptGoldTreadmill"},
+    }
+    local remotes = game:GetService("ReplicatedStorage"):FindFirstChild("Remotes")
+    for _, info in ipairs(checks) do
+        local remote = remotes and remotes:FindFirstChild(info.remote)
+        if remote then
+            pcall(function() remote:FireServer() end)
+            task.wait(0.35)
             local modal = treadmillShop()
             local opened = modal and modal:IsA("GuiObject") and modal.Visible
             closeTreadmillShop()
@@ -1606,9 +1602,6 @@ local function detectBestTreadmill(hrp)
         end
     end
     closeTreadmillShop()
-    if getgenv then
-        getgenv().DeltaHubBestTreadmill = bestTreadmill
-    end
     if getgenv then getgenv().DeltaHubBestTreadmill = bestTreadmill end
 end
 
@@ -2850,28 +2843,34 @@ local function buildWinSelector()
     if dropdownList then dropdownList:Destroy() end
     local panel = ScreenGui:FindFirstChild("WinPanel")
     if panel then panel:Destroy() end
+    local wrap = Instance.new("Frame")
+    wrap.Name = "WinSelectWrap"
+    wrap.Parent = winsBody
+    wrap.BackgroundTransparency = 1
+    wrap.Size = UDim2.new(1, -8, 0, 32)
+    wrap.AutomaticSize = Enum.AutomaticSize.Y
+    wrap.LayoutOrder = 1
     local head = Instance.new("TextButton")
     head.Name = "WinSelectButton"
-    head.Parent = winsBody
+    head.Parent = wrap
     head.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-    head.Size = UDim2.new(1, -8, 0, 32)
+    head.Size = UDim2.new(1, 0, 0, 32)
     head.Font = Enum.Font.GothamBold
     head.Text = "  >  WinBlock: " .. selectedDisplayName
     head.TextXAlignment = Enum.TextXAlignment.Left
     head.TextColor3 = Color3.fromRGB(240, 240, 245)
     head.TextSize = 13
-    head.LayoutOrder = 1
     head.Active = true
     head.AutoButtonColor = true
     Instance.new("UICorner", head).CornerRadius = UDim.new(0, 6)
     local list = Instance.new("Frame")
     list.Name = "WinSelectList"
-    list.Parent = winsBody
+    list.Parent = wrap
     list.BackgroundTransparency = 1
+    list.Position = UDim2.new(0, 8, 0, 36)
     list.Size = UDim2.new(1, -8, 0, 0)
     list.AutomaticSize = Enum.AutomaticSize.Y
     list.Visible = false
-    list.LayoutOrder = 2
     local layout = Instance.new("UIListLayout")
     layout.Parent = list
     layout.Padding = UDim.new(0, 4)
