@@ -2547,6 +2547,73 @@ millWinsHit.MouseButton1Click:Connect(function()
     setMillWins(millWins)
     if not millWins then restoreConveyor() end
 end)
+local _, setRebirthEarly, _, rebirthHitEarly = makeSwitch(millBody, "Auto Rebirth", 4)
+local rebirthOnEarly = false
+rebirthHitEarly.MouseButton1Click:Connect(function()
+    rebirthOnEarly = not rebirthOnEarly
+    setRebirthEarly(rebirthOnEarly)
+    if not rebirthOnEarly then return end
+    task.spawn(function()
+        while rebirthOnEarly do
+            pcall(function()
+                game:GetService("ReplicatedStorage").Remotes.Rebirth:FireServer()
+            end)
+            task.wait(1)
+        end
+    end)
+end)
+local millPick = Instance.new("TextButton")
+millPick.Parent = millBody
+millPick.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+millPick.Size = UDim2.new(1, -8, 0, 30)
+millPick.Font = Enum.Font.GothamBold
+millPick.Text = "  >  Treadmill: x1"
+millPick.TextXAlignment = Enum.TextXAlignment.Left
+millPick.TextColor3 = Color3.fromRGB(240, 240, 245)
+millPick.TextSize = 12
+millPick.LayoutOrder = 5
+millPick.Active = true
+Instance.new("UICorner", millPick).CornerRadius = UDim.new(0, 6)
+local millList = Instance.new("Frame")
+millList.Parent = millBody
+millList.BackgroundTransparency = 1
+millList.Size = UDim2.new(1, -8, 0, 0)
+millList.AutomaticSize = Enum.AutomaticSize.Y
+millList.Visible = false
+millList.LayoutOrder = 6
+local millLayout = Instance.new("UIListLayout")
+millLayout.Parent = millList
+millLayout.Padding = UDim.new(0, 4)
+local millOptions = {
+    {name = "Normal", label = "x1 Treadmill"},
+    {name = "Gold", label = "x3 Gold"},
+    {name = "Diamond", label = "x9 Diamond"},
+    {name = "Candy", label = "x25 Candy"},
+    {name = "Admin", label = "x100 Admin"},
+}
+for i, info in ipairs(millOptions) do
+    local opt = Instance.new("TextButton")
+    opt.Parent = millList
+    opt.BackgroundColor3 = Color3.fromRGB(36, 36, 42)
+    opt.Size = UDim2.new(1, 0, 0, 26)
+    opt.Font = Enum.Font.Gotham
+    opt.Text = info.label
+    opt.TextColor3 = Color3.fromRGB(240, 240, 245)
+    opt.TextSize = 12
+    opt.LayoutOrder = i
+    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 5)
+    opt.MouseButton1Click:Connect(function()
+        bestTreadmill = info.name
+        millPick.Text = "  >  Treadmill: " .. info.label
+        millList.Visible = false
+        bestLabel.Text = "Elegida: " .. info.label
+        showNotification("Treadmill: " .. info.label)
+    end)
+end
+millPick.MouseButton1Click:Connect(function()
+    millList.Visible = not millList.Visible
+    millPick.Text = (millList.Visible and "  v  " or "  >  ") .. millPick.Text:gsub("^%s*[v>]%s*", "")
+end)
 
 local moveBody = section(playerNew, "Movement", 1)
 local function sliderRow(parent, title, order, minV, maxV, apply)
@@ -2959,21 +3026,7 @@ floatToggle.Visible = false
 speedBox.Visible = false
 jumpBox.Visible = false
 
-local rebirthOn = false
-local _, setRebirth, _, rebirthHit = makeSwitch(millBody, "Auto Rebirth", 4)
-rebirthHit.MouseButton1Click:Connect(function()
-    rebirthOn = not rebirthOn
-    setRebirth(rebirthOn)
-    if not rebirthOn then return end
-    task.spawn(function()
-        while rebirthOn do
-            pcall(function()
-                game:GetService("ReplicatedStorage").Remotes.Rebirth:FireServer()
-            end)
-            task.wait(1)
-        end
-    end)
-end)
+
 
 local configPage = createScrollingPage(ContentArea)
 configPage.Visible = false
