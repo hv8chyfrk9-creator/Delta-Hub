@@ -884,6 +884,42 @@ local finishAfterClaim = false
 local routeWinsSession = 0
 local winStreakBonus = 0
 
+local goalEnabled = false
+local goalAmount = 0
+local goalProgress = 0
+local goalSavedFor = nil
+local goalInfo = nil
+local function formatShort(n)
+    n = tonumber(n) or 0
+    if n < 0 then n = 0 end
+    local units = {{1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
+    for _, u in ipairs(units) do
+        if n >= u[1] then
+            local v = n / u[1]
+            local nearest = math.floor(v + 0.5)
+            local s
+            if math.abs(v - nearest) < 0.001 and math.abs(v - math.floor(v + 1e-6)) < 0.001 then
+                s = tostring(math.floor(v + 1e-6))
+            else
+                s = string.format("%.2f", v)
+                if s:find("%.") then
+                    s = s:gsub("0+$", ""):gsub("%.$", "")
+                end
+            end
+            return s .. u[2]
+        end
+    end
+    return tostring(math.floor(n))
+end
+local function refreshGoal()
+    if not goalInfo then return end
+    if not goalEnabled then
+        goalInfo.Text = "Meta apagada"
+        return
+    end
+    goalInfo.Text = "Llevas " .. formatShort(goalProgress) .. " / " .. formatShort(goalAmount)
+end
+
 local function parseWinAmount(text)
     local n, suf = string.match(string.lower(text or ""), "([%d%.]+)%s*([kmbqt]?)")
     local value = tonumber(n) or 0
@@ -938,11 +974,11 @@ local function addRouteWins()
     local base = parseWinAmount(infoText)
     local gain = base * (1 + winStreakBonus)
     routeWinsSession = routeWinsSession + gain
-    if goalEnabled and goalSavedFor == goalAmount then
+    if goalEnabled then
         goalProgress = goalProgress + gain
         refreshGoal()
         if not infiniteRouteActive and goalProgress >= goalAmount then
-            showNotification("Meta lista: " .. formatWins(goalProgress))
+            showNotification("Meta lista: " .. formatShort(goalProgress))
         end
     end
     refreshWinsCounter(gain)
@@ -2336,10 +2372,6 @@ showPage(farmPage, "Farm")
 
 local winsBody = section(farmPage, "Wins", 1)
 if selectorMain then selectorMain.Visible = false selectorMain.Parent = nil end
-local goalEnabled = false
-local goalAmount = 0
-local goalProgress = 0
-local goalSavedFor = nil
 local winHead = Instance.new("TextButton")
 winHead.Name = "WinBlockSelector"
 winHead.Parent = winsBody
@@ -2413,25 +2445,6 @@ goalInfo.TextColor3 = Color3.fromRGB(180, 180, 190)
 goalInfo.TextSize = 11
 goalInfo.TextXAlignment = Enum.TextXAlignment.Left
 goalInfo.LayoutOrder = 10
-local function formatShort(n)
-    local units = {{1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
-    for _, u in ipairs(units) do
-        if n >= u[1] then
-            local v = n / u[1]
-            local s = (math.abs(v - math.floor(v)) < 0.001) and tostring(math.floor(v)) or string.format("%.2f", v)
-            s = s:gsub("0+$", ""):gsub("%.$", "")
-            return s .. u[2]
-        end
-    end
-    return tostring(math.floor(n))
-end
-local function refreshGoal()
-    if not goalEnabled then
-        goalInfo.Text = "Meta apagada"
-        return
-    end
-    goalInfo.Text = "Llevas " .. formatShort(goalProgress) .. " / " .. formatShort(goalAmount)
-end
 goalBox.FocusLost:Connect(function()
     local raw = goalBox.Text:gsub(",", "")
     local value = parseWinAmount(raw)
