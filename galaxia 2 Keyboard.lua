@@ -2863,23 +2863,33 @@ perfCard.Text = "FPS: --\nMS: --\nMB: --"
 perfCard.TextColor3 = Color3.fromRGB(255, 255, 255)
 perfCard.TextSize = 12
 perfCard.TextYAlignment = Enum.TextYAlignment.Top
-perfCard.Visible = true
+perfCard.Visible = false
 perfCard.Active = true
 perfCard.Draggable = true
 Instance.new("UICorner", perfCard).CornerRadius = UDim.new(0, 6)
+local statsGui = Instance.new("ScreenGui")
+statsGui.Name = "DeltaHubStats"
+statsGui.ResetOnSpawn = false
+statsGui.DisplayOrder = 100000
+statsGui.IgnoreGuiInset = true
+pcall(function() statsGui.Parent = game:GetService("CoreGui") end)
+if not statsGui.Parent then statsGui.Parent = playerGui end
+cardStats.Parent = statsGui
+perfCard.Parent = statsGui
 local fpsFrames, fpsLast = 0, tick()
 local statsOn = false
 statsHit.MouseButton1Click:Connect(function()
     statsOn = not statsOn
     setStats(statsOn)
     cardStats.Visible = statsOn
+    perfCard.Visible = statsOn
     if statsOn then
         for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-            if gui ~= ScreenGui and gui:IsA("ScreenGui") then gui.Enabled = false end
+            if gui ~= ScreenGui and gui ~= renderGui and gui:IsA("ScreenGui") then gui.Enabled = false end
         end
     else
         for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-            if gui:IsA("ScreenGui") then gui.Enabled = true end
+            if gui:IsA("ScreenGui") and gui ~= renderGui then gui.Enabled = true end
         end
     end
 end)
