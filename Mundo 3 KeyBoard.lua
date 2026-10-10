@@ -1685,9 +1685,12 @@ task.spawn(function()
         return
     end
     local hrp = waitAliveHrp(routeCFrames[1])
-    if LoadingText then LoadingText.Text = "Parte 2/7  Caminadoras" end
-    task.wait(0.1)
-    pcall(function() detectBestTreadmill(hrp) end)
+    if LoadingText then LoadingText.Text = "Parte 2/7  Limpieza" end
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        for _, name in ipairs(targetNamesToDestroy) do
+            if obj.Name == name then pcall(function() obj:Destroy() end) end
+        end
+    end
     if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
     if hrp and #routeCFrames > 0 then
         local i = 1
@@ -2825,10 +2828,36 @@ MinimizeBtn.MouseButton1Click:Connect(function()
 end)
 
 local antiBody = section(extrasPage, "Antilag", 1)
-antilagToggle.Parent = antiBody
-antilagToggle.LayoutOrder = 1
+antilagToggle.Visible = false
+local function deleteNamed(names)
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        for _, name in ipairs(names) do
+            if obj.Name == name then pcall(function() obj:Destroy() end) end
+        end
+    end
+end
+local function antiButton(text, order, action)
+    local b = Instance.new("TextButton")
+    b.Parent = antiBody
+    b.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
+    b.Size = UDim2.new(1, -8, 0, 30)
+    b.Font = Enum.Font.GothamBold
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 12
+    b.LayoutOrder = order
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        action()
+        showNotification(text .. " aplicado")
+    end)
+end
+antiButton("Decorations", 1, function() deleteNamed({"Decorations", "Props"}) end)
+antiButton("Halloween", 2, function() deleteNamed({"Halloween", "HallowenMeshes"}) end)
+antiButton("KeyCaps", 3, function() if hideKeycaps then hideKeycaps() end end)
 
-local renderBody = section(extrasPage, "No render", 2)
+local screenBody = section(extrasPage, "Pantalla", 2)
+local renderBody = screenBody
 local _, setRender, _, renderHit = makeSwitch(renderBody, "No render", 1)
 local colorRow = Instance.new("Frame")
 colorRow.Parent = renderBody
@@ -2877,8 +2906,7 @@ renderHit.MouseButton1Click:Connect(function()
     paintRender()
 end)
 
-local statsBody = section(extrasPage, "Stats", 3)
-local _, setStats, _, statsHit = makeSwitch(statsBody, "Stats", 1)
+local _, setStats, _, statsHit = makeSwitch(screenBody, "Stats", 3)
 local sessionStart = tick()
 local function statCard(text, y)
     local f = Instance.new("TextLabel")
@@ -2897,25 +2925,47 @@ local function statCard(text, y)
     Instance.new("UICorner", f).CornerRadius = UDim.new(0, 6)
     return f
 end
-local cardWins = statCard("Wins ruta: 0", 80)
-local cardTime = statCard("Sesion: 0s", 122)
-local cardKeys = statCard("SpecialKeys: 0", 164)
-local cardKeyWins = statCard("Wins keys: 0", 206)
+local cardStats = statCard("Wins ruta: 0\nSesion: 0s\nSpecialKeys: 0 | Wins keys: 0", 80)
+cardStats.Size = UDim2.new(0, 210, 0, 72)
+cardStats.TextYAlignment = Enum.TextYAlignment.Top
+local perfCard = Instance.new("TextLabel")
+perfCard.Parent = ScreenGui
+perfCard.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+perfCard.BackgroundTransparency = 0.2
+perfCard.Position = UDim2.new(0, 8, 0, 8)
+perfCard.Size = UDim2.new(0, 150, 0, 54)
+perfCard.Font = Enum.Font.GothamBold
+perfCard.Text = "FPS: --\nMS: --\nMB: --"
+perfCard.TextColor3 = Color3.fromRGB(255, 255, 255)
+perfCard.TextSize = 12
+perfCard.TextYAlignment = Enum.TextYAlignment.Top
+perfCard.Visible = false
+perfCard.Active = true
+perfCard.Draggable = true
+Instance.new("UICorner", perfCard).CornerRadius = UDim.new(0, 6)
+local statsGui = Instance.new("ScreenGui")
+statsGui.Name = "DeltaHubStats"
+statsGui.ResetOnSpawn = false
+statsGui.DisplayOrder = 100000
+statsGui.IgnoreGuiInset = true
+pcall(function() statsGui.Parent = game:GetService("CoreGui") end)
+if not statsGui.Parent then statsGui.Parent = playerGui end
+cardStats.Parent = statsGui
+perfCard.Parent = statsGui
+local fpsFrames, fpsLast = 0, tick()
 local statsOn = false
 statsHit.MouseButton1Click:Connect(function()
     statsOn = not statsOn
     setStats(statsOn)
-    cardWins.Visible = statsOn
-    cardTime.Visible = statsOn
-    cardKeys.Visible = statsOn
-    cardKeyWins.Visible = statsOn
+    cardStats.Visible = statsOn
+    perfCard.Visible = statsOn
     if statsOn then
         for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-            if gui ~= ScreenGui and gui:IsA("ScreenGui") then gui.Enabled = false end
+            if gui ~= ScreenGui and gui ~= renderGui and gui:IsA("ScreenGui") then gui.Enabled = false end
         end
     else
         for _, gui in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-            if gui:IsA("ScreenGui") then gui.Enabled = true end
+            if gui:IsA("ScreenGui") and gui ~= renderGui then gui.Enabled = true end
         end
     end
 end)
@@ -2923,10 +2973,21 @@ task.spawn(function()
     while true do
         task.wait(1)
         if statsOn then
-            cardWins.Text = "Wins ruta: " .. formatWins(routeWinsSession or 0)
-            cardTime.Text = "Sesion: " .. tostring(math.floor(tick() - sessionStart)) .. "s"
-            cardKeys.Text = "SpecialKeys: " .. tostring(specialKeyCount or 0)
-            cardKeyWins.Text = "Wins keys: " .. formatWins(specialKeyWins or 0)
+            cardStats.Text = "Wins ruta: " .. formatWins(routeWinsSession or 0)
+                .. "\nSesion: " .. tostring(math.floor(tick() - sessionStart)) .. "s"
+                .. "\nSpecialKeys: " .. tostring(specialKeyCount or 0)
+                .. " | Wins keys: " .. formatWins(specialKeyWins or 0)
+            fpsFrames = fpsFrames + 1
+            local now = tick()
+            if now - fpsLast >= 1 then
+                local fps = math.floor(fpsFrames / (now - fpsLast))
+                local ping = player:GetNetworkPing() * 1000
+                local mb = 0
+                pcall(function() mb = math.floor(stats().lua.mem / 1024) end)
+                perfCard.Text = "FPS: " .. fps .. "\nMS: " .. math.floor(ping) .. "\nMB: " .. mb
+                fpsFrames = 0
+                fpsLast = now
+            end
         end
     end
 end)
