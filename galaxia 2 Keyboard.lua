@@ -357,7 +357,7 @@ end
 
 local TabPlayerBtn = createLogoTab("TabPlayerBtn", "⚙", 1, false)
 local TabGameBtn = createLogoTab("TabGameBtn", "⚡", 2, false)
-local TabExtrasBtn = createLogoTab("TabExtrasBtn", "", 3, true)
+local TabExtrasBtn = createLogoTab("TabExtrasBtn", "Extras", 3, false)
 local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
 
 TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
@@ -2704,14 +2704,16 @@ selectorBtn.MouseButton1Click:Connect(function()
     dropdownList.Visible = not dropdownList.Visible
 end)
 
+local extrasPage = createScrollingPage(ContentArea)
+extrasPage.Visible = false
+local configPage = createScrollingPage(ContentArea)
+configPage.Visible = false
 local tabNames = {
     {btn = TabGameBtn, name = "Farm", page = farmPage},
     {btn = TabPlayerBtn, name = "Player", page = playerNew},
     {btn = TabEventsBtn, name = "Events", page = eventsNew},
+    {btn = TabExtrasBtn, name = "Extras", page = extrasPage},
 }
-local extrasPage = createScrollingPage(ContentArea)
-extrasPage.Visible = false
-table.insert(tabNames, {btn = TabExtrasBtn, name = "Extras", page = extrasPage})
 Sidebar.Parent = ScreenGui
 local tabCount = #tabNames
 local tabW, tabH, gap = 92, 42, 26
@@ -2951,17 +2953,16 @@ jumpBox.Visible = false
 
 
 
-local configPage = createScrollingPage(ContentArea)
-configPage.Visible = false
 local configTab = Instance.new("TextButton")
 configTab.Parent = Sidebar
-configTab.Size = UDim2.new(0, 66, 0, 32)
+configTab.Size = UDim2.new(0, 92, 0, 42)
 configTab.BackgroundColor3 = Color3.fromRGB(170, 35, 35)
 configTab.Font = Enum.Font.GothamBold
 configTab.Text = "Config"
 configTab.TextColor3 = Color3.fromRGB(255, 255, 255)
-configTab.TextSize = 12
+configTab.TextSize = 14
 configTab.LayoutOrder = 5
+configTab.Visible = true
 Instance.new("UICorner", configTab).CornerRadius = UDim.new(0, 6)
 configTab.MouseButton1Click:Connect(function()
     farmPage.Visible = false
@@ -2971,6 +2972,8 @@ configTab.MouseButton1Click:Connect(function()
     configPage.Visible = true
     SectionTitle.Text = "Config"
 end)
+Sidebar.Size = UDim2.new(0, 92, 0, 5 * 42 + 4 * 26)
+Sidebar.Position = UDim2.new(0.5, -225 - 92 - 18, 0.5, -(5 * 42 + 4 * 26) / 2)
 configNameBox.Parent = configPage
 saveConfigBtn.Parent = configPage
 loadConfigBtn.Parent = configPage
