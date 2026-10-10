@@ -938,6 +938,13 @@ local function addRouteWins()
     local base = parseWinAmount(infoText)
     local gain = base * (1 + winStreakBonus)
     routeWinsSession = routeWinsSession + gain
+    if goalEnabled and goalSavedFor == goalAmount then
+        goalProgress = goalProgress + gain
+        refreshGoal()
+        if not infiniteRouteActive and goalProgress >= goalAmount then
+            showNotification("Meta lista: " .. formatWins(goalProgress))
+        end
+    end
     refreshWinsCounter(gain)
     winStreakBonus = math.min(1, winStreakBonus + 0.1)
     refreshWinsCounter()
@@ -1576,10 +1583,28 @@ local function closeTreadmillShop()
         modal.Visible = false
     end
 end
+local function visiblePurchase()
+    local gui = player:FindFirstChild("PlayerGui")
+    if not gui then return false end
+    for _, d in ipairs(gui:GetDescendants()) do
+        if d:IsA("GuiObject") and d.Visible then
+            local n = string.lower(d.Name)
+            if n:find("robux") or n:find("purchase") or n:find("prompt") or n:find("shopmodal") or n:find("buy") then
+                if d:IsA("Frame") or d:IsA("ImageLabel") or d:IsA("TextButton") then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
 local function detectBestTreadmill(hrp)
     bestTreadmill = "Normal"
     local folder = treadmillFolder()
-    if not folder or not hrp then return end
+    if not folder then
+        if getgenv then getgenv().DeltaHubBestTreadmill = bestTreadmill end
+        return
+    end
     local checks = {
         {name = "Admin", remote = "PromptAdminTreadmill"},
         {name = "Candy", remote = "PromptCandyTreadmill"},
@@ -1590,10 +1615,13 @@ local function detectBestTreadmill(hrp)
     for _, info in ipairs(checks) do
         local remote = remotes and remotes:FindFirstChild(info.remote)
         if remote then
+            closeTreadmillShop()
+            local before = visiblePurchase()
             pcall(function() remote:FireServer() end)
-            task.wait(0.35)
+            task.wait(0.45)
+            local opened = visiblePurchase() and not before
             local modal = treadmillShop()
-            local opened = modal and modal:IsA("GuiObject") and modal.Visible
+            if modal and modal:IsA("GuiObject") and modal.Visible then opened = true end
             closeTreadmillShop()
             if not opened then
                 bestTreadmill = info.name
@@ -1602,6 +1630,11 @@ local function detectBestTreadmill(hrp)
         end
     end
     closeTreadmillShop()
+    if bestTreadmill ~= "Normal" then
+        showNotification("Treadmill confirmada: " .. bestTreadmill)
+    else
+        showNotification("Treadmill: x1 basica")
+    end
     if getgenv then getgenv().DeltaHubBestTreadmill = bestTreadmill end
 end
 
@@ -1884,7 +1917,8 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 end
             end
             
-            if finishAfterClaim or not infiniteRouteActive then
+            local goalStillGoing = goalEnabled and not infiniteRouteActive and goalProgress < goalAmount
+            if finishAfterClaim or (not infiniteRouteActive and not goalStillGoing) then
                 while #specialKeysQueue > 0 do
                     local keyObj = table.remove(specialKeysQueue, 1)
                     if keyObj and keyObj.Parent then processSpecialKey(keyObj, hrp) end
@@ -2301,8 +2335,126 @@ TabEventsBtn.MouseButton1Click:Connect(function() showPage(eventsNew, "Events") 
 showPage(farmPage, "Farm")
 
 local winsBody = section(farmPage, "Wins", 1)
-selectorMain.Parent = winsBody
-selectorMain.LayoutOrder = 1
+if selectorMain then selectorMain.Visible = false selectorMain.Parent = nil end
+local goalEnabled = false
+local goalAmount = 0
+local goalProgress = 0
+local goalSavedFor = nil
+local winHead = Instance.new("TextButton")
+winHead.Name = "WinBlockSelector"
+winHead.Parent = winsBody
+winHead.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+winHead.Size = UDim2.new(1, -8, 0, 32)
+winHead.Font = Enum.Font.GothamBold
+winHead.Text = "  >  WinBlock: " .. selectedDisplayName
+winHead.TextXAlignment = Enum.TextXAlignment.Left
+winHead.TextColor3 = Color3.fromRGB(240, 240, 245)
+winHead.TextSize = 13
+winHead.LayoutOrder = 1
+winHead.Active = true
+winHead.AutoButtonColor = true
+Instance.new("UICorner", winHead).CornerRadius = UDim.new(0, 6)
+local winList = Instance.new("Frame")
+winList.Name = "WinBlockList"
+winList.Parent = winsBody
+winList.BackgroundTransparency = 1
+winList.Size = UDim2.new(1, -8, 0, 0)
+winList.AutomaticSize = Enum.AutomaticSize.Y
+winList.Visible = false
+winList.LayoutOrder = 2
+local winListLayout = Instance.new("UIListLayout")
+winListLayout.Parent = winList
+winListLayout.Padding = UDim.new(0, 4)
+winListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+for _, info in ipairs(orderedWinBlocks) do
+    local opt = Instance.new("TextButton")
+    opt.Parent = winList
+    opt.BackgroundColor3 = Color3.fromRGB(36, 36, 42)
+    opt.Size = UDim2.new(1, 0, 0, 28)
+    opt.Font = Enum.Font.Gotham
+    opt.Text = info.display
+    opt.TextColor3 = Color3.fromRGB(240, 240, 245)
+    opt.TextSize = 12
+    opt.LayoutOrder = info.order
+    opt.Active = true
+    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 5)
+    opt.MouseButton1Click:Connect(function()
+        selectedRealName = info.real
+        selectedDisplayName = info.display
+        winHead.Text = "  >  WinBlock: " .. info.display
+        winList.Visible = false
+        showNotification("WinBlock: " .. info.display)
+    end)
+end
+winHead.MouseButton1Click:Connect(function()
+    winList.Visible = not winList.Visible
+    winHead.Text = (winList.Visible and "  v  " or "  >  ") .. "WinBlock: " .. selectedDisplayName
+    showNotification(winList.Visible and "Selector abierto" or "Selector cerrado")
+end)
+local _, setGoal, _, goalHit = makeSwitch(winsBody, "Meta de Wins", 8)
+local goalBox = Instance.new("TextBox")
+goalBox.Parent = winsBody
+goalBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+goalBox.Size = UDim2.new(1, -8, 0, 30)
+goalBox.Font = Enum.Font.Gotham
+goalBox.PlaceholderText = "Wins a ganar (1 a 1000T)"
+goalBox.Text = ""
+goalBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+goalBox.TextSize = 12
+goalBox.LayoutOrder = 9
+Instance.new("UICorner", goalBox).CornerRadius = UDim.new(0, 6)
+local goalInfo = Instance.new("TextLabel")
+goalInfo.Parent = winsBody
+goalInfo.BackgroundTransparency = 1
+goalInfo.Size = UDim2.new(1, -8, 0, 18)
+goalInfo.Font = Enum.Font.Gotham
+goalInfo.Text = "Meta apagada"
+goalInfo.TextColor3 = Color3.fromRGB(180, 180, 190)
+goalInfo.TextSize = 11
+goalInfo.TextXAlignment = Enum.TextXAlignment.Left
+goalInfo.LayoutOrder = 10
+local function formatShort(n)
+    local units = {{1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
+    for _, u in ipairs(units) do
+        if n >= u[1] then
+            local v = n / u[1]
+            local s = (math.abs(v - math.floor(v)) < 0.001) and tostring(math.floor(v)) or string.format("%.2f", v)
+            s = s:gsub("0+$", ""):gsub("%.$", "")
+            return s .. u[2]
+        end
+    end
+    return tostring(math.floor(n))
+end
+local function refreshGoal()
+    if not goalEnabled then
+        goalInfo.Text = "Meta apagada"
+        return
+    end
+    goalInfo.Text = "Llevas " .. formatShort(goalProgress) .. " / " .. formatShort(goalAmount)
+end
+goalBox.FocusLost:Connect(function()
+    local raw = goalBox.Text:gsub(",", "")
+    local value = parseWinAmount(raw)
+    if value < 1 then value = 1 end
+    if value > 1e15 then value = 1e15 end
+    if goalSavedFor ~= value then
+        goalProgress = 0
+        goalSavedFor = value
+    end
+    goalAmount = value
+    goalBox.Text = formatShort(value) .. " Wins"
+    refreshGoal()
+end)
+goalHit.MouseButton1Click:Connect(function()
+    goalEnabled = not goalEnabled
+    setGoal(goalEnabled)
+    if goalEnabled and goalAmount < 1 then
+        goalAmount = 1
+        goalSavedFor = 1
+        goalBox.Text = "1 Wins"
+    end
+    refreshGoal()
+end)
 speedGameBox.Parent = winsBody
 speedGameBox.LayoutOrder = 2
 fastBtn.Parent = winsBody
@@ -2838,7 +2990,7 @@ autoLoadBtn.Parent = configPage
 configSelector.Parent = configPage
 configList.Parent = configPage
 
-local function buildWinSelector()
+local function buildWinSelectorDisabled()
     if selectorMain then selectorMain:Destroy() end
     if dropdownList then dropdownList:Destroy() end
     local panel = ScreenGui:FindFirstChild("WinPanel")
@@ -2904,7 +3056,6 @@ local function buildWinSelector()
         showNotification(list.Visible and "Selector abierto" or "Selector cerrado")
     end)
 end
-buildWinSelector()
 
 print("Delta Hub visible en PlayerGui")
 end
