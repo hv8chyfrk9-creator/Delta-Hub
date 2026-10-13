@@ -1,0 +1,11 @@
+Parches pendientes para galaxia 2 Keyboard.lua:
+
+1) Ultimos 2 CFrames:
+CFrame.new(18100.056641, 2812.886475, -224.773972)
+CFrame.new(18092.367188, 2812.862793, 4993.903320)
+
+2) CFrame 64: solo meterse un poco mas (CFrame * CFrame.new(0,0,-1.2)) y seguir, sin frenar a 0.
+
+3) Evento Candy Corn buscando EventCoin (eventCandy).
+
+El shell del entorno no pudo aplicar el parche completo en el archivo .lua; reintentar cuando el shell funcione.
