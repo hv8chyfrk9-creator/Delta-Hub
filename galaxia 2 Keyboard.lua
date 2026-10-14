@@ -109,6 +109,40 @@ LoadingText.TextSize = 24
 LoadingText.ZIndex = 10000
 
 -- ==========================================
+-- BOTONES DE CARGA RÁPIDA / SÚPER RÁPIDA EN PANTALLA DE CARGA
+-- ==========================================
+local FastLoadToggleBtn = Instance.new("TextButton")
+FastLoadToggleBtn.Name = "FastLoadToggleBtn"
+FastLoadToggleBtn.Parent = LoadingScreen
+FastLoadToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+FastLoadToggleBtn.Position = UDim2.new(0.5, -110, 0.6, 0)
+FastLoadToggleBtn.Size = UDim2.new(0, 220, 0, 40)
+FastLoadToggleBtn.Font = Enum.Font.GothamBold
+FastLoadToggleBtn.Text = "Carga rápida"
+FastLoadToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FastLoadToggleBtn.TextSize = 14
+FastLoadToggleBtn.ZIndex = 10001
+Instance.new("UICorner", FastLoadToggleBtn).CornerRadius = UDim.new(0, 8)
+
+local loadModeState = "normal" -- "normal", "rapida", "super_rapida"
+
+FastLoadToggleBtn.MouseButton1Click:Connect(function()
+    if loadModeState == "normal" then
+        loadModeState = "rapida"
+        FastLoadToggleBtn.Text = "Carga súper rápida"
+        FastLoadToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 100, 30)
+    elseif loadModeState == "rapida" then
+        loadModeState = "super_rapida"
+        FastLoadToggleBtn.Text = "Carga normal"
+        FastLoadToggleBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 40)
+    else
+        loadModeState = "normal"
+        FastLoadToggleBtn.Text = "Carga rápida"
+        FastLoadToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
+    end
+end)
+
+-- ==========================================
 -- SISTEMA DE NOTIFICACIONES INTERNAS
 -- ==========================================
 local function showNotification(text)
@@ -632,8 +666,8 @@ local routeCFrames = {
     CFrame.new(16876.66796875, 2704.299072265625, -759.4518432617188),
     CFrame.new(16985.974609375, 2812.8984375, -760.7992553710938),
     CFrame.new(17240.263671875, 2812.895263671875, -759.5662231445312),
-    CFrame.new(18024.396484375, 2812.886474609375, -223.57559204101562),
-    CFrame.new(18023.5234375, 2812.886474609375, 1761.0914306640625)
+    CFrame.new(18100.056641, 2812.886475, -224.773972),
+    CFrame.new(18092.367188, 2812.862793, 4993.903320)
 }
 
 local orderedWinBlocks = {
@@ -1305,11 +1339,20 @@ autoConfigBtn.MouseButton1Click:Connect(function()
 end)
 if configs[autoConfigName] then applyConfig(configs[autoConfigName]) end
 
+local antiDecoOn, antiHallOn, antiKeysOn = false, false, false
 task.spawn(function()
     while true do
-        task.wait(0.5)
-        if antilagActive and hideKeycaps then
-            hideKeycaps()
+        task.wait(0.3)
+        if antilagActive then
+            pcall(function()
+                local antilagTargets = {"Decorations", "Props", "Halloween", "HallowenMeshes"}
+                if hideKeycaps then hideKeycaps() end
+                for _, obj in pairs(Workspace:GetDescendants()) do
+                    for _, name in ipairs(antilagTargets) do
+                        if obj.Name == name then pcall(function() obj:Destroy() end) end
+                    end
+                end
+            end)
         end
     end
 end)
@@ -1595,7 +1638,7 @@ local function detectBestTreadmill(hrp)
 end
 
 -- ==========================================
--- RUTINA DE CARGA INICIAL: RECORRIDO DE 5 EN 5 CFRAMES PARA LIMPIAR LAVA
+-- RUTINA DE CARGA INICIAL (CON SOPORTE DE CARGA RÁPIDA / SÚPER RÁPIDA Y RESURRECCIÓN)
 -- ==========================================
 task.spawn(function()
     if getgenv and getgenv().DeltaHubSkipAssets then
@@ -1603,52 +1646,115 @@ task.spawn(function()
         if getgenv().DeltaHubAntilagWasOn then antilagActive = true end
         return
     end
+
     local hrp = waitAliveHrp(routeCFrames[1])
     if LoadingText then LoadingText.Text = "Parte 2/7  Limpieza" end
+    
     local startupDelete = {"ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1", "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone"}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        for _, name in ipairs(startupDelete) do
-            if obj.Name == name then pcall(function() obj:Destroy() end) end
-        end
-    end
-    if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
-    if hrp and #routeCFrames > 0 then
-        local i = 1
-        while i <= #routeCFrames do
-            local spot = routeCFrames[i]
-            hrp = waitAliveHrp(spot)
-            if not hrp then break end
-            hrp.CFrame = spot
-            local floatBp = Instance.new("BodyPosition")
-            floatBp.MaxForce = Vector3.new(400000, 400000, 400000)
-            floatBp.Position = hrp.Position
-            floatBp.Parent = hrp
-            task.wait(0.15)
-            if not hrp.Parent or not player.Character or player.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
-                if floatBp then floatBp:Destroy() end
-                hrp = waitAliveHrp(spot)
-            else
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    local lowerName = string.lower(obj.Name)
-                    if lowerName == "lava" then
-                        pcall(function()
-                            for _, child in pairs(obj:GetChildren()) do
-                                if child.ClassName == "TouchInterest" then child:Destroy() end
-                            end
-                            if obj:IsA("BasePart") then obj.CanTouch = false end
-                        end)
+    
+    local function cleanWorkspaceObjects()
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            local lowerName = string.lower(obj.Name)
+            if lowerName == "lava" then
+                pcall(function()
+                    for _, child in pairs(obj:GetChildren()) do
+                        if child.ClassName == "TouchInterest" then child:Destroy() end
                     end
-                    for _, name in ipairs(targetNamesToDestroy) do
-                        if obj.Name == name then pcall(function() obj:Destroy() end) end
-                    end
-                end
-                if floatBp then floatBp:Destroy() end
-                i = i + 5
+                    if obj:IsA("BasePart") then obj.CanTouch = false end
+                end)
+            end
+            for _, name in ipairs(startupDelete) do
+                if obj.Name == name then pcall(function() obj:Destroy() end) end
             end
         end
-        hrp = waitAliveHrp(routeCFrames[1])
-        if hrp then hrp.CFrame = routeCFrames[1] end
     end
+
+    cleanWorkspaceObjects()
+    if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
+
+    if hrp and #routeCFrames > 0 then
+        local bv = Instance.new("BodyVelocity")
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = hrp
+
+        local lastCleanTick = tick()
+        local i = 1
+
+        while i <= #routeCFrames do
+            local targetCf = routeCFrames[i]
+            hrp = waitAliveHrp(targetCf)
+            if not hrp then break end
+
+            -- Reasignar BodyVelocity si el personaje reaparece (murió)
+            if not bv or not bv.Parent then
+                bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                bv.Parent = hrp
+            end
+
+            local targetPos = targetCf.Position
+            while hrp and (hrp.Position - targetPos).Magnitude > 3 do
+                -- Verificamos si el jugador murió durante el trayecto
+                local char = player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if not hum or hum.Health <= 0 then
+                    if bv then bv:Destroy() end
+                    hrp = waitAliveHrp(targetCf)
+                    if hrp then
+                        hrp.CFrame = targetCf
+                        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                    end
+                    bv = Instance.new("BodyVelocity")
+                    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                    bv.Parent = hrp
+                end
+
+                local currentTick = tick()
+                local cleanInterval = 0.5
+                if loadModeState == "rapida" then
+                    cleanInterval = 0.3
+                elseif loadModeState == "super_rapida" then
+                    cleanInterval = 0.15
+                end
+
+                if currentTick - lastCleanTick >= cleanInterval then
+                    lastCleanTick = currentTick
+                    cleanWorkspaceObjects()
+                end
+
+                local direction = (targetPos - hrp.Position)
+                if direction.Magnitude > 0.1 then
+                    local currentSpeed = 1000
+                    -- Si estamos en los 2 últimos CFrames en modo rápido / súper rápido, aseguramos 1000 de velocidad estricta
+                    if (loadModeState == "rapida" or loadModeState == "super_rapida") and i >= #routeCFrames - 1 then
+                        currentSpeed = 1000
+                    end
+                    bv.Velocity = direction.Unit * currentSpeed
+                else
+                    bv.Velocity = Vector3.new(0, 0, 0)
+                end
+                RunService.Stepped:Wait()
+            end
+
+            -- Determinar el salto de índice según el modo de carga seleccionado
+            if loadModeState == "rapida" then
+                i = i + 3
+            elseif loadModeState == "super_rapida" then
+                i = i + 5
+            else
+                i = i + 1
+            end
+        end
+
+        if bv then bv:Destroy() end
+        hrp = waitAliveHrp(routeCFrames[1])
+        if hrp then 
+            hrp.CFrame = routeCFrames[1]
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+
     if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
     showNotification("¡Activos cargados correctamente!")
 end)
@@ -1664,17 +1770,21 @@ local function readExactWins()
     local w = ls and ls:FindFirstChild("Wins")
     return w and tonumber(w.Value) or 0
 end
+local specialKeysMode = "Tween"
+local eventCollectMode = "Tween"
+
 local function processSpecialKey(obj, hrp)
     local beforeWins = readExactWins()
     local itemPos = obj.Position or obj:GetPrimaryPartCFrame().Position
     local originalPos = hrp.CFrame
     
-    if specialKeysMode == "Tp" then
+    local currentMode = eventCollectMode or specialKeysMode
+    if currentMode == "Tp" then
         specialKeyCount = specialKeyCount + 1
         specialKeyWins = specialKeyWins + math.max(0, readExactWins() - beforeWins)
         showNotification("SpecialKey encontrada haciendo tp a ella")
         hrp.CFrame = CFrame.new(itemPos + Vector3.new(0, 3, 0))
-    elseif specialKeysMode == "Tween" then
+    elseif currentMode == "Tween" then
         showNotification("SpecialKey encontrada usando ruta de Wins")
         local closestIdx = 1
         local shortestDist = math.huge
@@ -1807,9 +1917,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                         local dist = (hrp.Position - targetPos).Magnitude
                         local spd
                         if mustPlant then
-                            spd = math.clamp(dist * 5, 0, gameSpeed or 250)
-                            if dist < 4 then spd = math.clamp(dist * 2.5, 0, 35) end
-                            if dist < 1 then spd = 0 end
+                            spd = approachSpeed(dist, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
                         else
                             spd = approachSpeed(dist, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
                         end
@@ -1823,8 +1931,8 @@ startRouteBtn.MouseButton1Click:Connect(function()
                     if mustPlant and hrp then
                         bv.Velocity = Vector3.new(0, 0, 0)
                         hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                        hrp.CFrame = routeCFrames[64]
-                        task.wait(0.25)
+                        hrp.CFrame = routeCFrames[64] * CFrame.new(0, 0, -1.2)
+                        task.wait(0.05)
                     end
                     currentIndex = currentIndex + 1
                 end
@@ -1850,7 +1958,6 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 pcall(function() task.cancel(lifeMonitor) end)
                 
                 if routeRunning and hum.Health > 0 then
-                    -- Espera exacta de 0.67 segundos para dar tiempo al SpawnLocation del WinBlock
                     task.wait(0.67)
                     addRouteWins()
                     
@@ -2002,6 +2109,7 @@ end)
 local eventChocolate = false
 local eventCoin = false
 local eventXp = false
+local eventCandy = false
 local eventQueue = {}
 local eventSeen = {}
 
@@ -2055,6 +2163,9 @@ end
 
 local function eventKind(name)
     local n = string.lower(name or "")
+    if string.find(n, "eventcoin", 1, true) then
+        return "candy"
+    end
     if eventChocolate and (string.find(n, "chocolatehuntcollectible", 1, true) or (string.find(n, "chocolate", 1, true) and string.find(n, "collect", 1, true))) then
         return "chocolate"
     end
@@ -2063,6 +2174,9 @@ local function eventKind(name)
     end
     if eventXp and string.find(n, "electrifiedkeycap", 1, true) then
         return "xp"
+    end
+    if eventCandy and (string.find(n, "candycorn", 1, true) or string.find(n, "candy", 1, true)) then
+        return "candy"
     end
     return nil
 end
@@ -2096,6 +2210,7 @@ end
 local btnChocolate = eventButton("Auto Chocolate Hunt", 1)
 local btnCoin = eventButton("Auto Battle Coin", 2)
 local btnXp = eventButton("Auto XP Event Key", 3)
+local btnCandy = eventButton("Auto Candy Corn", 4)
 
 local function paintEvent(btn, on, label)
     btn.Text = label .. (on and ": ON" or ": OFF")
@@ -2115,6 +2230,10 @@ btnXp.MouseButton1Click:Connect(function()
     eventXp = not eventXp
     paintEvent(btnXp, eventXp, "Auto XP Event Key")
 end)
+btnCandy.MouseButton1Click:Connect(function()
+    eventCandy = not eventCandy
+    paintEvent(btnCandy, eventCandy, "Auto Candy Corn")
+end)
 
 task.spawn(function()
     local anchored = false
@@ -2122,7 +2241,7 @@ task.spawn(function()
     local lastNear = 0
     while true do
         task.wait(0.1)
-        local anyOn = eventChocolate or eventCoin or eventXp
+        local anyOn = eventChocolate or eventCoin or eventXp or eventCandy
         if not anyOn then
             anchored = false
             eventQueue = {}
@@ -2653,48 +2772,67 @@ local abuseBody = section(eventsNew, "Admin abuse", 1)
 btnChocolate.Parent = abuseBody
 btnCoin.Parent = abuseBody
 btnXp.Parent = abuseBody
+btnCandy.Parent = abuseBody
 btnChocolate.LayoutOrder = 1
 btnCoin.LayoutOrder = 2
 btnXp.LayoutOrder = 3
+btnCandy.LayoutOrder = 4
 
 local dailyBody = section(eventsNew, "Daily", 2)
 specialKeysToggle.Parent = dailyBody
 specialKeysToggle.Size = UDim2.new(1, -8, 0, 32)
 specialKeysToggle.Text = "Auto SpecialKeys: OFF"
 specialKeysToggle.LayoutOrder = 1
-local skRow = Instance.new("Frame")
-skRow.Parent = dailyBody
-skRow.BackgroundTransparency = 1
-skRow.Size = UDim2.new(1, -8, 0, 26)
-skRow.Visible = false
-skRow.LayoutOrder = 2
-local function skChoice(text, x)
-    local b = Instance.new("TextButton")
-    b.Parent = skRow
-    b.Size = UDim2.new(0, 72, 0, 22)
-    b.Position = UDim2.new(0, x, 0, 2)
-    b.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
-    b.Font = Enum.Font.Gotham
-    b.Text = text
-    b.TextSize = 11
-    b.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(function()
+
+local eventModePick = Instance.new("TextButton")
+eventModePick.Parent = dailyBody
+eventModePick.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+eventModePick.Size = UDim2.new(1, -8, 0, 30)
+eventModePick.Font = Enum.Font.GothamBold
+eventModePick.Text = "  > Modo eventos: Tween"
+eventModePick.TextXAlignment = Enum.TextXAlignment.Left
+eventModePick.TextColor3 = Color3.fromRGB(240, 240, 245)
+eventModePick.TextSize = 12
+eventModePick.LayoutOrder = 2
+eventModePick.Active = true
+Instance.new("UICorner", eventModePick).CornerRadius = UDim.new(0, 6)
+
+local eventModeList = Instance.new("Frame")
+eventModeList.Parent = dailyBody
+eventModeList.BackgroundTransparency = 1
+eventModeList.Size = UDim2.new(1, -8, 0, 0)
+eventModeList.AutomaticSize = Enum.AutomaticSize.Y
+eventModeList.Visible = false
+eventModeList.LayoutOrder = 3
+local eventModeLayout = Instance.new("UIListLayout")
+eventModeLayout.Parent = eventModeList
+eventModeLayout.Padding = UDim.new(0, 4)
+
+local function createEventModeOpt(text, order)
+    local opt = Instance.new("TextButton")
+    opt.Parent = eventModeList
+    opt.BackgroundColor3 = Color3.fromRGB(36, 36, 42)
+    opt.Size = UDim2.new(1, 0, 0, 26)
+    opt.Font = Enum.Font.Gotham
+    opt.Text = text
+    opt.TextColor3 = Color3.fromRGB(240, 240, 245)
+    opt.TextSize = 12
+    opt.LayoutOrder = order
+    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 5)
+    opt.MouseButton1Click:Connect(function()
+        eventCollectMode = text
         specialKeysMode = text
-        b.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
-        for _, other in ipairs(skRow:GetChildren()) do
-            if other:IsA("TextButton") and other ~= b then
-                other.BackgroundColor3 = Color3.fromRGB(40, 40, 46)
-            end
-        end
+        eventModePick.Text = "  > Modo eventos: " .. text
+        eventModeList.Visible = false
+        showNotification("Modo eventos: " .. text)
     end)
-    return b
 end
-local tweenBtn = skChoice("Tween", 0)
-tweenBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 60)
-skChoice("Tp", 80)
-specialKeysToggle.MouseButton1Click:Connect(function()
-    skRow.Visible = autoSpecialKeysActive
+createEventModeOpt("Tween", 1)
+createEventModeOpt("Tp", 2)
+
+eventModePick.MouseButton1Click:Connect(function()
+    eventModeList.Visible = not eventModeList.Visible
+    eventModePick.Text = (eventModeList.Visible and "  v " or "  > ") .. eventModePick.Text:gsub("^%s*[v>]%s*", "")
 end)
 
 
