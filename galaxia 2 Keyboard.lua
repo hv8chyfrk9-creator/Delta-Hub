@@ -2175,7 +2175,7 @@ local function eventKind(name)
     if eventXp and string.find(n, "electrifiedkeycap", 1, true) then
         return "xp"
     end
-    if eventCandy and (string.find(n, "candycorn", 1, true) or string.find(n, "candy", 1, true)) then
+    if eventCandy and (string.find(n, "CandyCorn", 1, true) or string.find(n, "candy", 1, true)) then
         return "candy"
     end
     return nil
