@@ -57,47 +57,49 @@ local function waitAliveHrp(returnCf)
 end
 
 -- ==========================================
--- 0. LIMPIEZA INICIAL HALLOWEN
+-- LIMPIEZA: nombres exactos + todo lo que empiece por "Pair"
 -- ==========================================
 local targetNamesToDestroy = {
     "ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1",
     "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone",
-    "Walls", "TarantulaS13", "WindZonesS14"
+    "TarantulaS13", "WindZonesS14"
 }
-for _, obj in pairs(Workspace:GetDescendants()) do
-    for _, name in ipairs(targetNamesToDestroy) do
-        if obj.Name == name then
+
+local function runCleanupPass()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local name = obj.Name
+        for _, n in ipairs(targetNamesToDestroy) do
+            if name == n then
+                pcall(function() obj:Destroy() end)
+            end
+        end
+        -- cualquier cosa que empiece por "Pair"
+        if string.sub(name, 1, 4) == "Pair" then
             pcall(function() obj:Destroy() end)
         end
-    end
-end
-
-pcall(function()
-    local lavaStage = Workspace:FindFirstChild("Lava_Stage15", true)
-    if lavaStage then
-        local lc = lavaStage:FindFirstChild("LavaCollide", true)
-        if lc then lc:Destroy() end
-    end
-end)
-
-for _, obj in pairs(Workspace:GetDescendants()) do
-    local lowerName = string.lower(obj.Name)
-    if lowerName == "lava" then
-        pcall(function()
-            for _, child in pairs(obj:GetChildren()) do
-                if child.ClassName == "TouchInterest" then
-                    child:Destroy()
+        local lowerName = string.lower(name)
+        if lowerName == "lava" then
+            pcall(function()
+                for _, child in pairs(obj:GetChildren()) do
+                    if child.ClassName == "TouchInterest" then child:Destroy() end
                 end
-            end
-            if obj:IsA("BasePart") then
-                obj.CanTouch = false
-            end
-        end)
+                if obj:IsA("BasePart") then obj.CanTouch = false end
+            end)
+        end
     end
+    pcall(function()
+        local lavaStage = Workspace:FindFirstChild("Lava_Stage15", true)
+        if lavaStage then
+            local lc = lavaStage:FindFirstChild("LavaCollide", true)
+            if lc then lc:Destroy() end
+        end
+    end)
 end
+
+runCleanupPass()
 
 -- ==========================================
--- PANTALLA NEGRA DE CARGA
+-- PANTALLA DE CARGA
 -- ==========================================
 local LoadingScreen = Instance.new("Frame")
 LoadingScreen.Name = "LoadingScreen"
@@ -110,12 +112,80 @@ LoadingScreen.ZIndex = 10000
 local LoadingText = Instance.new("TextLabel")
 LoadingText.Parent = LoadingScreen
 LoadingText.BackgroundTransparency = 1
-LoadingText.Size = UDim2.new(1, 0, 1, 0)
+LoadingText.Position = UDim2.new(0, 20, 0.35, 0)
+LoadingText.Size = UDim2.new(1, -40, 0, 40)
 LoadingText.Font = Enum.Font.GothamBold
-LoadingText.Text = "Parte 1/7  Pantalla"
+LoadingText.Text = "Cargando activos..."
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.TextSize = 24
-LoadingText.ZIndex = 10000
+LoadingText.TextSize = 22
+LoadingText.ZIndex = 10001
+
+-- Selector de búsqueda de carga (2 / 3 / 5) — visible durante la carga
+local loadSearchMode = "normal" -- normal=2, fast=3, ultra=5
+
+local LoadModeFrame = Instance.new("Frame")
+LoadModeFrame.Parent = LoadingScreen
+LoadModeFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+LoadModeFrame.Position = UDim2.new(0.5, -140, 0.5, 10)
+LoadModeFrame.Size = UDim2.new(0, 280, 0, 120)
+LoadModeFrame.ZIndex = 10002
+Instance.new("UICorner", LoadModeFrame).CornerRadius = UDim.new(0, 8)
+
+local LoadModeTitle = Instance.new("TextLabel")
+LoadModeTitle.Parent = LoadModeFrame
+LoadModeTitle.BackgroundTransparency = 1
+LoadModeTitle.Size = UDim2.new(1, 0, 0, 28)
+LoadModeTitle.Font = Enum.Font.GothamBold
+LoadModeTitle.Text = "Busqueda de limpieza"
+LoadModeTitle.TextColor3 = Color3.fromRGB(240, 240, 245)
+LoadModeTitle.TextSize = 13
+LoadModeTitle.ZIndex = 10003
+
+local function makeLoadBtn(text, mode, x)
+    local b = Instance.new("TextButton")
+    b.Parent = LoadModeFrame
+    b.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+    b.Position = UDim2.new(0, x, 0, 40)
+    b.Size = UDim2.new(0, 80, 0, 32)
+    b.Font = Enum.Font.GothamBold
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(220, 220, 230)
+    b.TextSize = 11
+    b.ZIndex = 10003
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        loadSearchMode = mode
+        for _, c in ipairs(LoadModeFrame:GetChildren()) do
+            if c:IsA("TextButton") then
+                c.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
+            end
+        end
+        b.BackgroundColor3 = Color3.fromRGB(40, 100, 50)
+    end)
+    if mode == "normal" then b.BackgroundColor3 = Color3.fromRGB(40, 100, 50) end
+    return b
+end
+makeLoadBtn("Normal 2", "normal", 12)
+makeLoadBtn("Rapido 3", "fast", 100)
+makeLoadBtn("Super 5", "ultra", 188)
+
+local LoadHint = Instance.new("TextLabel")
+LoadHint.Parent = LoadModeFrame
+LoadHint.BackgroundTransparency = 1
+LoadHint.Position = UDim2.new(0, 8, 0, 80)
+LoadHint.Size = UDim2.new(1, -16, 0, 32)
+LoadHint.Font = Enum.Font.Gotham
+LoadHint.Text = "TP entre CFrames mientras limpia el mapa"
+LoadHint.TextColor3 = Color3.fromRGB(160, 160, 175)
+LoadHint.TextSize = 11
+LoadHint.TextWrapped = true
+LoadHint.ZIndex = 10003
+
+local function loadStep()
+    if loadSearchMode == "fast" then return 3 end
+    if loadSearchMode == "ultra" then return 5 end
+    return 2
+end
 
 local function showNotification(text)
     pcall(function()
@@ -251,6 +321,7 @@ MainFrame.Position = UDim2.new(0.5, -225, 0.5, -175)
 MainFrame.Size = UDim2.new(0, 450, 0, 350)
 MainFrame.Active = true
 MainFrame.Draggable = true
+MainFrame.Visible = false
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(35, 35, 48)
@@ -301,36 +372,26 @@ UIListSidebar.Parent = Sidebar
 UIListSidebar.SortOrder = Enum.SortOrder.LayoutOrder
 UIListSidebar.Padding = UDim.new(0, 8)
 UIListSidebar.HorizontalAlignment = Enum.HorizontalAlignment.Center
-UIListSidebar.VerticalAlignment = Enum.VerticalAlignment.Top
 
-local function createLogoTab(name, symbol, order, isImage)
-    local btn
-    if isImage then
-        btn = Instance.new("ImageButton")
-        local success, thumb = pcall(function()
-            return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size42x42)
-        end)
-        if success then btn.Image = thumb else btn.Image = "rbxassetid://0" end
-    else
-        btn = Instance.new("TextButton")
-        btn.Text = symbol
-        btn.Font = Enum.Font.GothamBold
-        btn.TextColor3 = Color3.fromRGB(160, 160, 175)
-        btn.TextSize = 16
-    end
+local function createLogoTab(name, symbol, order)
+    local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Parent = Sidebar
     btn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     btn.Size = UDim2.new(0, 38, 0, 38)
     btn.LayoutOrder = order
+    btn.Text = symbol
+    btn.Font = Enum.Font.GothamBold
+    btn.TextColor3 = Color3.fromRGB(160, 160, 175)
+    btn.TextSize = 16
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
     return btn
 end
 
-local TabPlayerBtn = createLogoTab("TabPlayerBtn", "⚙", 1, false)
-local TabGameBtn = createLogoTab("TabGameBtn", "⚡", 2, false)
-local TabExtrasBtn = createLogoTab("TabExtrasBtn", "Extras", 3, false)
-local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
+local TabPlayerBtn = createLogoTab("TabPlayerBtn", "⚙", 1)
+local TabGameBtn = createLogoTab("TabGameBtn", "⚡", 2)
+local TabExtrasBtn = createLogoTab("TabExtrasBtn", "Ex", 3)
+local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4)
 TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
 TabPlayerBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 
@@ -343,7 +404,6 @@ ContentArea.Size = UDim2.new(1, -80, 1, -55)
 local SectionTitle = Instance.new("TextLabel")
 SectionTitle.Parent = ContentArea
 SectionTitle.BackgroundTransparency = 1
-SectionTitle.Position = UDim2.new(0, 0, 0, 0)
 SectionTitle.Size = UDim2.new(1, 0, 0, 25)
 SectionTitle.Font = Enum.Font.GothamBold
 SectionTitle.Text = "Player"
@@ -375,24 +435,21 @@ ExtrasPage.Visible = false
 local EventsPage = createScrollingPage(ContentArea)
 EventsPage.Visible = false
 
--- ==========================================
--- PÁGINA "PLAYER"
--- ==========================================
+-- PLAYER
 local speedEnabled, customSpeed = false, 16
 local originalWalkSpeed = nil
 local jumpEnabled, customJump = false, 50
 local originalJumpPower, originalUseJumpPower = nil, nil
-local infiniteJumpEnabled, noClipEnabled, floatEnabled = false, false, false
+local infiniteJumpEnabled, noClipEnabled = false, false
 
 local speedBox = Instance.new("TextBox")
 speedBox.Parent = PlayerPage
 speedBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 speedBox.Size = UDim2.new(1, -10, 0, 32)
 speedBox.Font = Enum.Font.Gotham
-speedBox.PlaceholderText = "WalkSpeed (Ej. 16)"
+speedBox.PlaceholderText = "WalkSpeed"
 speedBox.Text = "16"
 speedBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 speedBox.TextSize = 13
 speedBox.LayoutOrder = 1
 Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 6)
@@ -403,7 +460,7 @@ speedToggle.Parent = PlayerPage
 speedToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 speedToggle.Size = UDim2.new(1, -10, 0, 32)
 speedToggle.Font = Enum.Font.GothamBold
-speedToggle.Text = "Activar WalkSpeed: OFF"
+speedToggle.Text = "WalkSpeed: OFF"
 speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 speedToggle.TextSize = 12
 speedToggle.LayoutOrder = 2
@@ -413,12 +470,12 @@ speedToggle.MouseButton1Click:Connect(function()
     local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if speedEnabled then
         if hum then originalWalkSpeed = hum.WalkSpeed end
-        speedToggle.Text = "Activar WalkSpeed: ON"
+        speedToggle.Text = "WalkSpeed: ON"
         speedToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
     else
         if hum and originalWalkSpeed then hum.WalkSpeed = originalWalkSpeed end
-        speedToggle.Text = "Activar WalkSpeed: OFF"
+        speedToggle.Text = "WalkSpeed: OFF"
         speedToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         speedToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     end
@@ -429,10 +486,9 @@ jumpBox.Parent = PlayerPage
 jumpBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 jumpBox.Size = UDim2.new(1, -10, 0, 32)
 jumpBox.Font = Enum.Font.Gotham
-jumpBox.PlaceholderText = "JumpPower (Ej. 50)"
+jumpBox.PlaceholderText = "JumpPower"
 jumpBox.Text = "50"
 jumpBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-jumpBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
 jumpBox.TextSize = 13
 jumpBox.LayoutOrder = 3
 Instance.new("UICorner", jumpBox).CornerRadius = UDim.new(0, 6)
@@ -443,7 +499,7 @@ jumpToggle.Parent = PlayerPage
 jumpToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
 jumpToggle.Size = UDim2.new(1, -10, 0, 32)
 jumpToggle.Font = Enum.Font.GothamBold
-jumpToggle.Text = "Activar Salto: OFF"
+jumpToggle.Text = "Salto: OFF"
 jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
 jumpToggle.TextSize = 12
 jumpToggle.LayoutOrder = 4
@@ -453,7 +509,7 @@ jumpToggle.MouseButton1Click:Connect(function()
     local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if jumpEnabled then
         if hum then originalUseJumpPower, originalJumpPower = hum.UseJumpPower, hum.JumpPower end
-        jumpToggle.Text = "Activar Salto: ON"
+        jumpToggle.Text = "Salto: ON"
         jumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
     else
@@ -461,7 +517,7 @@ jumpToggle.MouseButton1Click:Connect(function()
             if originalUseJumpPower ~= nil then hum.UseJumpPower = originalUseJumpPower end
             if originalJumpPower ~= nil then hum.JumpPower = originalJumpPower end
         end
-        jumpToggle.Text = "Activar Salto: OFF"
+        jumpToggle.Text = "Salto: OFF"
         jumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
         jumpToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
     end
@@ -479,15 +535,9 @@ noclipToggle.LayoutOrder = 5
 Instance.new("UICorner", noclipToggle).CornerRadius = UDim.new(0, 6)
 noclipToggle.MouseButton1Click:Connect(function()
     noClipEnabled = not noClipEnabled
-    if noClipEnabled then
-        noclipToggle.Text = "Noclip: ON"
-        noclipToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    else
-        noclipToggle.Text = "Noclip: OFF"
-        noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    end
+    noclipToggle.Text = noClipEnabled and "Noclip: ON" or "Noclip: OFF"
+    noclipToggle.TextColor3 = noClipEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    noclipToggle.BackgroundColor3 = noClipEnabled and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
 end)
 
 local infJumpToggle = Instance.new("TextButton")
@@ -502,29 +552,21 @@ infJumpToggle.LayoutOrder = 6
 Instance.new("UICorner", infJumpToggle).CornerRadius = UDim.new(0, 6)
 infJumpToggle.MouseButton1Click:Connect(function()
     infiniteJumpEnabled = not infiniteJumpEnabled
-    if infiniteJumpEnabled then
-        infJumpToggle.Text = "Infinitejump: ON"
-        infJumpToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        infJumpToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    else
-        infJumpToggle.Text = "Infinitejump: OFF"
-        infJumpToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        infJumpToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    end
+    infJumpToggle.Text = infiniteJumpEnabled and "Infinitejump: ON" or "Infinitejump: OFF"
+    infJumpToggle.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+    infJumpToggle.BackgroundColor3 = infiniteJumpEnabled and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
 end)
 
 UserInputService.JumpRequest:Connect(function()
     if infiniteJumpEnabled then
         local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-        end
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
     end
 end)
 
 -- ==========================================
--- PÁGINA "GAME" — RUTA HALLOWEN + WINBLOCKS
+-- RUTA + WINBLOCKS
 -- ==========================================
 local routeCFrames = {
 	CFrame.new(1.623040, 10.398061, -13.920989, -0.934023, -0.000000, -0.357212, -0.000000, 1.000000, -0.000000, 0.357212, -0.000000, -0.934023),
@@ -578,14 +620,16 @@ local orderedWinBlocks = {
 local selectedRealName = "WinBlock1"
 local selectedDisplayName = "+1 Win"
 local gameSpeed = 250
+-- Modo de RECORRIDO (velocidad mínima al llegar al CFrame): normal=0, fast=50, ultra=150
 local routeMode = "normal"
+
 local function approachSpeed(distance, nextDistance)
     local maxSpeed = math.clamp(gameSpeed or 250, 1, 500)
     if nextDistance and nextDistance < 5 then
         return maxSpeed
     end
     local brake = 18
-    local floorSpeed = 12
+    local floorSpeed = 0
     if routeMode == "fast" then
         brake = 8
         floorSpeed = 50
@@ -599,768 +643,3 @@ local function approachSpeed(distance, nextDistance)
     local t = math.clamp(distance / brake, 0, 1)
     return math.max(maxSpeed * t * t, floorSpeed)
 end
-
-local function routeStep()
-    if routeMode == "fast" then return 3 end
-    if routeMode == "ultra" then return 5 end
-    return 2
-end
-
-local delayTime = 0
-local infiniteRouteActive = false
-local routeRunning = false
-local routeClickState = 0
-
-local selectorMain = Instance.new("Frame")
-selectorMain.Parent = GamePage
-selectorMain.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-selectorMain.Size = UDim2.new(1, -10, 0, 32)
-selectorMain.LayoutOrder = 1
-Instance.new("UICorner", selectorMain).CornerRadius = UDim.new(0, 6)
-
-local selectorBtn = Instance.new("TextButton")
-selectorBtn.Parent = selectorMain
-selectorBtn.BackgroundTransparency = 1
-selectorBtn.Size = UDim2.new(1, 0, 1, 0)
-selectorBtn.Font = Enum.Font.GothamBold
-selectorBtn.Text = "Seleccionar Win: +1 Win ▾"
-selectorBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
-selectorBtn.TextSize = 12
-
-local dropdownList = Instance.new("ScrollingFrame")
-dropdownList.Parent = GamePage
-dropdownList.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-dropdownList.Size = UDim2.new(1, -10, 0, 140)
-dropdownList.Visible = false
-dropdownList.CanvasSize = UDim2.new(0, 0, 0, 0)
-dropdownList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-dropdownList.ScrollBarThickness = 3
-dropdownList.LayoutOrder = 2
-Instance.new("UICorner", dropdownList).CornerRadius = UDim.new(0, 6)
-local dropLayout = Instance.new("UIListLayout")
-dropLayout.Parent = dropdownList
-dropLayout.SortOrder = Enum.SortOrder.LayoutOrder
-dropLayout.Padding = UDim.new(0, 4)
-
-for _, info in ipairs(orderedWinBlocks) do
-    local opt = Instance.new("TextButton")
-    opt.Parent = dropdownList
-    opt.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    opt.Size = UDim2.new(1, 0, 0, 28)
-    opt.Font = Enum.Font.Gotham
-    opt.Text = info.display
-    opt.TextColor3 = Color3.fromRGB(200, 200, 210)
-    opt.TextSize = 12
-    opt.LayoutOrder = info.order
-    Instance.new("UICorner", opt).CornerRadius = UDim.new(0, 4)
-    opt.MouseButton1Click:Connect(function()
-        selectedRealName = info.real
-        selectedDisplayName = info.display
-        selectorBtn.Text = "Seleccionar Win: " .. info.display .. " ▾"
-        dropdownList.Visible = false
-    end)
-end
-selectorBtn.MouseButton1Click:Connect(function() dropdownList.Visible = not dropdownList.Visible end)
-
-local winChosenLabel = Instance.new("TextLabel")
-winChosenLabel.Parent = GamePage
-winChosenLabel.BackgroundTransparency = 1
-winChosenLabel.Size = UDim2.new(1, -10, 0, 22)
-winChosenLabel.Font = Enum.Font.GothamSemibold
-winChosenLabel.Text = "Win escogida: +1 Win"
-winChosenLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
-winChosenLabel.TextSize = 12
-winChosenLabel.TextXAlignment = Enum.TextXAlignment.Left
-winChosenLabel.LayoutOrder = 3
-selectorBtn.MouseButton1Click:Connect(function() winChosenLabel.Text = "Win escogida: " .. selectedDisplayName end)
-
-local startRouteBtn = Instance.new("TextButton")
-startRouteBtn.Parent = GamePage
-startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-startRouteBtn.Size = UDim2.new(1, -10, 0, 32)
-startRouteBtn.Font = Enum.Font.GothamBold
-startRouteBtn.Text = "Iniciar Recorrido: OFF"
-startRouteBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
-startRouteBtn.TextSize = 12
-startRouteBtn.LayoutOrder = 4
-Instance.new("UICorner", startRouteBtn).CornerRadius = UDim.new(0, 6)
-
-local speedGameBox = Instance.new("TextBox")
-speedGameBox.Parent = GamePage
-speedGameBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-speedGameBox.Size = UDim2.new(1, -10, 0, 32)
-speedGameBox.Font = Enum.Font.Gotham
-speedGameBox.PlaceholderText = "Velocidad Recorrido (1 - 500)"
-speedGameBox.Text = "250"
-speedGameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedGameBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
-speedGameBox.TextSize = 13
-speedGameBox.LayoutOrder = 5
-Instance.new("UICorner", speedGameBox).CornerRadius = UDim.new(0, 6)
-speedGameBox.FocusLost:Connect(function()
-    local v = tonumber(speedGameBox.Text)
-    gameSpeed = math.clamp(v or gameSpeed or 250, 1, 500)
-    speedGameBox.Text = tostring(gameSpeed)
-end)
-
-local delayBox = Instance.new("TextBox")
-delayBox.Parent = GamePage
-delayBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-delayBox.Size = UDim2.new(1, -10, 0, 32)
-delayBox.Font = Enum.Font.Gotham
-delayBox.PlaceholderText = "Delay entre recorridos (0 - 10)"
-delayBox.Text = "0"
-delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-delayBox.PlaceholderColor3 = Color3.fromRGB(110, 110, 125)
-delayBox.TextSize = 13
-delayBox.LayoutOrder = 6
-Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 6)
-delayBox.FocusLost:Connect(function() local v = tonumber(delayBox.Text) if v then delayTime = math.clamp(v, 0, 10) end end)
-
-local infRouteToggle = Instance.new("TextButton")
-infRouteToggle.Parent = GamePage
-infRouteToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-infRouteToggle.Size = UDim2.new(1, -10, 0, 32)
-infRouteToggle.Font = Enum.Font.GothamBold
-infRouteToggle.Text = "Recorrido Infinito: OFF"
-infRouteToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-infRouteToggle.TextSize = 12
-infRouteToggle.LayoutOrder = 7
-Instance.new("UICorner", infRouteToggle).CornerRadius = UDim.new(0, 6)
-
-local fastBtn = Instance.new("TextButton")
-fastBtn.Parent = GamePage
-fastBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-fastBtn.Size = UDim2.new(1, -10, 0, 32)
-fastBtn.Font = Enum.Font.GothamBold
-fastBtn.Text = "Recorrido: Normal (2)"
-fastBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-fastBtn.TextSize = 12
-fastBtn.LayoutOrder = 8
-Instance.new("UICorner", fastBtn).CornerRadius = UDim.new(0, 6)
-
-local function paintRouteMode()
-    if routeMode == "fast" then
-        fastBtn.Text = "Recorrido: Rapido (3)"
-    elseif routeMode == "ultra" then
-        fastBtn.Text = "Recorrido: Ultra rapido (5)"
-    else
-        fastBtn.Text = "Recorrido: Normal (2)"
-    end
-end
-fastBtn.MouseButton1Click:Connect(function()
-    if routeMode == "normal" then routeMode = "fast"
-    elseif routeMode == "fast" then routeMode = "ultra"
-    else routeMode = "normal" end
-    paintRouteMode()
-end)
-
-infRouteToggle.MouseButton1Click:Connect(function()
-    infiniteRouteActive = not infiniteRouteActive
-    if infiniteRouteActive then
-        infRouteToggle.Text = "Recorrido Infinito: ON"
-        infRouteToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        infRouteToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    else
-        infRouteToggle.Text = "Recorrido Infinito: OFF"
-        infRouteToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        infRouteToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    end
-end)
-
-local finishAfterClaim = false
-local routeWinsSession = 0
-local winStreakBonus = 0
-local goalEnabled = false
-local goalAmount = 0
-local goalProgress = 0
-local goalSavedFor = nil
-local goalInfo = nil
-
-local function formatShort(n)
-    n = tonumber(n) or 0
-    if n < 0 then n = 0 end
-    local units = {{1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
-    for _, u in ipairs(units) do
-        if n >= u[1] then
-            local v = n / u[1]
-            local nearest = math.floor(v + 0.5)
-            local s
-            if math.abs(v - nearest) < 0.001 and math.abs(v - math.floor(v + 1e-6)) < 0.001 then
-                s = tostring(math.floor(v + 1e-6))
-            else
-                s = string.format("%.2f", v)
-                if s:find("%.") then
-                    s = s:gsub("0+$", ""):gsub("%.$", "")
-                end
-            end
-            return s .. u[2]
-        end
-    end
-    return tostring(math.floor(n))
-end
-
-local function refreshGoal()
-    if not goalInfo then return end
-    if not goalEnabled then
-        goalInfo.Text = "Meta apagada"
-        return
-    end
-    goalInfo.Text = "Llevas " .. formatShort(goalProgress) .. " / " .. formatShort(goalAmount)
-end
-
-local function parseWinAmount(text)
-    local n, suf = string.match(string.lower(text or ""), "([%d%.]+)%s*([kmbqt]?)")
-    local value = tonumber(n) or 0
-    local mult = {k = 1e3, m = 1e6, b = 1e9, t = 1e12, q = 1e15}
-    if suf and mult[suf] then value = value * mult[suf] end
-    return value
-end
-
-local function formatWins(n)
-    local units = {{1e15, "Q"}, {1e12, "T"}, {1e9, "B"}, {1e6, "M"}, {1e3, "K"}}
-    for _, u in ipairs(units) do
-        if n >= u[1] then
-            return string.format("%.2f%s", n / u[1], u[2])
-        end
-    end
-    return tostring(math.floor(n))
-end
-
-local WinsCounter = Instance.new("TextLabel")
-WinsCounter.Parent = ScreenGui
-WinsCounter.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
-WinsCounter.Position = UDim2.new(1, -210, 0, 90)
-WinsCounter.Size = UDim2.new(0, 195, 0, 36)
-WinsCounter.Font = Enum.Font.GothamBold
-WinsCounter.Text = "Wins ruta: 0 | racha +0%"
-WinsCounter.TextColor3 = Color3.fromRGB(255, 220, 80)
-WinsCounter.TextSize = 11
-WinsCounter.Visible = false
-Instance.new("UICorner", WinsCounter).CornerRadius = UDim.new(0, 6)
-
-local function refreshWinsCounter(lastGain)
-    WinsCounter.Visible = true
-    WinsCounter.Text = "Wins ruta: " .. formatWins(routeWinsSession) .. " | racha +" .. tostring(math.floor(winStreakBonus * 100)) .. "%"
-    if lastGain then
-        showNotification("+" .. formatWins(lastGain) .. " Wins")
-    end
-end
-
-local streakBlock = nil
-local function addRouteWins()
-    if streakBlock ~= selectedRealName then
-        winStreakBonus = 0
-        streakBlock = selectedRealName
-    end
-    local infoText = selectedRealName or ""
-    for _, info in ipairs(orderedWinBlocks) do
-        if info.real == selectedRealName then
-            infoText = info.display
-            break
-        end
-    end
-    local base = parseWinAmount(infoText)
-    local gain = base * (1 + winStreakBonus)
-    routeWinsSession = routeWinsSession + gain
-    if goalEnabled then
-        goalProgress = goalProgress + gain
-        refreshGoal()
-        if not infiniteRouteActive and goalProgress >= goalAmount then
-            showNotification("Meta lista: " .. formatShort(goalProgress))
-        end
-    end
-    refreshWinsCounter(gain)
-    winStreakBonus = math.min(1, winStreakBonus + 0.1)
-    refreshWinsCounter()
-end
-
-local function resetWinStreak()
-    winStreakBonus = 0
-    streakBlock = nil
-    refreshWinsCounter()
-end
-
-local StopNowBtn = Instance.new("TextButton")
-StopNowBtn.Parent = ScreenGui
-StopNowBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 30)
-StopNowBtn.Position = UDim2.new(1, -170, 0, 56)
-StopNowBtn.Size = UDim2.new(0, 155, 0, 28)
-StopNowBtn.Font = Enum.Font.GothamBold
-StopNowBtn.Text = "Terminar recorrido ahora"
-StopNowBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-StopNowBtn.TextSize = 10
-StopNowBtn.Visible = false
-Instance.new("UICorner", StopNowBtn).CornerRadius = UDim.new(0, 6)
-
-local function stopRecorridoGeneral()
-    routeRunning = false
-    finishAfterClaim = false
-    StopRouteContainer.Visible = false
-    StopNowBtn.Visible = false
-    StopRouteFloatingBtn.Text = "Terminar Recorrido"
-    noClipEnabled = false
-    noclipToggle.Text = "Noclip: OFF"
-    noclipToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-    noclipToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    routeClickState = 0
-    startRouteBtn.Text = "Iniciar recorrido"
-    startRouteBtn.TextColor3 = Color3.fromRGB(255, 120, 120)
-    startRouteBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local bv = hrp:FindFirstChildOfClass("BodyVelocity")
-        if bv then bv:Destroy() end
-        hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-    end
-end
-
-StopRouteFloatingBtn.MouseButton1Click:Connect(function()
-    finishAfterClaim = true
-    StopNowBtn.Visible = true
-    StopRouteFloatingBtn.Text = "Terminara al WinBlock"
-    showNotification("Sigue hasta tocar el WinBlock y volver al spawn.")
-end)
-
-StopNowBtn.MouseButton1Click:Connect(function()
-    stopRecorridoGeneral()
-    showNotification("Recorrido detenido ahora.")
-end)
-
--- ==========================================
--- EXTRAS (ANTILAG + SPECIAL KEYS base)
--- ==========================================
-local antilagActive = false
-local autoSpecialKeysActive = false
-local eventCollectMode = "Tween"
-local npcModeActive = false
-local originalPosBeforeNpc = nil
-local specialKeysQueue = {}
-
-local antilagToggle = Instance.new("TextButton")
-antilagToggle.Parent = ExtrasPage
-antilagToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-antilagToggle.Size = UDim2.new(1, -10, 0, 32)
-antilagToggle.Font = Enum.Font.GothamBold
-antilagToggle.Text = "Antilag: OFF"
-antilagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-antilagToggle.TextSize = 12
-antilagToggle.LayoutOrder = 1
-Instance.new("UICorner", antilagToggle).CornerRadius = UDim.new(0, 6)
-
-function hideKeycaps()
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if string.lower(obj.Name) == "keycaps" then
-            for _, d in ipairs(obj:GetDescendants()) do
-                if d:IsA("BasePart") then
-                    pcall(function()
-                        d.Transparency = 1
-                        d.CanCollide = false
-                        d.CanTouch = false
-                        d.CanQuery = false
-                    end)
-                end
-            end
-        end
-    end
-end
-
-antilagToggle.MouseButton1Click:Connect(function()
-    antilagActive = not antilagActive
-    if antilagActive then
-        antilagToggle.Text = "Antilag: ON"
-        antilagToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        antilagToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-        pcall(function() Lighting.GlobalShadows = false; Lighting.Brightness = 2 end)
-        local antilagTargets = {"Decorations", "Props", "Halloween", "HallowenMeshes"}
-        if hideKeycaps then hideKeycaps() end
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            for _, name in ipairs(antilagTargets) do
-                if obj.Name == name then pcall(function() obj:Destroy() end) end
-            end
-        end
-    else
-        antilagToggle.Text = "Antilag: OFF"
-        antilagToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        antilagToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    end
-end)
-
--- Keycaps loop 0.3s (interruptor = antilagActive o antiKeys separado)
-task.spawn(function()
-    while true do
-        task.wait(0.3)
-        if antilagActive and hideKeycaps then
-            hideKeycaps()
-        end
-    end
-end)
-
--- ==========================================
--- SPECIAL KEYS helper
--- ==========================================
-local function processSpecialKey(keyObj, hrp)
-    if not keyObj or not keyObj.Parent or not hrp then return end
-    local pos
-    if keyObj:IsA("BasePart") then
-        pos = keyObj.Position
-    elseif keyObj:IsA("Model") and keyObj.PrimaryPart then
-        pos = keyObj.PrimaryPart.Position
-    else
-        return
-    end
-    local origin = hrp.CFrame
-    if eventCollectMode == "Tp" then
-        hrp.CFrame = CFrame.new(pos + Vector3.new(0, 3, 0))
-        task.wait(0.35)
-        hrp.CFrame = origin
-    else
-        local bv = Instance.new("BodyVelocity")
-        bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        bv.Parent = hrp
-        local t0 = tick()
-        while (hrp.Position - pos).Magnitude > 3 and tick() - t0 < 6 do
-            bv.Velocity = (pos - hrp.Position).Unit * 120
-            RunService.Stepped:Wait()
-        end
-        bv:Destroy()
-        task.wait(0.2)
-        hrp.CFrame = origin
-    end
-end
-
--- ==========================================
--- BUCLE PRINCIPAL DE RECORRIDOS (step 2/3/5, sin CFrame 64)
--- ==========================================
-startRouteBtn.MouseButton1Click:Connect(function()
-    if routeRunning then
-        finishAfterClaim = true
-        StopNowBtn.Visible = true
-        StopRouteFloatingBtn.Text = "Terminara al WinBlock"
-        showNotification("Sigue hasta el WinBlock")
-        return
-    end
-    local typed = tonumber(speedGameBox.Text)
-    gameSpeed = math.clamp(typed or gameSpeed or 250, 1, 500)
-    routeRunning = true
-    finishAfterClaim = false
-    routeClickState = 1
-    startRouteBtn.Text = "Terminar recorrido"
-    startRouteBtn.TextColor3 = Color3.fromRGB(100, 255, 100)
-    startRouteBtn.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-    StopRouteContainer.Visible = true
-    noClipEnabled = true
-    noclipToggle.Text = "Noclip: ON"
-    noclipToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-    noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-
-    task.spawn(function()
-        while routeRunning do
-            local char = player.Character or player.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart", 5)
-            local hum = char:WaitForChild("Humanoid", 5)
-
-            if hrp and hum and hum.Health > 0 then
-                local oldBv = hrp:FindFirstChildOfClass("BodyVelocity")
-                if oldBv then oldBv:Destroy() end
-                local bv = Instance.new("BodyVelocity")
-                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                bv.Velocity = Vector3.new()
-                bv.Parent = hrp
-
-                hrp.CFrame = routeCFrames[1]
-                hrp.AssemblyLinearVelocity = Vector3.new()
-
-                local targetObject = nil
-                local targetFound = false
-                local closestIndex = #routeCFrames
-
-                task.spawn(function()
-                    while not targetFound and routeRunning and hum.Health > 0 do
-                        targetObject = Workspace:FindFirstChild(selectedRealName, true)
-                        if targetObject and (targetObject:IsA("BasePart") or (targetObject:IsA("Model") and targetObject.PrimaryPart)) then
-                            targetFound = true
-                            local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                            local shortestDist = math.huge
-                            for idx, cf in ipairs(routeCFrames) do
-                                local dist = (cf.Position - objPos).Magnitude
-                                if dist < shortestDist then
-                                    shortestDist = dist
-                                    closestIndex = idx
-                                end
-                            end
-                            break
-                        end
-                        task.wait(1)
-                    end
-                end)
-
-                local lifeMonitor = task.spawn(function()
-                    while routeRunning and hum.Health > 0 do
-                        task.wait(2)
-                        if autoSpecialKeysActive then
-                            for _, obj in pairs(Workspace:GetDescendants()) do
-                                if obj.Name:find("SpecialKey") then
-                                    if obj:IsA("BasePart") or (obj:IsA("Model") and obj.PrimaryPart) then
-                                        local already = false
-                                        for _, q in ipairs(specialKeysQueue) do
-                                            if q == obj then already = true break end
-                                        end
-                                        if not already then table.insert(specialKeysQueue, obj) end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end)
-
-                local currentIndex = 2
-                local step = routeStep()
-                while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
-                    if currentIndex > closestIndex then break end
-                    local targetPos = routeCFrames[currentIndex].Position
-                    local reach = 1
-                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
-                        local dist = (hrp.Position - targetPos).Magnitude
-                        local nextCf = routeCFrames[currentIndex + step]
-                        local spd = approachSpeed(dist, nextCf and (nextCf.Position - targetPos).Magnitude)
-                        if dist > 0.05 then
-                            bv.Velocity = (targetPos - hrp.Position).Unit * spd
-                        else
-                            bv.Velocity = Vector3.new()
-                        end
-                        RunService.Stepped:Wait()
-                    end
-                    if hrp and routeRunning then
-                        bv.Velocity = Vector3.new()
-                        hrp.CFrame = routeCFrames[currentIndex]
-                        hrp.AssemblyLinearVelocity = Vector3.new()
-                    end
-                    currentIndex = currentIndex + step
-                end
-
-                while not targetObject and routeRunning and hum.Health > 0 do
-                    targetObject = Workspace:FindFirstChild(selectedRealName, true)
-                    task.wait(0.5)
-                end
-
-                if targetObject and routeRunning and hum.Health > 0 then
-                    local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                    while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
-                        objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                        bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
-                        RunService.Stepped:Wait()
-                    end
-                    bv.Velocity = Vector3.new()
-                end
-
-                if bv then bv:Destroy() end
-                pcall(function() task.cancel(lifeMonitor) end)
-
-                if routeRunning and hum.Health > 0 then
-                    task.wait(0.67)
-                    addRouteWins()
-                    hrp.CFrame = routeCFrames[1]
-                    local holdTime = 1 + delayTime
-                    local holdElapsed = 0
-                    while routeRunning and hum.Health > 0 and holdElapsed < holdTime do
-                        hrp.CFrame = routeCFrames[1]
-                        task.wait(0.1)
-                        holdElapsed = holdElapsed + 0.1
-                    end
-                end
-            else
-                if routeRunning then
-                    PromptContainer.Visible = true
-                    resetWinStreak()
-                    local choice = nil
-                    local connYes, connNo
-                    connYes = YesBtn.MouseButton1Click:Connect(function()
-                        choice = true
-                        connYes:Disconnect()
-                        connNo:Disconnect()
-                    end)
-                    connNo = NoBtn.MouseButton1Click:Connect(function()
-                        choice = false
-                        connYes:Disconnect()
-                        connNo:Disconnect()
-                    end)
-                    while choice == nil and routeRunning do task.wait(0.2) end
-                    PromptContainer.Visible = false
-                    if choice == true then
-                        local c = player.Character or player.CharacterAdded:Wait()
-                        task.wait(0.4)
-                        local hrpNow = c and c:FindFirstChild("HumanoidRootPart")
-                        if hrpNow and routeCFrames[1] then
-                            hrpNow.CFrame = routeCFrames[1]
-                            hrpNow.AssemblyLinearVelocity = Vector3.new()
-                        end
-                    else
-                        stopRecorridoGeneral()
-                        break
-                    end
-                end
-            end
-
-            local goalStillGoing = goalEnabled and not infiniteRouteActive and goalProgress < goalAmount
-            if finishAfterClaim or (not infiniteRouteActive and not goalStillGoing) then
-                while #specialKeysQueue > 0 do
-                    local keyObj = table.remove(specialKeysQueue, 1)
-                    if keyObj and keyObj.Parent then
-                        local h = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                        processSpecialKey(keyObj, h)
-                    end
-                end
-                stopRecorridoGeneral()
-                break
-            end
-            while #specialKeysQueue > 0 and routeRunning do
-                local keyObj = table.remove(specialKeysQueue, 1)
-                local h = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if keyObj and keyObj.Parent and h then processSpecialKey(keyObj, h) end
-            end
-        end
-    end)
-end)
-
--- SpecialKeys sin recorrido
-task.spawn(function()
-    while true do
-        task.wait(2)
-        if autoSpecialKeysActive and not routeRunning then
-            local char = player.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj.Name:find("SpecialKey") then
-                        if obj:IsA("BasePart") or (obj:IsA("Model") and obj.PrimaryPart) then
-                            processSpecialKey(obj, hrp)
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ==========================================
--- EVENTS básicos (Chocolate / Coin / XP / Candy)
--- ==========================================
-local eventChocolate, eventCandy, eventCoin, eventXp = false, false, false, false
-
-local function eventToggle(parent, text, order, getter, setter)
-    local b = Instance.new("TextButton")
-    b.Parent = parent
-    b.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-    b.Size = UDim2.new(1, -10, 0, 32)
-    b.Font = Enum.Font.GothamBold
-    b.Text = text .. ": OFF"
-    b.TextColor3 = Color3.fromRGB(255, 100, 100)
-    b.TextSize = 12
-    b.LayoutOrder = order
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(function()
-        local on = not getter()
-        setter(on)
-        b.Text = text .. (on and ": ON" or ": OFF")
-        b.TextColor3 = on and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-        b.BackgroundColor3 = on and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
-    end)
-end
-
-eventToggle(EventsPage, "Auto Chocolate", 1, function() return eventChocolate end, function(v) eventChocolate = v end)
-eventToggle(EventsPage, "Auto Candy Corn", 2, function() return eventCandy end, function(v) eventCandy = v end)
-eventToggle(EventsPage, "Auto BattleCoin", 3, function() return eventCoin end, function(v) eventCoin = v end)
-eventToggle(EventsPage, "Auto XP Key", 4, function() return eventXp end, function(v) eventXp = v end)
-
-local skToggle = Instance.new("TextButton")
-skToggle.Parent = EventsPage
-skToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-skToggle.Size = UDim2.new(1, -10, 0, 32)
-skToggle.Font = Enum.Font.GothamBold
-skToggle.Text = "Auto SpecialKeys: OFF"
-skToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-skToggle.TextSize = 12
-skToggle.LayoutOrder = 5
-Instance.new("UICorner", skToggle).CornerRadius = UDim.new(0, 6)
-skToggle.MouseButton1Click:Connect(function()
-    autoSpecialKeysActive = not autoSpecialKeysActive
-    skToggle.Text = autoSpecialKeysActive and "Auto SpecialKeys: ON" or "Auto SpecialKeys: OFF"
-    skToggle.TextColor3 = autoSpecialKeysActive and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-    skToggle.BackgroundColor3 = autoSpecialKeysActive and Color3.fromRGB(35, 60, 35) or Color3.fromRGB(26, 26, 34)
-end)
-
-task.spawn(function()
-    while true do
-        task.wait(1)
-        if not (eventChocolate or eventCandy or eventCoin or eventXp) then continue end
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp or routeRunning then continue end
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            local n = string.lower(obj.Name)
-            local hit = false
-            if eventChocolate and n:find("chocolatehunt") then hit = true end
-            if eventCoin and n:find("coinbattlecoin") then hit = true end
-            if eventXp and n:find("electrifiedkeycap") then hit = true end
-            if eventCandy and (n == "eventcoin" or n:find("eventcoin")) then
-                if obj.Parent and obj.Parent.Name == "EventCoinsLocal" then hit = true end
-            end
-            if hit and (obj:IsA("BasePart") or (obj:IsA("Model") and obj.PrimaryPart)) then
-                processSpecialKey(obj, hrp)
-                break
-            end
-        end
-    end
-end)
-
--- ==========================================
--- NAVEGACIÓN + STEPPED
--- ==========================================
-local function setHubOpen(open)
-    MainFrame.Visible = open
-    FloatingLogo.Visible = not open
-    if Sidebar then Sidebar.Visible = open end
-end
-MinimizeBtn.MouseButton1Click:Connect(function() setHubOpen(false) end)
-FloatingLogo.MouseButton1Click:Connect(function() setHubOpen(true) end)
-
-local function showPage(page, title)
-    PlayerPage.Visible = false
-    GamePage.Visible = false
-    ExtrasPage.Visible = false
-    EventsPage.Visible = false
-    page.Visible = true
-    SectionTitle.Text = title
-end
-TabPlayerBtn.MouseButton1Click:Connect(function() showPage(PlayerPage, "Player") end)
-TabGameBtn.MouseButton1Click:Connect(function() showPage(GamePage, "Farm") end)
-TabExtrasBtn.MouseButton1Click:Connect(function() showPage(ExtrasPage, "Extras") end)
-TabEventsBtn.MouseButton1Click:Connect(function() showPage(EventsPage, "Events") end)
-
-RunService.Stepped:Connect(function()
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then
-        if speedEnabled then hum.WalkSpeed = customSpeed end
-        if jumpEnabled then hum.UseJumpPower = true; hum.JumpPower = customJump end
-    end
-    if noClipEnabled then
-        for _, p in pairs(char:GetDescendants()) do
-            if p:IsA("BasePart") then p.CanCollide = false end
-        end
-    end
-end)
-
--- Cierre carga
-task.spawn(function()
-    task.wait(0.5)
-    if LoadingText then LoadingText.Text = "Parte 7/7  Listo" end
-    task.wait(0.4)
-    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
-    if boot then boot:Destroy() end
-    print("Hallowen world listo")
-end)
