@@ -31,12 +31,14 @@ end
 
 local config = loadConfig()
 
-local ID_TECLADO = 9584852943
 local ID_MONO = 10144280947
 local GALAXIA_2_PLACE_ID = 75012837977315
+local MUNDO_3_PLACE_ID = 93411036959889
+local HALLOWEN_PLACE_ID = 128614435234859
 
 local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Mundo%203%20KeyBoard.lua"
 local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/galaxia%202%20Keyboard.lua"
+local URL_HALLOWEN = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Hallowen%20keyboard.lua"
 local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Escape%20del%20mono.lua"
 local URL_WINS = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/800BWins"
 
@@ -93,24 +95,25 @@ end
 
 local function keyboardUrl()
     local placeId = game.PlaceId
-    local currentId = game.GameId
     if placeId == GALAXIA_2_PLACE_ID then
         return URL_GALAXIA2
-    end
-    if currentId == ID_TECLADO or placeId == ID_TECLADO or placeId ~= ID_MONO then
+    elseif placeId == MUNDO_3_PLACE_ID then
         return URL_MUNDO3
+    elseif placeId == HALLOWEN_PLACE_ID then
+        return URL_HALLOWEN
     end
-    return URL_MUNDO3
+    return nil
 end
 
 local function autoUrl()
     local placeId = game.PlaceId
-    local currentId = game.GameId
     if placeId == GALAXIA_2_PLACE_ID then
         return URL_GALAXIA2
-    elseif currentId == ID_TECLADO or placeId == ID_TECLADO then
+    elseif placeId == MUNDO_3_PLACE_ID then
         return URL_MUNDO3
-    elseif currentId == ID_MONO or placeId == ID_MONO then
+    elseif placeId == HALLOWEN_PLACE_ID then
+        return URL_HALLOWEN
+    elseif placeId == ID_MONO then
         return URL_MONO
     end
     return nil
@@ -242,6 +245,18 @@ end
 
 local showWins = false
 
+local function openUnsupported()
+    clearBody()
+    makeList()
+    Title.Text = "Mundo no soportado"
+    MainFrame.Size = UDim2.new(0, 310, 0, 200)
+    makeLabel("No hay script de Delta Hub para este mundo / PlaceId.\nPlaceId: " .. tostring(game.PlaceId), 1, 70)
+    local ok = makeButton("Entendido", 2, Color3.fromRGB(55, 55, 65))
+    ok.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end
+
 local function openSelector()
     clearBody()
     makeList()
@@ -250,9 +265,13 @@ local function openSelector()
 
     local teclado = makeButton("Teclado", 1)
     teclado.MouseButton1Click:Connect(function()
+        local url = keyboardUrl()
+        if not url then
+            openUnsupported()
+            return
+        end
         teclado.Text = "Cargando..."
         task.wait(0.3)
-        local url = keyboardUrl()
         ScreenGui:Destroy()
         loadRemote(url)
     end)
@@ -349,6 +368,12 @@ elseif config.autoExecute then
         ScreenGui:Destroy()
         if url then
             loadRemote(url)
+        else
+            -- reabrir loader con aviso
+            local okFetch = pcall(function()
+                -- nothing
+            end)
+            warn("Delta Hub: no hay script para este PlaceId " .. tostring(game.PlaceId))
         end
     end)
 else
