@@ -60,10 +60,9 @@ end
 -- ==========================================
 -- 0. LIMPIEZA INICIAL DE OBJETOS Y LAVA (DE FÃBRICA)
 -- ==========================================
+-- Solo lo pedido para Hallowen: Pair*, TarantulaS13, WindZonesS14, Lava_Stage15 completo
 local targetNamesToDestroy = {
-    "ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1",
-    "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone",
-    "TarantulaS13", "WindZonesS14"
+    "TarantulaS13", "WindZonesS14", "Lava_Stage15"
 }
 for _, obj in pairs(Workspace:GetDescendants()) do
     local name = obj.Name
@@ -75,31 +74,6 @@ for _, obj in pairs(Workspace:GetDescendants()) do
     -- cualquier cosa que empiece por "Pair"
     if string.sub(name, 1, 4) == "Pair" then
         pcall(function() obj:Destroy() end)
-    end
-end
-
-pcall(function()
-    local lavaStage = Workspace:FindFirstChild("Lava_Stage15", true)
-    if lavaStage then
-        local lc = lavaStage:FindFirstChild("LavaCollide", true)
-        if lc then lc:Destroy() end
-    end
-end)
-
--- Borrar TouchInterests y desactivar CanTouch en objetos Lava / lava
-for _, obj in pairs(Workspace:GetDescendants()) do
-    local lowerName = string.lower(obj.Name)
-    if lowerName == "lava" then
-        pcall(function()
-            for _, child in pairs(obj:GetChildren()) do
-                if child.ClassName == "TouchInterest" then
-                    child:Destroy()
-                end
-            end
-            if obj:IsA("BasePart") then
-                obj.CanTouch = false
-            end
-        end)
     end
 end
 
@@ -1572,7 +1546,7 @@ task.spawn(function()
     end
     local hrp = waitAliveHrp(routeCFrames[1])
     if LoadingText then LoadingText.Text = "Parte 2/7  Limpieza" end
-    local startupDelete = {"ReversePad", "MeteorArea", "EyesLaser", "JumpWall", "Tsunami", "Tsunami1", "LavaTower", "Hitbox", "NPC20", "Laser", "NPC20_AttackZone", "TarantulaS13", "WindZonesS14"}
+    local startupDelete = {"TarantulaS13", "WindZonesS14", "Lava_Stage15"}
     for _, obj in pairs(Workspace:GetDescendants()) do
         for _, name in ipairs(startupDelete) do
             if obj.Name == name then pcall(function() obj:Destroy() end) end
@@ -1581,13 +1555,6 @@ task.spawn(function()
             pcall(function() obj:Destroy() end)
         end
     end
-    pcall(function()
-        local lavaStage = Workspace:FindFirstChild("Lava_Stage15", true)
-        if lavaStage then
-            local lc = lavaStage:FindFirstChild("LavaCollide", true)
-            if lc then lc:Destroy() end
-        end
-    end)
     if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
     if hrp and #routeCFrames > 0 then
         local i = 1
