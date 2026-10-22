@@ -1990,7 +1990,7 @@ local function eventKind(name)
     if eventChocolate and (string.find(n, "chocolatehuntcollectible", 1, true) or (string.find(n, "chocolate", 1, true) and string.find(n, "collect", 1, true))) then
         return "chocolate"
     end
-    -- Candy Corn: el contenedor se llama EventCoin (se resuelve en rememberEvent buscando Plaine adentro)
+    -- Candy Corn: el contenedor se llama EventCoin (se resuelve en rememberEvent buscando Plane adentro)
     if eventCandy and string.find(n, "eventcoin", 1, true) then
         return "candy"
     end
@@ -2003,13 +2003,13 @@ local function eventKind(name)
     return nil
 end
 
--- Auto Candy Corn: EventCoin -> dentro busca "Plaine" y usa su CFrame/posicion
-local function findCandyPlaine(eventCoinObj)
+-- Auto Candy Corn: EventCoin -> dentro busca "Plane" y usa su CFrame/posicion
+local function findCandyPlane(eventCoinObj)
     if not eventCoinObj then return nil end
-    local plaine = eventCoinObj:FindFirstChild("Plaine", true)
+    local plaine = eventCoinObj:FindFirstChild("Plane", true)
     if not plaine then
         for _, d in ipairs(eventCoinObj:GetDescendants()) do
-            if string.lower(d.Name) == "plaine" then
+            if string.lower(d.Name) == "plane" then
                 plaine = d
                 break
             end
@@ -2027,14 +2027,14 @@ local function rememberEvent(obj)
     local pos = nil
 
     if kind == "candy" then
-        local plaine = findCandyPlaine(obj)
+        local plaine = findCandyPlane(obj)
         if not plaine then
-            return nil -- EventCoin sin Plaine todavÃ­a
+            return nil -- EventCoin sin Plane todavÃ­a
         end
         targetObj = plaine
         pos = objectPosition(plaine)
         if not pos then return nil end
-        -- marcar vistos el EventCoin y el Plaine para no repetir
+        -- marcar vistos el EventCoin y el Plane para no repetir
         eventSeen[obj] = true
         eventSeen[plaine] = true
     else
@@ -2118,7 +2118,7 @@ task.spawn(function()
                             hrp.CFrame = CFrame.new(dest)
                             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         else
-                            -- Tween con BodyVelocity hacia Plaine / objetivo
+                            -- Tween con BodyVelocity hacia Plane / objetivo
                             local bv = Instance.new("BodyVelocity")
                             bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                             bv.Parent = hrp
