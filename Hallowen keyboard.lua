@@ -2023,6 +2023,7 @@ local function eventKind(name)
     if eventChocolate and (string.find(n, "chocolatehuntcollectible", 1, true) or (string.find(n, "chocolate", 1, true) and string.find(n, "collect", 1, true))) then
         return "chocolate"
     end
+    -- Candy Corn: el contenedor se llama EventCoin (se resuelve en rememberEvent buscando Plaine adentro)
     if eventCandy and string.find(n, "eventcoin", 1, true) then
         return "candy"
     end
@@ -2035,15 +2036,48 @@ local function eventKind(name)
     return nil
 end
 
+-- Auto Candy Corn: EventCoin -> dentro busca "Plaine" y usa su CFrame/posicion
+local function findCandyPlaine(eventCoinObj)
+    if not eventCoinObj then return nil end
+    local plaine = eventCoinObj:FindFirstChild("Plaine", true)
+    if not plaine then
+        for _, d in ipairs(eventCoinObj:GetDescendants()) do
+            if string.lower(d.Name) == "plaine" then
+                plaine = d
+                break
+            end
+        end
+    end
+    return plaine
+end
+
 local function rememberEvent(obj)
     if not obj or eventSeen[obj] then return nil end
     local kind = eventKind(obj.Name)
     if not kind then return nil end
-    local pos = objectPosition(obj)
-    if not pos then return nil end
-    eventSeen[obj] = true
+
+    local targetObj = obj
+    local pos = nil
+
+    if kind == "candy" then
+        local plaine = findCandyPlaine(obj)
+        if not plaine then
+            return nil -- EventCoin sin Plaine todavÃ­a
+        end
+        targetObj = plaine
+        pos = objectPosition(plaine)
+        if not pos then return nil end
+        -- marcar vistos el EventCoin y el Plaine para no repetir
+        eventSeen[obj] = true
+        eventSeen[plaine] = true
+    else
+        pos = objectPosition(obj)
+        if not pos then return nil end
+        eventSeen[obj] = true
+    end
+
     if kind == "xp" then restoreKeycap(obj) end
-    table.insert(eventQueue, {obj = obj, pos = pos, kind = kind})
+    table.insert(eventQueue, {obj = targetObj, pos = pos, kind = kind})
     return pos
 end
 
@@ -2112,12 +2146,30 @@ task.spawn(function()
                     end
                     if #eventQueue > 0 then
                         local first = table.remove(eventQueue, 1)
+                        local dest = first.pos + Vector3.new(0, 3, 0)
                         if eventCollectMode == "Tp" then
-                            hrp.CFrame = CFrame.new(first.pos + Vector3.new(0, 3, 0))
+                            hrp.CFrame = CFrame.new(dest)
                             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         else
-                            hrp.CFrame = CFrame.new(first.pos + Vector3.new(0, 3, 0))
-                            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            -- Tween con BodyVelocity hacia Plaine / objetivo
+                            local bv = Instance.new("BodyVelocity")
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bv.Parent = hrp
+                            local t0 = tick()
+                            while hrp and hrp.Parent and (hrp.Position - dest).Magnitude > 3 and tick() - t0 < 8 do
+                                local d = (dest - hrp.Position)
+                                if d.Magnitude > 0.05 then
+                                    bv.Velocity = d.Unit * math.clamp(d.Magnitude * 8, 40, 250)
+                                else
+                                    bv.Velocity = Vector3.new()
+                                end
+                                RunService.Stepped:Wait()
+                            end
+                            if bv then bv:Destroy() end
+                            if hrp then
+                                hrp.CFrame = CFrame.new(dest)
+                                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                            end
                         end
                         anchored = true
                     end
