@@ -58,29 +58,30 @@ local function waitAliveHrp(returnCf)
 end
 
 -- ==========================================
--- 0. LIMPIEZA INICIAL DE OBJETOS Y LAVA (DE FÃBRICA)
+-- 0. DATOS DE LIMPIEZA (se ejecuta en fase 3 de carga)
 -- ==========================================
--- Solo lo pedido para Hallowen: Pair*, TarantulaS13, WindZonesS14, Lava_Stage15 completo
 local targetNamesToDestroy = {
-    "TarantulaS13", "WindZonesS14", "Lava_Stage15"
+    "TarantulaS13", "WindZonesS14", "Lava_Stage15",
+    "MovingWallsS6", "EyeLaserStage10", "Zone", "TwompsS7"
 }
-for _, obj in pairs(Workspace:GetDescendants()) do
-    local name = obj.Name
-    for _, n in ipairs(targetNamesToDestroy) do
-        if name == n then
-            pcall(function() obj:Destroy() end)
+
+local function runExactCleanup()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        local name = obj.Name
+        for _, n in ipairs(targetNamesToDestroy) do
+            if name == n then
+                pcall(function() obj:Destroy() end)
+            end
         end
-    end
-    -- cualquier cosa que empiece por "Pair"
-    if string.sub(name, 1, 4) == "Pair" then
-        pcall(function() obj:Destroy() end)
     end
 end
 
 
+
 -- ==========================================
--- PANTALLA NEGRA DE CARGA QUE ABARCA TODA LA PANTALLA
+-- PANTALLA DE CARGA 0-100% (bloquea UI hasta el final)
 -- ==========================================
+local scriptReady = false
 local LoadingScreen = Instance.new("Frame")
 LoadingScreen.Name = "LoadingScreen"
 LoadingScreen.Parent = ScreenGui
@@ -88,16 +89,120 @@ LoadingScreen.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 LoadingScreen.Position = UDim2.new(0, 0, 0, 0)
 LoadingScreen.Size = UDim2.new(1, 0, 1, 0)
 LoadingScreen.ZIndex = 10000
+LoadingScreen.Active = true -- bloquea clicks debajo
 
 local LoadingText = Instance.new("TextLabel")
 LoadingText.Parent = LoadingScreen
 LoadingText.BackgroundTransparency = 1
-LoadingText.Size = UDim2.new(1, 0, 1, 0)
+LoadingText.Position = UDim2.new(0.1, 0, 0.38, 0)
+LoadingText.Size = UDim2.new(0.8, 0, 0, 28)
 LoadingText.Font = Enum.Font.GothamBold
-LoadingText.Text = "Parte 1/7  Pantalla"
+LoadingText.Text = "Hallowen world cargando..."
 LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-LoadingText.TextSize = 24
-LoadingText.ZIndex = 10000
+LoadingText.TextSize = 20
+LoadingText.ZIndex = 10001
+
+local LoadingSub = Instance.new("TextLabel")
+LoadingSub.Parent = LoadingScreen
+LoadingSub.BackgroundTransparency = 1
+LoadingSub.Position = UDim2.new(0.1, 0, 0.44, 0)
+LoadingSub.Size = UDim2.new(0.8, 0, 0, 22)
+LoadingSub.Font = Enum.Font.Gotham
+LoadingSub.Text = "Fase 1/3"
+LoadingSub.TextColor3 = Color3.fromRGB(180, 180, 190)
+LoadingSub.TextSize = 14
+LoadingSub.ZIndex = 10001
+
+local BarBg = Instance.new("Frame")
+BarBg.Parent = LoadingScreen
+BarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+BarBg.Position = UDim2.new(0.15, 0, 0.52, 0)
+BarBg.Size = UDim2.new(0.7, 0, 0, 18)
+BarBg.ZIndex = 10001
+Instance.new("UICorner", BarBg).CornerRadius = UDim.new(0, 8)
+
+local BarFill = Instance.new("Frame")
+BarFill.Parent = BarBg
+BarFill.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.ZIndex = 10002
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 8)
+
+local PctLabel = Instance.new("TextLabel")
+PctLabel.Parent = LoadingScreen
+PctLabel.BackgroundTransparency = 1
+PctLabel.Position = UDim2.new(0.15, 0, 0.56, 0)
+PctLabel.Size = UDim2.new(0.7, 0, 0, 20)
+PctLabel.Font = Enum.Font.GothamBold
+PctLabel.Text = "0%"
+PctLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+PctLabel.TextSize = 14
+PctLabel.ZIndex = 10001
+
+local CleanChoiceFrame = Instance.new("Frame")
+CleanChoiceFrame.Parent = LoadingScreen
+CleanChoiceFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+CleanChoiceFrame.Position = UDim2.new(0.15, 0, 0.62, 0)
+CleanChoiceFrame.Size = UDim2.new(0.7, 0, 0, 120)
+CleanChoiceFrame.Visible = false
+CleanChoiceFrame.ZIndex = 10001
+Instance.new("UICorner", CleanChoiceFrame).CornerRadius = UDim.new(0, 10)
+
+local CleanTitle = Instance.new("TextLabel")
+CleanTitle.Parent = CleanChoiceFrame
+CleanTitle.BackgroundTransparency = 1
+CleanTitle.Size = UDim2.new(1, 0, 0, 28)
+CleanTitle.Font = Enum.Font.GothamBold
+CleanTitle.Text = "Tipo de limpieza inicial"
+CleanTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+CleanTitle.TextSize = 14
+CleanTitle.ZIndex = 10002
+
+local function makeCleanBtn(text, order, color)
+    local b = Instance.new("TextButton")
+    b.Parent = CleanChoiceFrame
+    b.BackgroundColor3 = color
+    b.Position = UDim2.new(0.05, 0, 0, 28 + (order - 1) * 30)
+    b.Size = UDim2.new(0.9, 0, 0, 26)
+    b.Font = Enum.Font.GothamBold
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.TextSize = 12
+    b.ZIndex = 10002
+    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
+    return b
+end
+local btnCleanNormal = makeCleanBtn("Limpieza Normal (ruta Normal)", 1, Color3.fromRGB(40, 100, 55))
+local btnCleanFast = makeCleanBtn("Limpieza Rapida (ruta Fast)", 2, Color3.fromRGB(40, 80, 140))
+local btnCleanSuper = makeCleanBtn("Limpieza Super rapida (ruta Super)", 3, Color3.fromRGB(120, 60, 140))
+
+local loadProgress = 0
+local function setProgress(p, title, sub)
+    loadProgress = math.clamp(p, 0, 100)
+    BarFill.Size = UDim2.new(loadProgress / 100, 0, 1, 0)
+    PctLabel.Text = string.format("%d%%", math.floor(loadProgress + 0.5))
+    if title then LoadingText.Text = title end
+    if sub then LoadingSub.Text = sub end
+end
+
+local function fadeAndDestroyLoading()
+    setProgress(100, "Listo", "Iniciando...")
+    local t0 = tick()
+    while tick() - t0 < 1 do
+        local a = (tick() - t0) / 1
+        LoadingScreen.BackgroundTransparency = a
+        LoadingText.TextTransparency = a
+        LoadingSub.TextTransparency = a
+        PctLabel.TextTransparency = a
+        BarBg.BackgroundTransparency = a
+        BarFill.BackgroundTransparency = a
+        task.wait()
+    end
+    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
+    scriptReady = true
+end
+
+
 
 -- ==========================================
 -- SISTEMA DE NOTIFICACIONES INTERNAS
@@ -552,53 +657,318 @@ end)
 -- PÃGINA "GAME" (RECORRIDOS Y WINBLOCKS)
 -- ==========================================
 local routeCFrames = {
-	CFrame.new(1.623040, 10.398061, -13.920989, -0.934023, -0.000000, -0.357212, -0.000000, 1.000000, -0.000000, 0.357212, -0.000000, -0.934023),
-	CFrame.new(1.328639, 8.788770, 416.416351, 0.999983, 0.000000, 0.005818, 0.000000, 1.000000, 0.000000, -0.005818, 0.000000, 0.999983),
-	CFrame.new(1.334663, 34.045326, 416.418365, 0.999391, -0.000000, 0.034901, 0.000000, 1.000000, -0.000000, -0.034901, 0.000000, 0.999391),
-	CFrame.new(4.921404, 42.603218, 445.724701, 0.046265, -0.000000, -0.998929, -0.000000, 1.000000, -0.000000, 0.998929, 0.000000, 0.046265),
-	CFrame.new(1.518666, 61.743050, 543.303711, -0.968935, -0.000000, -0.247317, -0.000000, 1.000000, 0.000000, 0.247317, 0.000000, -0.968935),
-	CFrame.new(0.508362, 41.586567, 650.449402, -0.999735, 0.000565, -0.023007, 0.000000, 0.999698, 0.024563, 0.023014, 0.024556, -0.999434),
-	CFrame.new(3.190791, 8.788770, 667.263855, -0.998473, -0.000000, -0.055242, -0.000000, 1.000000, 0.000000, 0.055242, 0.000000, -0.998473),
-	CFrame.new(3.251352, 8.788770, 1014.258606, -0.355652, -0.000000, 0.934618, 0.000000, 1.000000, 0.000000, -0.934618, 0.000000, -0.355652),
-	CFrame.new(3.183271, 8.788770, 1030.791382, -0.999894, -0.000000, 0.014541, 0.000000, 1.000000, 0.000000, -0.014541, 0.000000, -0.999894),
-	CFrame.new(7.991629, 71.522957, 1033.016113, 0.020386, -0.000000, -0.999792, -0.000000, 1.000000, -0.000000, 0.999792, 0.000000, 0.020386),
-	CFrame.new(18.879166, 76.514763, 1085.120117, 0.026123, -0.000000, -0.999659, -0.000000, 1.000000, -0.000000, 0.999659, 0.000000, 0.026123),
-	CFrame.new(-454.361847, 60.137856, 1079.599487, -0.999793, -0.000000, -0.020356, -0.000000, 1.000000, -0.000000, 0.020356, -0.000000, -0.999793),
-	CFrame.new(-468.674164, 8.788770, 1084.140503, -0.008667, -0.000000, 0.999962, -0.000000, 1.000000, 0.000000, -0.999962, -0.000000, -0.008667),
-	CFrame.new(-815.567200, 8.788770, 1083.154663, -0.008667, -0.000000, 0.999962, -0.000000, 1.000000, 0.000000, -0.999962, -0.000000, -0.008667),
-	CFrame.new(-1056.829712, 8.788770, 1084.603394, -0.037721, -0.000000, 0.999288, -0.000000, 1.000000, 0.000000, -0.999288, -0.000000, -0.037721),
-	CFrame.new(-1402.226929, 8.788770, 1084.065796, -0.037721, -0.000000, 0.999288, -0.000000, 1.000000, 0.000000, -0.999288, -0.000000, -0.037721),
-	CFrame.new(-2161.080322, 8.788774, 733.081970, 0.188105, -0.000000, -0.982149, 0.000000, 1.000000, -0.000000, 0.982149, -0.000000, 0.188105),
-	CFrame.new(-2156.534180, -68.211243, 721.625671, 0.999961, -0.000000, 0.008789, 0.000000, 1.000000, 0.000000, -0.008789, -0.000000, 0.999961),
-	CFrame.new(-2156.600098, -58.543758, 633.953918, 0.997350, -0.000000, 0.072752, 0.000000, 1.000000, 0.000000, -0.072752, -0.000000, 0.997350),
-	CFrame.new(-2156.865479, -68.327751, 70.296646, 0.999311, -0.000000, 0.037110, 0.000000, 1.000000, 0.000000, -0.037110, -0.000000, 0.999311),
-	CFrame.new(-2156.095459, -68.327744, -391.930389, 0.999968, -0.000000, 0.008057, 0.000000, 1.000000, 0.000000, -0.008057, -0.000000, 0.999968),
-	CFrame.new(-2156.441650, -68.327744, -1504.536987, 0.999012, -0.000000, 0.044433, 0.000000, 1.000000, 0.000000, -0.044433, -0.000000, 0.999012),
-	CFrame.new(-2156.089844, -68.327744, -3074.508789, 1.000000, -0.000000, 0.000244, 0.000000, 1.000000, 0.000000, -0.000244, -0.000000, 1.000000),
-	CFrame.new(-2156.245117, -68.177750, -3093.002441, 0.998935, 0.000000, -0.046138, -0.000000, 1.000000, 0.000000, 0.046138, -0.000000, 0.998935),
-	CFrame.new(-2155.937012, -109.038826, -3208.316406, 0.998608, 0.000000, 0.052738, -0.000000, 1.000000, 0.000000, -0.052738, -0.000000, 0.998608),
-	CFrame.new(-2156.312744, -109.036713, -4646.407715, 1.000000, 0.000000, 0.000488, -0.000000, 1.000000, 0.000000, -0.000488, -0.000000, 1.000000),
-	CFrame.new(-2155.341064, -109.036713, -5836.088379, 0.999828, 0.000000, 0.018551, -0.000000, 1.000000, 0.000000, -0.018551, -0.000000, 0.999828),
-	CFrame.new(-2157.275635, 154.302475, -6171.383301, 0.999619, 0.000000, 0.027591, -0.000000, 1.000000, 0.000000, -0.027591, -0.000000, 0.999619)
+	CFrame.new(1.723794, 10.398061, -14.657170, -0.981345, 0.000000, -0.192254, 0.000000, 1.000000, 0.000000, 0.192254, 0.000000, -0.981345), -- CFrame 1 modes:NFS
+	CFrame.new(2.498288, 8.788522, 155.956909, 0.841975, 0.000000, -0.539517, 0.000000, 1.000000, 0.000000, 0.539517, -0.000000, 0.841975), -- CFrame 2 modes:N
+	CFrame.new(2.472235, 8.788770, 414.924713, -0.993998, -0.000000, -0.109399, -0.000000, 1.000000, 0.000000, 0.109399, 0.000000, -0.993998), -- CFrame 3 modes:NFS
+	CFrame.new(2.472236, 48.788769, 414.924713, -0.993998, 0.000000, -0.109399, 0.000000, 1.000000, -0.000000, 0.109399, -0.000000, -0.993998), -- CFrame 4 modes:N
+	CFrame.new(2.210491, 48.788769, 459.923950, -0.999983, -0.000000, 0.005817, -0.000000, 1.000000, 0.000000, -0.005817, 0.000000, -0.999983), -- CFrame 5 modes:NF
+	CFrame.new(2.065077, 48.788765, 484.923523, -0.999983, -0.000000, 0.005817, -0.000000, 1.000000, 0.000000, -0.005817, 0.000000, -0.999983), -- CFrame 6 modes:NFS
+	CFrame.new(1.979693, 48.788769, 666.727295, -0.987106, 0.000000, -0.160066, -0.000000, 1.000000, 0.000000, 0.160066, 0.000000, -0.987106), -- CFrame 7 modes:NFS
+	CFrame.new(1.979693, 8.788770, 666.727295, -0.987106, -0.000000, -0.160066, 0.000000, 1.000000, -0.000000, 0.160066, -0.000000, -0.987106), -- CFrame 8 modes:NFS
+	CFrame.new(2.401369, 8.788770, 1015.547424, -0.998025, -0.000000, -0.062823, -0.000000, 1.000000, 0.000000, 0.062823, 0.000000, -0.998025), -- CFrame 9 modes:NFS
+	CFrame.new(2.401369, 48.788769, 1015.547424, -0.998025, -0.000000, -0.062823, -0.000000, 1.000000, 0.000000, 0.062823, 0.000000, -0.998025), -- CFrame 10 modes:S
+	CFrame.new(1.888022, 8.788770, 1029.942749, -0.999990, -0.000000, -0.004500, -0.000000, 1.000000, -0.000000, 0.004500, -0.000000, -0.999990), -- CFrame 11 modes:N
+	CFrame.new(1.888025, 48.788769, 1029.942749, -0.999990, 0.000000, -0.004500, 0.000000, 1.000000, 0.000000, 0.004500, 0.000000, -0.999990), -- CFrame 12 modes:NF
+	CFrame.new(4.778526, 78.788330, 1084.120239, -0.999998, -0.000000, 0.001943, -0.000000, 1.000000, -0.000000, -0.001943, -0.000000, -0.999998), -- CFrame 13 modes:NFS
+	CFrame.new(-469.233154, 78.788773, 1084.786377, 0.287080, 0.000000, 0.957907, 0.000000, 1.000000, -0.000000, -0.957907, 0.000000, 0.287080), -- CFrame 14 modes:NFS
+	CFrame.new(-469.233154, 8.788770, 1084.786377, 0.287080, -0.000000, 0.957907, -0.000000, 1.000000, 0.000000, -0.957907, -0.000000, 0.287080), -- CFrame 15 modes:NFS
+	CFrame.new(-815.334290, 8.788770, 1085.548462, -0.021215, 0.000000, 0.999775, -0.000000, 1.000000, -0.000000, -0.999775, -0.000000, -0.021215), -- CFrame 16 modes:NFS
+	CFrame.new(-1055.344360, 8.788770, 1084.210571, -0.353525, -0.000000, 0.935425, 0.000000, 1.000000, 0.000000, -0.935425, 0.000000, -0.353525), -- CFrame 17 modes:NFS
+	CFrame.new(-1404.096191, 8.788770, 1085.305298, -0.204193, 0.000000, 0.978931, -0.000000, 1.000000, -0.000000, -0.978931, -0.000000, -0.204193), -- CFrame 18 modes:NFS
+	CFrame.new(-1560.739136, 8.788774, 1089.958130, 0.595433, -0.000000, 0.803405, 0.000000, 1.000000, 0.000000, -0.803405, 0.000000, 0.595433), -- CFrame 19 modes:N
+	CFrame.new(-1530.167114, 8.788774, 1127.149658, -0.769944, 0.000000, -0.638111, 0.000000, 1.000000, -0.000000, 0.638111, -0.000000, -0.769944), -- CFrame 20 modes:F
+	CFrame.new(-1559.823120, 8.788774, 1307.095825, -0.986730, -0.000000, 0.162370, -0.000000, 1.000000, 0.000000, -0.162370, 0.000000, -0.986730), -- CFrame 21 modes:N
+	CFrame.new(-1515.464722, 8.788774, 1322.853882, -0.225007, 0.000000, -0.974357, -0.000000, 1.000000, 0.000000, 0.974357, 0.000000, -0.225007), -- CFrame 22 modes:F
+	CFrame.new(-1478.150757, 8.788774, 1314.697632, 0.920410, -0.000000, -0.390954, 0.000000, 1.000000, -0.000000, 0.390954, 0.000000, 0.920410), -- CFrame 23 modes:N
+	CFrame.new(-1482.656128, 8.788774, 1407.314697, -0.994967, -0.000000, 0.100207, -0.000000, 1.000000, 0.000000, -0.100207, 0.000000, -0.994967), -- CFrame 24 modes:N
+	CFrame.new(-1542.863525, 8.788774, 1412.845825, -0.072391, -0.000000, 0.997376, 0.000000, 1.000000, 0.000000, -0.997376, 0.000000, -0.072391), -- CFrame 25 modes:F
+	CFrame.new(-1673.566528, 8.788774, 1414.027222, 0.066663, 0.000000, -0.997776, 0.000000, 1.000000, 0.000000, 0.997776, -0.000000, 0.066663), -- CFrame 26 modes:N
+	CFrame.new(-1867.711548, 8.788774, 1409.603027, -0.044628, 0.000000, 0.999004, -0.000000, 1.000000, -0.000000, -0.999004, -0.000000, -0.044628), -- CFrame 27 modes:N
+	CFrame.new(-1817.476562, 8.788771, 1359.951660, 0.832316, -0.000000, -0.554302, -0.000000, 1.000000, -0.000000, 0.554302, 0.000000, 0.832316), -- CFrame 28 modes:F
+	CFrame.new(-2004.102295, 8.788774, 1157.550293, 0.998348, -0.000000, 0.057460, 0.000000, 1.000000, 0.000000, -0.057460, -0.000000, 0.998348), -- CFrame 29 modes:F
+	CFrame.new(-1865.652588, 8.788774, 1214.202271, -0.933495, 0.000000, 0.358591, 0.000000, 1.000000, -0.000000, -0.358591, -0.000000, -0.933495), -- CFrame 30 modes:N
+	CFrame.new(-2067.085693, 8.788774, 1214.307495, -0.032194, 0.000000, 0.999482, 0.000000, 1.000000, -0.000000, -0.999482, -0.000000, -0.032194), -- CFrame 31 modes:N
+	CFrame.new(-2067.824951, 8.788650, 987.487427, -0.892555, 0.000000, -0.450938, 0.000000, 1.000000, 0.000000, 0.450938, 0.000000, -0.892555), -- CFrame 32 modes:N
+	CFrame.new(-2150.184814, 8.788774, 979.491028, 0.119159, -0.000000, 0.992875, 0.000000, 1.000000, 0.000000, -0.992875, 0.000000, 0.119159), -- CFrame 33 modes:N
+	CFrame.new(-2122.424805, 8.788774, 890.425781, 0.683254, 0.000000, -0.730180, -0.000000, 1.000000, 0.000000, 0.730180, 0.000000, 0.683254), -- CFrame 34 modes:F
+	CFrame.new(-2158.113037, 7.570764, 731.783325, -0.287473, 0.000000, -0.957789, 0.000000, 1.000000, 0.000000, 0.957789, -0.000000, -0.287473), -- CFrame 35 modes:NFS
+	CFrame.new(-2158.113037, -68.211243, 731.783325, -0.287473, 0.000000, -0.957789, 0.000000, 1.000000, 0.000000, 0.957789, -0.000000, -0.287473), -- CFrame 36 modes:N
+	CFrame.new(-2158.284424, -68.211243, 720.066956, -0.790156, 0.000000, -0.612906, 0.000000, 1.000000, 0.000000, 0.612906, -0.000000, -0.790156), -- CFrame 37 modes:FS
+	CFrame.new(-2158.700439, -67.264351, 666.636414, 0.993354, -0.000000, -0.115099, 0.000000, 1.000000, -0.000000, 0.115099, 0.000000, 0.993354), -- CFrame 38 modes:N
+	CFrame.new(-2158.542236, -58.538563, 633.734497, 0.999120, -0.000000, -0.041954, -0.000000, 1.000000, -0.000000, 0.041954, 0.000000, 0.999120), -- CFrame 39 modes:NF
+	CFrame.new(-2176.256104, -68.337509, 537.865112, 0.993793, -0.000000, 0.111241, 0.000000, 1.000000, -0.000000, -0.111241, 0.000000, 0.993793), -- CFrame 40 modes:N
+	CFrame.new(-2177.282715, -68.305290, 508.678406, -0.976854, -0.000000, -0.213906, -0.000000, 1.000000, -0.000000, 0.213906, -0.000000, -0.976854), -- CFrame 41 modes:N
+	CFrame.new(-2177.771973, -58.615578, 472.419128, 0.564029, 0.000000, -0.825755, -0.000000, 1.000000, 0.000000, 0.825755, 0.000000, 0.564029), -- CFrame 42 modes:NF
+	CFrame.new(-2158.132812, -58.837502, 412.536774, 0.986553, -0.000000, 0.163440, 0.000000, 1.000000, 0.000000, -0.163440, -0.000000, 0.986553), -- CFrame 43 modes:NF
+	CFrame.new(-2156.780029, -58.837502, 350.491425, 0.999445, -0.000000, 0.033318, 0.000000, 1.000000, -0.000000, -0.033318, 0.000000, 0.999445), -- CFrame 44 modes:N
+	CFrame.new(-2156.677734, -58.837502, 280.591919, -0.527067, -0.000000, -0.849824, -0.000000, 1.000000, 0.000000, 0.849824, 0.000000, -0.527067), -- CFrame 45 modes:N
+	CFrame.new(-2157.453613, -58.837502, 215.610672, 0.968502, 0.000000, 0.249008, -0.000000, 1.000000, 0.000000, -0.249008, -0.000000, 0.968502), -- CFrame 46 modes:NF
+	CFrame.new(-2178.700195, -68.337509, 154.869110, 0.992454, 0.000000, -0.122616, -0.000000, 1.000000, -0.000000, 0.122616, 0.000000, 0.992454), -- CFrame 47 modes:NF
+	CFrame.new(-2176.458496, -68.337509, 87.430786, 0.999897, -0.000000, 0.014348, 0.000000, 1.000000, -0.000000, -0.014348, 0.000000, 0.999897), -- CFrame 48 modes:N
+	CFrame.new(-2157.995605, -68.327744, 67.934364, -0.759770, 0.000000, 0.650192, 0.000000, 1.000000, -0.000000, -0.650192, -0.000000, -0.759770), -- CFrame 49 modes:NFS
+	CFrame.new(-2153.648926, -68.329048, 5.905844, -0.147685, -0.000000, -0.989034, -0.000000, 1.000000, -0.000000, 0.989034, 0.000000, -0.147685), -- CFrame 50 modes:N
+	CFrame.new(-2177.284912, -68.329048, -36.404144, -0.316363, 0.000000, 0.948638, 0.000000, 1.000000, 0.000000, -0.948638, 0.000000, -0.316363), -- CFrame 51 modes:NF
+	CFrame.new(-2192.481689, -68.329048, -222.030853, 0.298791, 0.000000, 0.954319, -0.000000, 1.000000, -0.000000, -0.954319, -0.000000, 0.298791), -- CFrame 52 modes:NF
+	CFrame.new(-2173.635742, -68.329048, -252.867462, 0.997163, 0.000000, 0.075272, -0.000000, 1.000000, 0.000000, -0.075272, -0.000000, 0.997163), -- CFrame 53 modes:N
+	CFrame.new(-2159.074707, -68.327744, -394.848175, 0.977728, -0.000000, -0.209878, 0.000000, 1.000000, -0.000000, 0.209878, 0.000000, 0.977728), -- CFrame 54 modes:NFS
+	CFrame.new(-2157.513672, -68.299034, -719.824585, 0.265701, -0.000000, -0.964055, -0.000000, 1.000000, -0.000000, 0.964055, 0.000000, 0.265701), -- CFrame 55 modes:N
+	CFrame.new(-2155.650635, -68.327232, -1026.460449, -0.140630, -0.000000, -0.990062, -0.000000, 1.000000, -0.000000, 0.990062, 0.000000, -0.140630), -- CFrame 56 modes:NF
+	CFrame.new(-2154.859375, -68.299034, -1332.979004, 0.999855, -0.000000, -0.017036, 0.000000, 1.000000, -0.000000, 0.017036, 0.000000, 0.999855), -- CFrame 57 modes:N
+	CFrame.new(-2158.319092, -68.327744, -1504.355469, 0.992763, 0.000000, 0.120094, -0.000000, 1.000000, -0.000000, -0.120094, 0.000000, 0.992763), -- CFrame 58 modes:NFS
+	CFrame.new(-2169.666260, -68.332741, -1634.468384, 0.931206, -0.000000, 0.364494, 0.000000, 1.000000, 0.000000, -0.364494, -0.000000, 0.931206), -- CFrame 59 modes:N
+	CFrame.new(-2197.297607, -47.667351, -1700.590454, 0.970139, 0.000000, 0.242551, 0.000000, 1.000000, -0.000000, -0.242551, 0.000000, 0.970139), -- CFrame 60 modes:N
+	CFrame.new(-2197.297607, -47.667351, -1700.590454, 0.970139, 0.000000, 0.242551, -0.000000, 1.000000, -0.000000, -0.242551, 0.000000, 0.970139), -- CFrame 61 modes:NF
+	CFrame.new(-2197.310547, -47.541206, -1763.638916, 0.997211, 0.000000, -0.074632, -0.000000, 1.000000, 0.000000, 0.074632, -0.000000, 0.997211), -- CFrame 62 modes:NF
+	CFrame.new(-2197.867188, -70.453674, -1931.262207, -0.997369, -0.000000, -0.072497, -0.000000, 1.000000, -0.000000, 0.072497, 0.000000, -0.997369), -- CFrame 63 modes:N
+	CFrame.new(-2197.487061, -70.437897, -1993.377930, 0.805633, -0.000000, 0.592414, 0.000000, 1.000000, 0.000000, -0.592414, -0.000000, 0.805633), -- CFrame 64 modes:N
+	CFrame.new(-2197.502441, -58.354435, -2030.619507, 0.996522, 0.000000, 0.083334, -0.000000, 1.000000, -0.000000, -0.083334, 0.000000, 0.996522), -- CFrame 65 modes:NF
+	CFrame.new(-2158.854248, -68.332741, -2199.634521, -0.999959, -0.000000, 0.009075, -0.000000, 1.000000, -0.000000, -0.009075, -0.000000, -0.999959), -- CFrame 66 modes:N
+	CFrame.new(-2157.820312, -68.332741, -2262.027588, 0.738523, 0.000000, 0.674228, 0.000000, 1.000000, -0.000000, -0.674228, 0.000000, 0.738523), -- CFrame 67 modes:N
+	CFrame.new(-2156.573486, -56.146812, -2301.862793, 0.969763, 0.000000, 0.244050, -0.000000, 1.000000, 0.000000, -0.244050, -0.000000, 0.969763), -- CFrame 68 modes:NF
+	CFrame.new(-2157.894531, -68.332817, -2462.182373, -0.998098, -0.000000, -0.061645, -0.000000, 1.000000, -0.000000, 0.061645, -0.000000, -0.998098), -- CFrame 69 modes:N
+	CFrame.new(-2158.653809, -68.332817, -2524.041016, 0.321548, 0.000000, -0.946893, 0.000000, 1.000000, 0.000000, 0.946893, -0.000000, 0.321548), -- CFrame 70 modes:N
+	CFrame.new(-2157.582275, -56.471050, -2562.268555, 0.995030, -0.000000, 0.099577, 0.000000, 1.000000, -0.000000, -0.099577, 0.000000, 0.995030), -- CFrame 71 modes:NF
+	CFrame.new(-2157.990723, -68.332886, -2737.116699, -0.998777, -0.000000, -0.049439, -0.000000, 1.000000, 0.000000, 0.049439, 0.000000, -0.998777), -- CFrame 72 modes:N
+	CFrame.new(-2158.024414, -68.307816, -2801.284424, 0.996086, -0.000000, 0.088387, 0.000000, 1.000000, -0.000000, -0.088387, 0.000000, 0.996086), -- CFrame 73 modes:N
+	CFrame.new(-2158.176758, -56.394001, -2838.208008, 0.984669, -0.000000, 0.174435, -0.000000, 1.000000, 0.000000, -0.174435, -0.000000, 0.984669), -- CFrame 74 modes:NF
+	CFrame.new(-2157.363037, -68.332909, -2956.279053, 0.998846, -0.000000, 0.048024, 0.000000, 1.000000, -0.000000, -0.048024, 0.000000, 0.998846), -- CFrame 75 modes:NF
+	CFrame.new(-2158.196777, -68.330841, -3058.660645, 0.921797, -0.000000, -0.387673, 0.000000, 1.000000, 0.000000, 0.387673, -0.000000, 0.921797), -- CFrame 76 modes:N
+	CFrame.new(-2158.274658, -68.327744, -3077.696289, 0.990696, 0.000000, -0.136094, -0.000000, 1.000000, -0.000000, 0.136094, 0.000000, 0.990696), -- CFrame 77 modes:NFS
+	CFrame.new(-2157.677734, -68.177742, -3093.096436, 0.450028, -0.000000, -0.893014, 0.000000, 1.000000, 0.000000, 0.893014, -0.000000, 0.450028), -- CFrame 78 modes:NFS
+	CFrame.new(-2158.995850, -109.038826, -3165.531250, 0.937907, -0.000000, 0.346886, 0.000000, 1.000000, -0.000000, -0.346886, 0.000000, 0.937907), -- CFrame 79 modes:NFS
+	CFrame.new(-2158.782227, -109.038818, -3340.531250, 0.999999, -0.000000, -0.001221, 0.000000, 1.000000, -0.000000, 0.001221, 0.000000, 0.999999), -- CFrame 80 modes:N
+	CFrame.new(-2158.568604, -109.038857, -3515.531006, 0.999999, 0.000000, -0.001221, -0.000000, 1.000000, 0.000000, 0.001221, -0.000000, 0.999999), -- CFrame 81 modes:NF
+	CFrame.new(-2158.354980, -109.038818, -3690.530762, 0.999999, 0.000000, -0.001221, -0.000000, 1.000000, -0.000000, 0.001221, 0.000000, 0.999999), -- CFrame 82 modes:N
+	CFrame.new(-2158.141357, -109.038826, -3865.530762, 0.999999, -0.000000, -0.001221, 0.000000, 1.000000, 0.000000, 0.001221, -0.000000, 0.999999), -- CFrame 83 modes:NF
+	CFrame.new(-2157.927734, -109.038811, -4040.530762, 0.999999, 0.000000, -0.001221, -0.000000, 1.000000, -0.000000, 0.001221, 0.000000, 0.999999), -- CFrame 84 modes:N
+	CFrame.new(-2157.714111, -109.038834, -4215.530273, 0.999999, -0.000000, -0.001221, 0.000000, 1.000000, 0.000000, 0.001221, -0.000000, 0.999999), -- CFrame 85 modes:NF
+	CFrame.new(-2157.500488, -109.038849, -4390.530273, 0.999999, -0.000000, -0.001221, 0.000000, 1.000000, 0.000000, 0.001221, -0.000000, 0.999999), -- CFrame 86 modes:N
+	CFrame.new(-2157.286865, -109.038834, -4565.530273, 0.999999, -0.000000, -0.001221, 0.000000, 1.000000, 0.000000, 0.001221, -0.000000, 0.999999), -- CFrame 87 modes:NF
+	CFrame.new(-2157.679443, -109.036713, -4647.820801, 0.766852, 0.000000, 0.641824, 0.000000, 1.000000, -0.000000, -0.641824, 0.000000, 0.766852), -- CFrame 88 modes:NFS
+	CFrame.new(-2181.696533, -109.038483, -4802.574707, 0.681549, 0.000000, -0.731772, -0.000000, 1.000000, 0.000000, 0.731772, 0.000000, 0.681549), -- CFrame 89 modes:N
+	CFrame.new(-2133.482666, -109.038483, -4928.677734, 0.249246, -0.000000, 0.968440, 0.000000, 1.000000, 0.000000, -0.968440, -0.000000, 0.249246), -- CFrame 90 modes:N
+	CFrame.new(-2182.430664, -109.038483, -5057.438477, 0.912545, -0.000000, 0.408976, -0.000000, 1.000000, 0.000000, -0.408976, -0.000000, 0.912545), -- CFrame 91 modes:N
+	CFrame.new(-2128.923828, -109.038483, -5187.791016, 0.286787, 0.000000, -0.957994, 0.000000, 1.000000, 0.000000, 0.957994, -0.000000, 0.286787), -- CFrame 92 modes:NF
+	CFrame.new(-2183.152832, -109.038483, -5303.347656, 0.985065, 0.000000, -0.172184, -0.000000, 1.000000, 0.000000, 0.172184, -0.000000, 0.985065), -- CFrame 93 modes:N
+	CFrame.new(-2133.355225, -109.038483, -5425.147949, 0.482307, -0.000000, -0.876002, 0.000000, 1.000000, -0.000000, 0.876002, -0.000000, 0.482307), -- CFrame 94 modes:N
+	CFrame.new(-2182.405762, -109.038483, -5557.606934, 0.240303, 0.000000, -0.970698, 0.000000, 1.000000, 0.000000, 0.970698, -0.000000, 0.240303), -- CFrame 95 modes:N
+	CFrame.new(-2130.674316, -109.038483, -5691.516602, 0.652771, 0.000000, 0.757555, 0.000000, 1.000000, -0.000000, -0.757555, 0.000000, 0.652771), -- CFrame 96 modes:NF
+	CFrame.new(-2158.924805, -109.036713, -5838.735840, 0.999708, -0.000000, 0.024151, 0.000000, 1.000000, -0.000000, -0.024151, 0.000000, 0.999708), -- CFrame 97 modes:NFS
+	CFrame.new(-2157.822754, -109.039032, -5890.735840, 0.537583, -0.000000, 0.843211, 0.000000, 1.000000, 0.000000, -0.843211, 0.000000, 0.537583), -- CFrame 98 modes:NF
+	CFrame.new(-2043.721924, -109.039032, -5899.330078, 0.999073, 0.000000, -0.043046, -0.000000, 1.000000, -0.000000, 0.043046, 0.000000, 0.999073), -- CFrame 99 modes:N
+	CFrame.new(-2046.213379, -108.921761, -5949.420410, -0.794346, -0.000000, -0.607466, -0.000000, 1.000000, -0.000000, 0.607466, -0.000000, -0.794346), -- CFrame 100 modes:N
+	CFrame.new(-2046.191895, -76.067596, -6078.995605, -0.142012, -0.000000, -0.989865, 0.000000, 1.000000, -0.000000, 0.989865, -0.000000, -0.142012), -- CFrame 101 modes:N
+	CFrame.new(-2045.687134, -76.060432, -6114.630371, -0.343429, 0.000000, 0.939179, 0.000000, 1.000000, -0.000000, -0.939179, 0.000000, -0.343429), -- CFrame 102 modes:N
+	CFrame.new(-2171.921875, -55.940319, -6079.653320, -0.999532, -0.000000, -0.030590, -0.000000, 1.000000, 0.000000, 0.030590, 0.000000, -0.999532), -- CFrame 103 modes:F
+	CFrame.new(-2223.168945, -43.089211, -6124.910645, -0.591045, 0.000000, 0.806638, -0.000000, 1.000000, -0.000000, -0.806638, -0.000000, -0.591045), -- CFrame 104 modes:N
+	CFrame.new(-2266.797119, -43.085396, -6123.513672, 0.382354, -0.000000, 0.924016, 0.000000, 1.000000, 0.000000, -0.924016, 0.000000, 0.382354), -- CFrame 105 modes:N
+	CFrame.new(-2266.984619, -43.085396, -6080.699219, 0.548471, -0.000000, 0.836170, -0.000000, 1.000000, 0.000000, -0.836170, -0.000000, 0.548471), -- CFrame 106 modes:N
+	CFrame.new(-2267.391113, -10.287116, -5949.721191, -0.365208, 0.000000, -0.930926, 0.000000, 1.000000, 0.000000, 0.930926, -0.000000, -0.365208), -- CFrame 107 modes:N
+	CFrame.new(-2268.511963, -10.129237, -5911.355469, -0.998559, -0.000000, 0.053661, -0.000000, 1.000000, -0.000000, -0.053661, -0.000000, -0.998559), -- CFrame 108 modes:N
+	CFrame.new(-2223.602783, -10.129237, -5911.150879, -0.172702, -0.000000, -0.984974, 0.000000, 1.000000, -0.000000, 0.984974, -0.000000, -0.172702), -- CFrame 109 modes:N
+	CFrame.new(-2162.547852, 5.101793, -5948.480957, 0.702743, 0.000000, -0.711444, 0.000000, 1.000000, 0.000000, 0.711444, -0.000000, 0.702743), -- CFrame 110 modes:F
+	CFrame.new(-2091.559326, 22.845793, -5907.810547, -0.647408, -0.000000, -0.762143, -0.000000, 1.000000, -0.000000, 0.762143, -0.000000, -0.647408), -- CFrame 111 modes:N
+	CFrame.new(-2049.938965, 22.845793, -5908.574707, -0.075823, -0.000000, -0.997121, -0.000000, 1.000000, -0.000000, 0.997121, 0.000000, -0.075823), -- CFrame 112 modes:N
+	CFrame.new(-2049.121338, 22.845793, -5946.925781, 0.991554, -0.000000, -0.129696, 0.000000, 1.000000, -0.000000, 0.129696, 0.000000, 0.991554), -- CFrame 113 modes:N
+	CFrame.new(-2047.412476, 55.801739, -6079.977051, 0.361305, -0.000000, 0.932448, -0.000000, 1.000000, 0.000000, -0.932448, -0.000000, 0.361305), -- CFrame 114 modes:N
+	CFrame.new(-2047.680298, 55.801739, -6112.555176, 0.979468, -0.000000, 0.201602, 0.000000, 1.000000, 0.000000, -0.201602, -0.000000, 0.979468), -- CFrame 115 modes:N
+	CFrame.new(-2092.197510, 55.818737, -6112.405273, -0.316484, -0.000000, 0.948598, -0.000000, 1.000000, -0.000000, -0.948598, -0.000000, -0.316484), -- CFrame 116 modes:N
+	CFrame.new(-2142.987061, 68.541687, -6079.058594, -0.927693, -0.000000, 0.373343, -0.000000, 1.000000, 0.000000, -0.373343, 0.000000, -0.927693), -- CFrame 117 modes:F
+	CFrame.new(-2222.015381, 88.617874, -6123.796387, -0.071223, -0.000000, 0.997460, -0.000000, 1.000000, 0.000000, -0.997460, -0.000000, -0.071223), -- CFrame 118 modes:N
+	CFrame.new(-2258.933594, 88.776756, -6124.555664, 0.026878, -0.000000, 0.999639, -0.000000, 1.000000, 0.000000, -0.999639, -0.000000, 0.026878), -- CFrame 119 modes:N
+	CFrame.new(-2261.036865, 88.787743, -6079.577637, -0.999042, -0.000000, -0.043771, -0.000000, 1.000000, 0.000000, 0.043771, 0.000000, -0.999042), -- CFrame 120 modes:N
+	CFrame.new(-2260.954834, 121.732918, -5948.331543, -0.864683, -0.000000, 0.502318, -0.000000, 1.000000, -0.000000, -0.502318, -0.000000, -0.864683), -- CFrame 121 modes:N
+	CFrame.new(-2261.293701, 121.732918, -5912.591309, -0.998810, -0.000000, -0.048762, -0.000000, 1.000000, 0.000000, 0.048762, 0.000000, -0.998810), -- CFrame 122 modes:N
+	CFrame.new(-2222.482178, 121.809174, -5911.831543, -0.023209, -0.000000, -0.999731, -0.000000, 1.000000, -0.000000, 0.999731, 0.000000, -0.023209), -- CFrame 123 modes:N
+	CFrame.new(-2150.757080, 139.955276, -5948.726562, 0.410006, 0.000000, -0.912083, -0.000000, 1.000000, 0.000000, 0.912083, -0.000000, 0.410006), -- CFrame 124 modes:F
+	CFrame.new(-2091.486328, 154.707962, -5905.091797, -0.989906, -0.000000, -0.141724, -0.000000, 1.000000, 0.000000, 0.141724, 0.000000, -0.989906), -- CFrame 125 modes:N
+	CFrame.new(-2050.897217, 154.707962, -5905.969727, -0.167784, -0.000000, -0.985824, 0.000000, 1.000000, -0.000000, 0.985824, -0.000000, -0.167784), -- CFrame 126 modes:N
+	CFrame.new(-2051.775391, 154.707962, -6117.379395, 0.999643, -0.000000, -0.026712, 0.000000, 1.000000, 0.000000, 0.026712, -0.000000, 0.999643), -- CFrame 127 modes:N
+	CFrame.new(-2157.757324, 154.705612, -6124.634766, -0.465964, 0.000000, 0.884804, -0.000000, 1.000000, -0.000000, -0.884804, -0.000000, -0.465964), -- CFrame 128 modes:N
+	CFrame.new(-2159.168457, 154.906082, -6079.477051, -0.906686, -0.000000, -0.421806, -0.000000, 1.000000, 0.000000, 0.421806, 0.000000, -0.906686), -- CFrame 129 modes:F
+	CFrame.new(-2157.790527, 154.458725, -6169.575195, 0.999800, 0.000000, -0.019995, -0.000000, 1.000000, 0.000000, 0.019995, -0.000000, 0.999800) -- CFrame 130 modes:NFS
+}
+
+local routeModes = {
+	[1] = { normal = true, fast = true, super = true }, -- CF 1
+	[2] = { normal = true, fast = false, super = false }, -- CF 2
+	[3] = { normal = true, fast = true, super = true }, -- CF 3
+	[4] = { normal = true, fast = false, super = false }, -- CF 4
+	[5] = { normal = true, fast = true, super = false }, -- CF 5
+	[6] = { normal = true, fast = true, super = true }, -- CF 6
+	[7] = { normal = true, fast = true, super = true }, -- CF 7
+	[8] = { normal = true, fast = true, super = true }, -- CF 8
+	[9] = { normal = true, fast = true, super = true }, -- CF 9
+	[10] = { normal = false, fast = false, super = true }, -- CF 10
+	[11] = { normal = true, fast = false, super = false }, -- CF 11
+	[12] = { normal = true, fast = true, super = false }, -- CF 12
+	[13] = { normal = true, fast = true, super = true }, -- CF 13
+	[14] = { normal = true, fast = true, super = true }, -- CF 14
+	[15] = { normal = true, fast = true, super = true }, -- CF 15
+	[16] = { normal = true, fast = true, super = true }, -- CF 16
+	[17] = { normal = true, fast = true, super = true }, -- CF 17
+	[18] = { normal = true, fast = true, super = true }, -- CF 18
+	[19] = { normal = true, fast = false, super = false }, -- CF 19
+	[20] = { normal = false, fast = true, super = false }, -- CF 20
+	[21] = { normal = true, fast = false, super = false }, -- CF 21
+	[22] = { normal = false, fast = true, super = false }, -- CF 22
+	[23] = { normal = true, fast = false, super = false }, -- CF 23
+	[24] = { normal = true, fast = false, super = false }, -- CF 24
+	[25] = { normal = false, fast = true, super = false }, -- CF 25
+	[26] = { normal = true, fast = false, super = false }, -- CF 26
+	[27] = { normal = true, fast = false, super = false }, -- CF 27
+	[28] = { normal = false, fast = true, super = false }, -- CF 28
+	[29] = { normal = false, fast = true, super = false }, -- CF 29
+	[30] = { normal = true, fast = false, super = false }, -- CF 30
+	[31] = { normal = true, fast = false, super = false }, -- CF 31
+	[32] = { normal = true, fast = false, super = false }, -- CF 32
+	[33] = { normal = true, fast = false, super = false }, -- CF 33
+	[34] = { normal = false, fast = true, super = false }, -- CF 34
+	[35] = { normal = true, fast = true, super = true }, -- CF 35
+	[36] = { normal = true, fast = false, super = false }, -- CF 36
+	[37] = { normal = false, fast = true, super = true }, -- CF 37
+	[38] = { normal = true, fast = false, super = false }, -- CF 38
+	[39] = { normal = true, fast = true, super = false }, -- CF 39
+	[40] = { normal = true, fast = false, super = false }, -- CF 40
+	[41] = { normal = true, fast = false, super = false }, -- CF 41
+	[42] = { normal = true, fast = true, super = false }, -- CF 42
+	[43] = { normal = true, fast = true, super = false }, -- CF 43
+	[44] = { normal = true, fast = false, super = false }, -- CF 44
+	[45] = { normal = true, fast = false, super = false }, -- CF 45
+	[46] = { normal = true, fast = true, super = false }, -- CF 46
+	[47] = { normal = true, fast = true, super = false }, -- CF 47
+	[48] = { normal = true, fast = false, super = false }, -- CF 48
+	[49] = { normal = true, fast = true, super = true }, -- CF 49
+	[50] = { normal = true, fast = false, super = false }, -- CF 50
+	[51] = { normal = true, fast = true, super = false }, -- CF 51
+	[52] = { normal = true, fast = true, super = false }, -- CF 52
+	[53] = { normal = true, fast = false, super = false }, -- CF 53
+	[54] = { normal = true, fast = true, super = true }, -- CF 54
+	[55] = { normal = true, fast = false, super = false }, -- CF 55
+	[56] = { normal = true, fast = true, super = false }, -- CF 56
+	[57] = { normal = true, fast = false, super = false }, -- CF 57
+	[58] = { normal = true, fast = true, super = true }, -- CF 58
+	[59] = { normal = true, fast = false, super = false }, -- CF 59
+	[60] = { normal = true, fast = false, super = false }, -- CF 60
+	[61] = { normal = true, fast = true, super = false }, -- CF 61
+	[62] = { normal = true, fast = true, super = false }, -- CF 62
+	[63] = { normal = true, fast = false, super = false }, -- CF 63
+	[64] = { normal = true, fast = false, super = false }, -- CF 64
+	[65] = { normal = true, fast = true, super = false }, -- CF 65
+	[66] = { normal = true, fast = false, super = false }, -- CF 66
+	[67] = { normal = true, fast = false, super = false }, -- CF 67
+	[68] = { normal = true, fast = true, super = false }, -- CF 68
+	[69] = { normal = true, fast = false, super = false }, -- CF 69
+	[70] = { normal = true, fast = false, super = false }, -- CF 70
+	[71] = { normal = true, fast = true, super = false }, -- CF 71
+	[72] = { normal = true, fast = false, super = false }, -- CF 72
+	[73] = { normal = true, fast = false, super = false }, -- CF 73
+	[74] = { normal = true, fast = true, super = false }, -- CF 74
+	[75] = { normal = true, fast = true, super = false }, -- CF 75
+	[76] = { normal = true, fast = false, super = false }, -- CF 76
+	[77] = { normal = true, fast = true, super = true }, -- CF 77
+	[78] = { normal = true, fast = true, super = true }, -- CF 78
+	[79] = { normal = true, fast = true, super = true }, -- CF 79
+	[80] = { normal = true, fast = false, super = false }, -- CF 80
+	[81] = { normal = true, fast = true, super = false }, -- CF 81
+	[82] = { normal = true, fast = false, super = false }, -- CF 82
+	[83] = { normal = true, fast = true, super = false }, -- CF 83
+	[84] = { normal = true, fast = false, super = false }, -- CF 84
+	[85] = { normal = true, fast = true, super = false }, -- CF 85
+	[86] = { normal = true, fast = false, super = false }, -- CF 86
+	[87] = { normal = true, fast = true, super = false }, -- CF 87
+	[88] = { normal = true, fast = true, super = true }, -- CF 88
+	[89] = { normal = true, fast = false, super = false }, -- CF 89
+	[90] = { normal = true, fast = false, super = false }, -- CF 90
+	[91] = { normal = true, fast = false, super = false }, -- CF 91
+	[92] = { normal = true, fast = true, super = false }, -- CF 92
+	[93] = { normal = true, fast = false, super = false }, -- CF 93
+	[94] = { normal = true, fast = false, super = false }, -- CF 94
+	[95] = { normal = true, fast = false, super = false }, -- CF 95
+	[96] = { normal = true, fast = true, super = false }, -- CF 96
+	[97] = { normal = true, fast = true, super = true }, -- CF 97
+	[98] = { normal = true, fast = true, super = false }, -- CF 98
+	[99] = { normal = true, fast = false, super = false }, -- CF 99
+	[100] = { normal = true, fast = false, super = false }, -- CF 100
+	[101] = { normal = true, fast = false, super = false }, -- CF 101
+	[102] = { normal = true, fast = false, super = false }, -- CF 102
+	[103] = { normal = false, fast = true, super = false }, -- CF 103
+	[104] = { normal = true, fast = false, super = false }, -- CF 104
+	[105] = { normal = true, fast = false, super = false }, -- CF 105
+	[106] = { normal = true, fast = false, super = false }, -- CF 106
+	[107] = { normal = true, fast = false, super = false }, -- CF 107
+	[108] = { normal = true, fast = false, super = false }, -- CF 108
+	[109] = { normal = true, fast = false, super = false }, -- CF 109
+	[110] = { normal = false, fast = true, super = false }, -- CF 110
+	[111] = { normal = true, fast = false, super = false }, -- CF 111
+	[112] = { normal = true, fast = false, super = false }, -- CF 112
+	[113] = { normal = true, fast = false, super = false }, -- CF 113
+	[114] = { normal = true, fast = false, super = false }, -- CF 114
+	[115] = { normal = true, fast = false, super = false }, -- CF 115
+	[116] = { normal = true, fast = false, super = false }, -- CF 116
+	[117] = { normal = false, fast = true, super = false }, -- CF 117
+	[118] = { normal = true, fast = false, super = false }, -- CF 118
+	[119] = { normal = true, fast = false, super = false }, -- CF 119
+	[120] = { normal = true, fast = false, super = false }, -- CF 120
+	[121] = { normal = true, fast = false, super = false }, -- CF 121
+	[122] = { normal = true, fast = false, super = false }, -- CF 122
+	[123] = { normal = true, fast = false, super = false }, -- CF 123
+	[124] = { normal = false, fast = true, super = false }, -- CF 124
+	[125] = { normal = true, fast = false, super = false }, -- CF 125
+	[126] = { normal = true, fast = false, super = false }, -- CF 126
+	[127] = { normal = true, fast = false, super = false }, -- CF 127
+	[128] = { normal = true, fast = false, super = false }, -- CF 128
+	[129] = { normal = false, fast = true, super = false }, -- CF 129
+	[130] = { normal = true, fast = true, super = true } -- CF 130
 }
 
 local orderedWinBlocks = {
-    {real = "WinBlock1", display = "+1 Win", order = 1},
-    {real = "WinBlock2", display = "+3 Wins", order = 2},
-    {real = "WinBlock3", display = "+10 Wins", order = 3},
-    {real = "WinBlock4", display = "+20 Wins", order = 4},
-    {real = "WinBlock5", display = "+50 Wins", order = 5},
-    {real = "WinBlock6", display = "+100 Wins", order = 6},
-    {real = "WinBlock7", display = "+150 Wins", order = 7},
-    {real = "WinBlock8", display = "+300 Wins", order = 8},
-    {real = "WinBlock9", display = "+500 Wins", order = 9},
-    {real = "WinBlock10", display = "+1K Wins", order = 10},
-    {real = "WinBlock11", display = "+2.5K Wins", order = 11},
-    {real = "WinBlock12", display = "+10K Wins", order = 12},
-    {real = "WinBlock13", display = "+25K Wins", order = 13},
-    {real = "WinBlock14", display = "+50K Wins", order = 14},
-    {real = "WinBlock15", display = "+150K Wins", order = 15},
+	{real = "WinBlock1", display = "+1 Wins", order = 1},
+	{real = "WinBlock2", display = "+3 Wins", order = 2},
+	{real = "WinBlock3", display = "+10 Wins", order = 3},
+	{real = "WinBlock4", display = "+20 Wins", order = 4},
+	{real = "WinBlock5", display = "+50 Wins", order = 5},
+	{real = "WinBlock6", display = "+100 Wins", order = 6},
+	{real = "WinBlock7", display = "+150 Wins", order = 7},
+	{real = "WinBlock8", display = "+300 Wins", order = 8},
+	{real = "WinBlock9", display = "+500 Wins", order = 9},
+	{real = "WinBlock10", display = "+1K Wins", order = 10},
+	{real = "WinBlock11", display = "+2.5K Wins", order = 11},
+	{real = "WinBlock12", display = "+12K Wins", order = 12},
+	{real = "WinBlock13", display = "+25K Wins", order = 13},
+	{real = "WinBlock14", display = "+50K Wins", order = 14},
+	{real = "WinBlock15", display = "+150K Wins", order = 15}
 }
+
+local function getRouteIndicesForMode(mode)
+    -- mode: "normal" | "fast" | "ultra"/"super"
+    local key = "normal"
+    if mode == "fast" then key = "fast"
+    elseif mode == "ultra" or mode == "super" then key = "super" end
+    local idxs = {}
+    for i = 1, #routeCFrames do
+        local m = routeModes[i]
+        if not m then
+            table.insert(idxs, i)
+        elseif m[key] then
+            table.insert(idxs, i)
+        end
+    end
+    if #idxs == 0 then
+        for i = 1, #routeCFrames do table.insert(idxs, i) end
+    end
+    return idxs
+end
+
+local function getRouteCFramesForMode(mode)
+    local idxs = getRouteIndicesForMode(mode)
+    local list = {}
+    for _, i in ipairs(idxs) do
+        table.insert(list, routeCFrames[i])
+    end
+    return list, idxs
+end
+
 
 local selectedRealName = "WinBlock1"
 local selectedDisplayName = "+1 Win"
@@ -1248,9 +1618,17 @@ if configs[autoConfigName] then applyConfig(configs[autoConfigName]) end
 
 task.spawn(function()
     while true do
-        task.wait(0.5)
-        if antilagActive and hideKeycaps then
-            hideKeycaps()
+        task.wait(0.3)
+        if antilagActive then
+            -- Decorations al activar anti-lag (master)
+            pcall(function()
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj.Name == "Decorations" or obj.Name == "Props" then
+                        obj:Destroy()
+                    end
+                end
+            end)
+            if hideKeycaps then hideKeycaps() end
         end
     end
 end)
@@ -1536,66 +1914,103 @@ local function detectBestTreadmill(hrp)
 end
 
 -- ==========================================
--- RUTINA DE CARGA INICIAL: RECORRIDO DE 5 EN 5 CFRAMES PARA LIMPIAR LAVA
+-- CARGA EN 3 FASES (0-30 / 30-60 / 60-100)
 -- ==========================================
+-- Ocultar UI interactiva hasta scriptReady
+pcall(function()
+    if MainFrame then MainFrame.Visible = false end
+    if FloatingLogo then FloatingLogo.Visible = false end
+    if StopRouteContainer then StopRouteContainer.Visible = false end
+end)
+
 task.spawn(function()
     if getgenv and getgenv().DeltaHubSkipAssets then
         if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
-        if getgenv().DeltaHubAntilagWasOn then antilagActive = true end
+        scriptReady = true
+        if MainFrame then MainFrame.Visible = true end
         return
     end
-    local hrp = waitAliveHrp(routeCFrames[1])
-    if LoadingText then LoadingText.Text = "Parte 2/7  Limpieza" end
-    local startupDelete = {"TarantulaS13", "WindZonesS14", "Lava_Stage15"}
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        for _, name in ipairs(startupDelete) do
-            if obj.Name == name then pcall(function() obj:Destroy() end) end
-        end
-        if string.sub(obj.Name, 1, 4) == "Pair" then
-            pcall(function() obj:Destroy() end)
+
+    -- ===== FASE 1: CFrames + routeModes (0 â 30%), max 10s =====
+    setProgress(0, "Fase 1/3  CFrames", "Cargando ruta y modos...")
+    local t1 = tick()
+    local totalCf = #routeCFrames
+    for i = 1, totalCf do
+        -- "checar" entrada (fuerza parseo / acceso)
+        local _ = routeCFrames[i]
+        local __ = routeModes[i]
+        if i % 8 == 0 then
+            local p = (i / totalCf) * 30
+            setProgress(p, "Fase 1/3  CFrames", string.format("CFrame %d / %d", i, totalCf))
+            task.wait()
         end
     end
-    if LoadingText then LoadingText.Text = "Parte 3/7  CFrames" end
-    if hrp and #routeCFrames > 0 then
-        local i = 1
-        while i <= #routeCFrames do
-            local spot = routeCFrames[i]
-            hrp = waitAliveHrp(spot)
-            if not hrp then break end
-            hrp.CFrame = spot
-            local floatBp = Instance.new("BodyPosition")
-            floatBp.MaxForce = Vector3.new(400000, 400000, 400000)
-            floatBp.Position = hrp.Position
-            floatBp.Parent = hrp
-            task.wait(0.15)
-            if not hrp.Parent or not player.Character or player.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
-                if floatBp then floatBp:Destroy() end
-                hrp = waitAliveHrp(spot)
-            else
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    local lowerName = string.lower(obj.Name)
-                    if lowerName == "lava" then
-                        pcall(function()
-                            for _, child in pairs(obj:GetChildren()) do
-                                if child.ClassName == "TouchInterest" then child:Destroy() end
-                            end
-                            if obj:IsA("BasePart") then obj.CanTouch = false end
-                        end)
-                    end
-                    for _, name in ipairs(targetNamesToDestroy) do
-                        if obj.Name == name then pcall(function() obj:Destroy() end) end
-                    end
-                end
-                if floatBp then floatBp:Destroy() end
-                i = i + 5
-            end
-        end
-        hrp = waitAliveHrp(routeCFrames[1])
-        if hrp then hrp.CFrame = routeCFrames[1] end
+    -- si termina antes de 10s, salta a 30%
+    setProgress(30, "Fase 1/3  Lista", "Ruta lista")
+    local left1 = 10 - (tick() - t1)
+    if left1 > 0.05 then
+        -- no forzar espera completa: el usuario pidiÃ³ saltar si se completa antes
     end
-    if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
-    showNotification("Â¡Activos cargados correctamente!")
+    task.wait(0.15)
+
+    -- ===== FASE 2: UI pestaÃ±as / apartados (30 â 60%), max 10s =====
+    setProgress(30, "Fase 2/3  Interfaz", "Preparando pestaÃ±as...")
+    local t2 = tick()
+    -- asegurar pÃ¡ginas creadas (ya existen; solo "calentar" referencias)
+    local pagesWarm = { GamePage, PlayerPage, EventsPage, ExtrasPage, MainFrame, Sidebar, ContentArea }
+    for i, obj in ipairs(pagesWarm) do
+        if obj then
+            local _ = obj.Name
+        end
+        setProgress(30 + (i / #pagesWarm) * 30, "Fase 2/3  Interfaz", "UI " .. tostring(i) .. "/" .. tostring(#pagesWarm))
+        task.wait(0.05)
+    end
+    setProgress(60, "Fase 2/3  Lista", "Interfaz lista")
+    task.wait(0.15)
+
+    -- ===== FASE 3: Limpieza con elecciÃ³n de ruta (60 â 100%), max 30s =====
+    setProgress(60, "Fase 3/3  Limpieza", "Elige tipo de limpieza")
+    CleanChoiceFrame.Visible = true
+    local chosenMode = nil -- "normal" | "fast" | "super"
+    local bindN = btnCleanNormal.MouseButton1Click:Connect(function() chosenMode = "normal" end)
+    local bindF = btnCleanFast.MouseButton1Click:Connect(function() chosenMode = "fast" end)
+    local bindS = btnCleanSuper.MouseButton1Click:Connect(function() chosenMode = "super" end)
+    local waitStart = tick()
+    while not chosenMode and tick() - waitStart < 60 do
+        task.wait(0.1)
+    end
+    if not chosenMode then chosenMode = "normal" end
+    pcall(function() bindN:Disconnect() bindF:Disconnect() bindS:Disconnect() end)
+    CleanChoiceFrame.Visible = false
+
+    setProgress(62, "Fase 3/3  Limpieza", "Limpiando (" .. chosenMode .. ")...")
+    local routeList = select(1, getRouteCFramesForMode(chosenMode == "super" and "super" or chosenMode))
+    local t3 = tick()
+    local hrp = waitAliveHrp(routeList[1] or routeCFrames[1])
+    local nRoute = math.max(1, #routeList)
+    for i, spot in ipairs(routeList) do
+        if tick() - t3 > 30 then break end
+        hrp = waitAliveHrp(spot)
+        if not hrp then break end
+        hrp.CFrame = spot
+        hrp.AssemblyLinearVelocity = Vector3.new()
+        runExactCleanup()
+        local p = 60 + (i / nRoute) * 40
+        setProgress(p, "Fase 3/3  Limpieza", string.format("%s  %d/%d", chosenMode, i, nRoute))
+        task.wait(0.08)
+    end
+    -- cleanup final por si quedÃ³ algo
+    runExactCleanup()
+    setProgress(100, "Fase 3/3  Lista", "100%")
+    if hrp and routeCFrames[1] then
+        hrp.CFrame = routeCFrames[1]
+    end
+
+    fadeAndDestroyLoading()
+    if MainFrame then MainFrame.Visible = true end
+    showNotification("Hallowen world listo")
 end)
+
 
 
 -- ==========================================
@@ -1666,6 +2081,10 @@ end
 -- BUCLE PRINCIPAL DE RECORRIDOS Y MONITOREO DE VIDA
 -- ==========================================
 startRouteBtn.MouseButton1Click:Connect(function()
+    if not scriptReady then
+        showNotification("Espera a que termine la carga")
+        return
+    end
     if routeRunning then return end
     local typed = tonumber(speedGameBox.Text)
     gameSpeed = math.clamp(typed or gameSpeed or 250, 1, 500)
@@ -1688,15 +2107,19 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 noclipToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
                 noclipToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
                 
+                -- Ruta filtrada por modo (normal / fast / ultra|super)
+                local activeRoute = select(1, getRouteCFramesForMode(routeMode))
+                if not activeRoute or #activeRoute == 0 then activeRoute = routeCFrames end
+                
                 local bv = Instance.new("BodyVelocity")
                 bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
                 bv.Parent = hrp
                 
-                hrp.CFrame = routeCFrames[1]
+                hrp.CFrame = activeRoute[1]
                 
                 local targetObject = nil
                 local targetFound = false
-                local closestIndex = #routeCFrames
+                local closestIndex = #activeRoute
                 
                 task.spawn(function()
                     while not targetFound and routeRunning and hum.Health > 0 do
@@ -1705,7 +2128,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                             targetFound = true
                             local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
                             local shortestDist = math.huge
-                            for idx, cf in ipairs(routeCFrames) do
+                            for idx, cf in ipairs(activeRoute) do
                                 local dist = (cf.Position - objPos).Magnitude
                                 if dist < shortestDist then shortestDist = dist; closestIndex = idx end
                             end
@@ -1742,14 +2165,14 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 end)
                 
                 local currentIndex = 2
-                while currentIndex <= #routeCFrames and routeRunning and hum.Health > 0 do
+                while currentIndex <= #activeRoute and routeRunning and hum.Health > 0 do
                     if currentIndex > closestIndex then break end
-                    local targetPos = routeCFrames[currentIndex].Position
+                    local targetPos = activeRoute[currentIndex].Position
                     local mustPlant = false
                     local reach = mustPlant and 0.15 or 1
                     while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
                         local dist = (hrp.Position - targetPos).Magnitude
-                        local spd = approachSpeed(dist, routeCFrames[currentIndex + 1] and (routeCFrames[currentIndex + 1].Position - targetPos).Magnitude)
+                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
                         if dist > 0.05 then
                             bv.Velocity = (targetPos - hrp.Position).Unit * spd
                         else
@@ -1939,7 +2362,14 @@ local eventSeen = {}
 
 function hideKeycaps()
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if string.lower(obj.Name) == "keycaps" then
+        local ln = string.lower(obj.Name or "")
+        if ln == "keycaps" or string.find(ln, "keycaps", 1, true) then
+            if obj:IsA("BasePart") then
+                obj.Transparency = 1
+                obj.CanCollide = false
+                obj.CanTouch = false
+                obj.CanQuery = false
+            end
             for _, d in ipairs(obj:GetDescendants()) do
                 if d:IsA("BasePart") then
                     d.Transparency = 1
