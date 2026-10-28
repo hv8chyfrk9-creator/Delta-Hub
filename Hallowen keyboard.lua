@@ -187,7 +187,8 @@ local loadProgress = 0
 local function setProgress(p, title, sub)
     loadProgress = math.clamp(p, 0, 100)
     BarFill.Size = UDim2.new(loadProgress / 100, 0, 1, 0)
-    PctLabel.Text = string.format("%d%%", math.floor(loadProgress + 0.5))
+    -- un solo decimal: 14.6%
+    PctLabel.Text = string.format("%.1f%%", loadProgress)
     if title then LoadingText.Text = title end
     if sub then LoadingSub.Text = sub end
 end
@@ -1325,13 +1326,11 @@ StopNowBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- PÃGINA "EXTRAS" (ANTILAG, AUTO SPECIALKEYS, NPC MODE)
+-- PÃGINA "EXTRAS" (ANTILAG, AUTO SPECIALKEYS)
 -- ==========================================
 local antilagActive = false
 local autoSpecialKeysActive = false
 local eventCollectMode = "Tween"
-local npcModeActive = false
-local originalPosBeforeNpc = nil
 local specialKeysQueue = {}
 
 local antilagToggle = Instance.new("TextButton")
@@ -1714,45 +1713,6 @@ createSKOption("Tween", 1)
 createSKOption("Tp", 2)
 skSelectorBtn.MouseButton1Click:Connect(function() skDropdown.Visible = not skDropdown.Visible end)
 
-local npcToggle = Instance.new("TextButton")
-npcToggle.Parent = ExtrasPage
-npcToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-npcToggle.Size = UDim2.new(1, -10, 0, 32)
-npcToggle.Font = Enum.Font.GothamBold
-npcToggle.Text = "Convertirse en Npc: OFF"
-npcToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-npcToggle.TextSize = 12
-npcToggle.LayoutOrder = 5
-Instance.new("UICorner", npcToggle).CornerRadius = UDim.new(0, 6)
-
-npcToggle.MouseButton1Click:Connect(function()
-    npcModeActive = not npcModeActive
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if npcModeActive then
-        if hrp then
-            originalPosBeforeNpc = hrp.CFrame
-            local npc = Workspace:FindFirstChild("G2W1_NPC1", true)
-            local npcHrp = npc and npc:FindFirstChild("HumanoidRootPart")
-            if npcHrp then hrp.CFrame = npcHrp.CFrame end
-        end
-        npcToggle.Text = "Convertirse en Npc: ON"
-        npcToggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-        npcToggle.BackgroundColor3 = Color3.fromRGB(35, 60, 35)
-        if char then for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") or p:IsA("Decal") then p.Transparency = 1 end end end
-    else
-        npcToggle.Text = "Convertirse en Npc: OFF"
-        npcToggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        npcToggle.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
-        if char then
-            for _, p in pairs(char:GetDescendants()) do
-                if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then p.Transparency = 0
-                elseif p:IsA("Decal") then p.Transparency = 0 end
-            end
-            if hrp and originalPosBeforeNpc then hrp.CFrame = originalPosBeforeNpc end
-        end
-    end
-end)
 
 
 local bestTreadmill = "Normal"
@@ -1921,102 +1881,181 @@ local function detectBestTreadmill(hrp)
 end
 
 -- ==========================================
--- CARGA EN 3 FASES (0-30 / 30-60 / 60-100)
 -- ==========================================
--- Ocultar UI interactiva hasta scriptReady
+-- CARGA EN 14 PARTES (~7.1% c/u) agrupadas en 4 bloques
+-- ==========================================
+-- Bloque 1/4: partes 1-4 | 2/4: 5-8 | 3/4: 9-11 | 4/4: 12-14
 pcall(function()
     if MainFrame then MainFrame.Visible = false end
     if FloatingLogo then FloatingLogo.Visible = false end
     if StopRouteContainer then StopRouteContainer.Visible = false end
 end)
 
+local LOAD_PART_NAMES = {
+    "Boot / PlaceId / PlayerGui",
+    "Limpieza (datos)",
+    "Pantalla de carga",
+    "Notificaciones + chrome UI",
+    "PÃ¡gina Player (base)",
+    "Ruta + WinBlocks + modes",
+    "LÃ³gica de farm",
+    "PÃ¡gina Extras (base)",
+    "Treadmills",
+    "Preparar UI Farm",
+    "Preparar UI Player/Events",
+    "Special Keys / eventos",
+    "Bucle de recorridos (listo)",
+    "UI final (buildHubUi)",
+}
+
+local function partProgress(partIndex)
+    -- partIndex 1..14 â porcentaje. La 14 cierra a 100
+    if partIndex >= 14 then return 100 end
+    return (partIndex / 14) * 100
+end
+
+local function blockLabel(partIndex)
+    if partIndex <= 4 then return "Bloque 1/4"
+    elseif partIndex <= 8 then return "Bloque 2/4"
+    elseif partIndex <= 11 then return "Bloque 3/4"
+    else return "Bloque 4/4" end
+end
+
+local function finishPart(partIndex)
+    local p = partProgress(partIndex)
+    local name = LOAD_PART_NAMES[partIndex] or ("Parte " .. partIndex)
+    setProgress(p, blockLabel(partIndex) .. "  Â·  Parte " .. partIndex .. "/14", name)
+    task.wait()
+end
+
 task.spawn(function()
     if getgenv and getgenv().DeltaHubSkipAssets then
         if LoadingScreen and LoadingScreen.Parent then LoadingScreen:Destroy() end
         scriptReady = true
+        pcall(function() buildHubUi() end)
         if MainFrame then MainFrame.Visible = true end
         return
     end
 
-    -- ===== FASE 1: CFrames + routeModes (0 â 30%), max 10s =====
-    setProgress(0, "Fase 1/3  CFrames", "Cargando ruta y modos...")
-    local t1 = tick()
-    local totalCf = #routeCFrames
-    for i = 1, totalCf do
-        -- "checar" entrada (fuerza parseo / acceso)
-        local _ = routeCFrames[i]
-        local __ = routeModes[i]
-        if i % 8 == 0 then
-            local p = (i / totalCf) * 30
-            setProgress(p, "Fase 1/3  CFrames", string.format("CFrame %d / %d", i, totalCf))
-            task.wait()
-        end
-    end
-    -- si termina antes de 10s, salta a 30%
-    setProgress(30, "Fase 1/3  Lista", "Ruta lista")
-    local left1 = 10 - (tick() - t1)
-    if left1 > 0.05 then
-        -- no forzar espera completa: el usuario pidiÃ³ saltar si se completa antes
-    end
-    task.wait(0.15)
+    setProgress(0, "Bloque 1/4", "Iniciando...")
+    task.wait(0.05)
 
-    -- ===== FASE 2: UI pestaÃ±as / apartados (30 â 60%), max 10s =====
-    setProgress(30, "Fase 2/3  Interfaz", "Preparando pestaÃ±as...")
-    local t2 = tick()
-    -- asegurar pÃ¡ginas creadas (ya existen; solo "calentar" referencias)
-    local pagesWarm = { GamePage, PlayerPage, EventsPage, ExtrasPage, MainFrame, Sidebar, ContentArea }
-    for i, obj in ipairs(pagesWarm) do
-        if obj then
-            local _ = obj.Name
+    -- 1 Boot (ya corriÃ³ al parsear; marcamos)
+    finishPart(1)
+    -- 2 Limpieza datos
+    pcall(function()
+        if targetNamesToDestroy then
+            local _ = #targetNamesToDestroy
         end
-        setProgress(30 + (i / #pagesWarm) * 30, "Fase 2/3  Interfaz", "UI " .. tostring(i) .. "/" .. tostring(#pagesWarm))
-        task.wait(0.05)
-    end
-    setProgress(60, "Fase 2/3  Lista", "Interfaz lista")
-    task.wait(0.15)
+    end)
+    finishPart(2)
+    -- 3 Pantalla carga (ya visible)
+    finishPart(3)
+    -- 4 Notificaciones + chrome
+    pcall(function()
+        if FloatingLogo then local _ = FloatingLogo.Name end
+        if MainFrame then local _ = MainFrame.Name end
+    end)
+    finishPart(4)
 
-    -- ===== FASE 3: Limpieza con elecciÃ³n de ruta (60 â 100%), max 30s =====
-    setProgress(60, "Fase 3/3  Limpieza", "Elige tipo de limpieza")
-    CleanChoiceFrame.Visible = true
-    local chosenMode = nil -- "normal" | "fast" | "super"
-    local bindN = btnCleanNormal.MouseButton1Click:Connect(function() chosenMode = "normal" end)
-    local bindF = btnCleanFast.MouseButton1Click:Connect(function() chosenMode = "fast" end)
-    local bindS = btnCleanSuper.MouseButton1Click:Connect(function() chosenMode = "super" end)
+    -- 5 Player page refs
+    pcall(function()
+        if PlayerPage then local _ = PlayerPage.Name end
+    end)
+    finishPart(5)
+    -- 6 Ruta + modes
+    pcall(function()
+        local n = #routeCFrames
+        for i = 1, n do
+            local _ = routeCFrames[i]
+            local __ = routeModes and routeModes[i]
+            if i % 15 == 0 then task.wait() end
+        end
+    end)
+    finishPart(6)
+    -- 7 Farm logic warm
+    pcall(function()
+        if approachSpeed then local _ = approachSpeed(10, 5) end
+        if orderedWinBlocks then local _ = #orderedWinBlocks end
+    end)
+    finishPart(7)
+    -- 8 Extras base
+    pcall(function()
+        if ExtrasPage then local _ = ExtrasPage.Name end
+    end)
+    finishPart(8)
+
+    -- 9 Treadmills (sin prompts largos si se puede)
+    pcall(function()
+        if typeof(bestTreadmill) == "string" then
+            -- ok
+        end
+    end)
+    finishPart(9)
+    -- 10 UI Farm piece
+    finishPart(10)
+    -- 11 UI Player/Events piece
+    finishPart(11)
+
+    -- 12 Special keys / events systems warm
+    pcall(function()
+        if type(processSpecialKey) == "function" then end
+    end)
+    finishPart(12)
+    -- 13 Route loop ready
+    finishPart(13)
+
+    -- 14 buildHubUi (el pesado, ya partido en 3)
+    -- Antes: elecciÃ³n de limpieza + TP por ruta
+    setProgress(partProgress(13), "Bloque 4/4  Â·  Parte 14/14", "Elige tipo de limpieza")
+    if CleanChoiceFrame then CleanChoiceFrame.Visible = true end
+    local chosenMode = nil
+    local bindN, bindF, bindS
+    if btnCleanNormal then
+        bindN = btnCleanNormal.MouseButton1Click:Connect(function() chosenMode = "normal" end)
+        bindF = btnCleanFast.MouseButton1Click:Connect(function() chosenMode = "fast" end)
+        bindS = btnCleanSuper.MouseButton1Click:Connect(function() chosenMode = "super" end)
+    end
     local waitStart = tick()
-    while not chosenMode and tick() - waitStart < 60 do
+    while not chosenMode and tick() - waitStart < 90 do
         task.wait(0.1)
     end
     if not chosenMode then chosenMode = "normal" end
-    pcall(function() bindN:Disconnect() bindF:Disconnect() bindS:Disconnect() end)
-    CleanChoiceFrame.Visible = false
+    pcall(function()
+        if bindN then bindN:Disconnect() end
+        if bindF then bindF:Disconnect() end
+        if bindS then bindS:Disconnect() end
+    end)
+    if CleanChoiceFrame then CleanChoiceFrame.Visible = false end
 
-    setProgress(62, "Fase 3/3  Limpieza", "Limpiando (" .. chosenMode .. ")...")
+    setProgress(95, "Bloque 4/4  Â·  Limpieza", "Limpiando (" .. chosenMode .. ")...")
     local routeList = select(1, getRouteCFramesForMode(chosenMode == "super" and "super" or chosenMode))
-    local t3 = tick()
-    local hrp = waitAliveHrp(routeList[1] or routeCFrames[1])
-    local nRoute = math.max(1, #routeList)
-    for i, spot in ipairs(routeList) do
-        if tick() - t3 > 30 then break end
+    local hrp = waitAliveHrp((routeList and routeList[1]) or routeCFrames[1])
+    local nRoute = math.max(1, #(routeList or {}))
+    for i, spot in ipairs(routeList or {}) do
         hrp = waitAliveHrp(spot)
         if not hrp then break end
         hrp.CFrame = spot
         hrp.AssemblyLinearVelocity = Vector3.new()
-        runExactCleanup()
-        local p = 60 + (i / nRoute) * 40
-        setProgress(p, "Fase 3/3  Limpieza", string.format("%s  %d/%d", chosenMode, i, nRoute))
-        task.wait(0.08)
+        if runExactCleanup then runExactCleanup() end
+        local p = 95 + (i / nRoute) * 4
+        setProgress(math.min(p, 99.5), "Bloque 4/4  Â·  Limpieza", string.format("%s %d/%d", chosenMode, i, nRoute))
+        task.wait(0.05)
     end
-    -- cleanup final por si quedÃ³ algo
-    runExactCleanup()
-    setProgress(100, "Fase 3/3  Lista", "100%")
+    if runExactCleanup then runExactCleanup() end
+
+    pcall(function()
+        buildHubUi()
+    end)
     if hrp and routeCFrames[1] then
         hrp.CFrame = routeCFrames[1]
     end
-
+    finishPart(14)
     fadeAndDestroyLoading()
     if MainFrame then MainFrame.Visible = true end
     showNotification("Hallowen world listo")
 end)
+
 
 
 
@@ -2333,19 +2372,11 @@ RunService.Stepped:Connect(function()
             if speedEnabled then hum.WalkSpeed = customSpeed end
             if jumpEnabled then hum.UseJumpPower = true; hum.JumpPower = customJump end
         end
-        if noClipEnabled or npcModeActive then
-            for _, p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
-        end
-        if npcModeActive and hrp then
-            pcall(function()
-                local npc = Workspace:FindFirstChild("G2W1_NPC1", true)
-                local npcHrp = npc and npc:FindFirstChild("HumanoidRootPart")
-                if npcHrp then
-                    local cp = hrp.Position
-                    local np = npcHrp.Position
-                    hrp.CFrame = CFrame.new(cp.X, np.Y, cp.Z) * (hrp.CFrame - hrp.Position)
-                end
-            end)
+                if noClipEnabled then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then part.CanCollide = false end
+            end
+        end)
             pcall(function()
                 local cam = Workspace.CurrentCamera
                 if cam then
@@ -2621,16 +2652,7 @@ task.spawn(function()
 end)
 
 
-local function buildHubUi()
-MainFrame.Visible = true
-ScreenGui.Enabled = true
-
-local function treadmillLabel()
-    local best = bestTreadmill or "Normal"
-    local mult = {Admin = "x100", Candy = "x25", Diamond = "x9", Gold = "x3", Normal = "x1"}
-    return "Best treadmill: " .. (mult[best] or "x1") .. " Treadmill"
-end
-
+-- Helpers UI (fuera de buildHubUi para no saturar locals)
 local function makeSwitch(parent, text, order)
     local row = Instance.new("Frame")
     row.Parent = parent
@@ -2709,20 +2731,31 @@ local function section(parent, title, order)
     return body
 end
 
-local farmPage = createScrollingPage(ContentArea)
-local playerNew = createScrollingPage(ContentArea)
-playerNew.Visible = false
-local eventsNew = createScrollingPage(ContentArea)
-eventsNew.Visible = false
+
+local farmPage, playerNew, eventsNew, extrasPage
 
 local function showPage(page, title)
-    farmPage.Visible = false
-    playerNew.Visible = false
-    eventsNew.Visible = false
-    page.Visible = true
-    SectionTitle.Visible = true
-    SectionTitle.Text = title
+    if farmPage then farmPage.Visible = false end
+    if playerNew then playerNew.Visible = false end
+    if eventsNew then eventsNew.Visible = false end
+    if extrasPage then extrasPage.Visible = false end
+    if page then page.Visible = true end
+    if SectionTitle then
+        SectionTitle.Visible = true
+        SectionTitle.Text = title
+    end
 end
+
+local function buildHubUi_Farm()
+    MainFrame.Visible = true
+    ScreenGui.Enabled = true
+    farmPage = createScrollingPage(ContentArea)
+playerNew = createScrollingPage(ContentArea)
+playerNew.Visible = false
+eventsNew = createScrollingPage(ContentArea)
+eventsNew.Visible = false
+
+
 
 TabPlayerBtn.Text = "P"
 TabGameBtn.Text = "F"
@@ -2982,6 +3015,10 @@ millPick.MouseButton1Click:Connect(function()
     millPick.Text = (millList.Visible and "  v  " or "  >  ") .. millPick.Text:gsub("^%s*[v>]%s*", "")
 end)
 
+
+end
+
+local function buildHubUi_PlayerEvents()
 local moveBody = section(playerNew, "Movement", 1)
 local function sliderRow(parent, title, order, minV, maxV, apply)
     local box = Instance.new("TextBox")
@@ -3084,10 +3121,6 @@ infHit.MouseButton1Click:Connect(function()
     infJumpToggle.Text = infiniteJumpEnabled and "Infinitejump: ON" or "Infinitejump: OFF"
 end)
 
-local npcBody = section(playerNew, "NPC", 2)
-npcToggle.Parent = npcBody
-npcToggle.Size = UDim2.new(1, -8, 0, 32)
-npcToggle.LayoutOrder = 1
 
 local abuseBody = section(eventsNew, "Admin abuse", 1)
 btnChocolate.Parent = abuseBody
@@ -3164,7 +3197,11 @@ selectorBtn.MouseButton1Click:Connect(function()
     dropdownList.Visible = not dropdownList.Visible
 end)
 
-local extrasPage = createScrollingPage(ContentArea)
+
+end
+
+local function buildHubUi_Extras()
+extrasPage = createScrollingPage(ContentArea)
 extrasPage.Visible = false
 local configPage = createScrollingPage(ContentArea)
 configPage.Visible = false
@@ -3590,31 +3627,17 @@ local function buildWinSelectorDisabled()
     end)
 end
 
-print("Delta Hub visible en PlayerGui")
+
+    print("Delta Hub visible en PlayerGui")
 end
 
--- buildHubUi se llama al final de la carga 3 fases (scriptReady)
--- No destruir LoadingScreen aqui (conflicto con la carga nueva)
+local function buildHubUi()
+    buildHubUi_Farm()
+    buildHubUi_PlayerEvents()
+    buildHubUi_Extras()
+end
+
 
 task.defer(function()
     if boot then boot:Destroy() end
-end)
-
--- Cuando la carga termine, mostrar UI base
-task.spawn(function()
-    while not scriptReady do
-        task.wait(0.2)
-    end
-    pcall(function()
-        buildHubUi()
-    end)
-    pcall(function()
-        if GamePage then GamePage.Visible = false end
-        if PlayerPage then PlayerPage.Visible = false end
-        if ExtrasPage then ExtrasPage.Visible = false end
-        if EventsPage then EventsPage.Visible = false end
-        if Sidebar then Sidebar.Size = UDim2.new(0, 78, 0, 250) end
-    end)
-    if MainFrame then MainFrame.Visible = true end
-    print("Delta Hub Hallowen UI lista")
 end)
