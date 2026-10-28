@@ -545,6 +545,23 @@ local TabEventsBtn = createLogoTab("TabEventsBtn", "E", 4, false)
 TabPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
 TabPlayerBtn.TextColor3 = Color3.fromRGB(240, 240, 245)
 
+HW.TabPlayerBtn = TabPlayerBtn
+HW.TabGameBtn = TabGameBtn
+HW.TabExtrasBtn = TabExtrasBtn
+HW.TabEventsBtn = TabEventsBtn
+HW.MinimizeBtn = MinimizeBtn
+HW.Sidebar = Sidebar
+HW.UIListSidebar = UIListSidebar
+HW.ContentArea = ContentArea
+HW.SectionTitle = SectionTitle
+HW.FloatingLogo = FloatingLogo
+HW.PlayerPage = PlayerPage
+HW.GamePage = GamePage
+HW.ExtrasPage = ExtrasPage
+HW.EventsPage = EventsPage
+HW.TopBar = TopBar
+HW.Title = Title
+
 local ContentArea = Instance.new("Frame")
 ContentArea.Parent = MainFrame
 ContentArea.BackgroundTransparency = 1
@@ -950,3 +967,15 @@ local routeModes = {
 	[72] = { normal = true, fast = false, super = false }, -- CF 72
 	[73] = { normal = true, fast = false, super = false }, -- CF 73
 	[74] = { normal = true, fast = true, super = false }, -- CF 74
+	[75] = { normal = true, fast = true, super = false }, -- CF 75
+	[76] = { normal = true, fast = false, super = false }, -- CF 76
+	[77] = { normal = true, fast = true, super = true }, -- CF 77
+	[78] = { normal = true, fast = true, super = true }, -- CF 78
+	[79] = { normal = true, fast = true, super = true }, -- CF 79
+	[80] = { normal = true, fast = false, super = false }, -- CF 80
+	[81] = { normal = true, fast = true, super = false }, -- CF 81
+	[82] = { normal = true, fast = false, super = false }, -- CF 82
+	[83] = { normal = true, fast = true, super = false }, -- CF 83
+	[84] = { normal = true, fast = false, super = false }, -- CF 84
+	[85] = { normal = true, fast = true, super = false }, -- CF 85
+	[86] = { normal = true, fast = false, super = false }, -- CF 86
