@@ -1,5 +1,6 @@
--- Delta Hub Hallowen loader (3 partes -> un solo loadstring)
+-- Delta Hub Hallowen loader (7 partes -> un solo loadstring)
 local base = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/"
+local N = 7
 local function get(path)
     local url = base .. path .. "?t=" .. tostring(math.floor(tick()))
     local ok, body = pcall(function()
@@ -9,7 +10,7 @@ local function get(path)
         error("No se pudo bajar " .. tostring(path) .. " (" .. tostring(body) .. ")")
     end
     if body:sub(1, 9) == "<!DOCTYPE" or body:sub(1, 6) == "<html>" then
-        error("GitHub devolvio HTML en " .. path .. " (archivo no subido?)")
+        error("GitHub devolvio HTML en " .. path)
     end
     return body
 end
@@ -31,15 +32,15 @@ lbl.TextColor3 = Color3.fromRGB(120, 255, 140)
 lbl.Font = Enum.Font.GothamBold
 lbl.TextSize = 13
 lbl.TextWrapped = true
-lbl.Text = "Hallowen: bajando parte 1/3..."
+lbl.Text = "Hallowen: bajando 1/" .. N .. "..."
 Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 8)
 
 local ok, err = pcall(function()
     local chunks = {}
-    for i = 1, 3 do
-        lbl.Text = "Hallowen: bajando parte " .. i .. "/3..."
+    for i = 1, N do
+        lbl.Text = "Hallowen: bajando " .. i .. "/" .. N .. "..."
         table.insert(chunks, get("HW_p" .. i .. ".lua"))
-        task.wait(0.05)
+        task.wait(0.03)
     end
     lbl.Text = "Hallowen: uniendo y ejecutando..."
     local src = table.concat(chunks, "\n")
@@ -53,7 +54,7 @@ end)
 if ok then
     lbl.Text = "Hallowen: cargado"
     lbl.TextColor3 = Color3.fromRGB(100, 255, 100)
-    task.delay(2, function()
+    task.delay(2.5, function()
         if sg then sg:Destroy() end
     end)
 else
