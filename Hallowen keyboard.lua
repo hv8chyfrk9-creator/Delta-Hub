@@ -1,6 +1,6 @@
--- Delta Hub Hallowen loader (7 partes -> un solo loadstring)
+-- Delta Hub Hallowen loader (3 partes -> un solo loadstring)
 local base = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/"
-local N = 7
+local N = 3
 local function get(path)
     local url = base .. path .. "?t=" .. tostring(math.floor(tick()))
     local ok, body = pcall(function()
@@ -10,7 +10,7 @@ local function get(path)
         error("No se pudo bajar " .. tostring(path) .. " (" .. tostring(body) .. ")")
     end
     if body:sub(1, 9) == "<!DOCTYPE" or body:sub(1, 6) == "<html>" then
-        error("GitHub devolvio HTML en " .. path)
+        error("GitHub devolvio HTML en " .. path .. " - sube el archivo al repo")
     end
     return body
 end
