@@ -1,5 +1,3 @@
-                        local dist = (hrp.Position - targetPos).Magnitude
-                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
                         if dist > 0.05 then
                             bv.Velocity = (targetPos - hrp.Position).Unit * spd
                         else
@@ -290,6 +288,10 @@ local function rememberEvent(obj)
     return pos
 end
 
+
+end
+
+local function __hw_C()
 local function eventButton(text, order)
     local b = Instance.new("TextButton")
     b.Parent = EventsPage
@@ -1415,3 +1417,15 @@ end
 task.defer(function()
     if boot then boot:Destroy() end
 end)
+
+end
+
+local function __hw_run()
+    local okA, errA = pcall(__hw_A)
+    if not okA then warn("[HW] A: " .. tostring(errA)) error(errA) end
+    local okB, errB = pcall(__hw_B)
+    if not okB then warn("[HW] B: " .. tostring(errB)) error(errB) end
+    local okC, errC = pcall(__hw_C)
+    if not okC then warn("[HW] C: " .. tostring(errC)) error(errC) end
+end
+__hw_run()
