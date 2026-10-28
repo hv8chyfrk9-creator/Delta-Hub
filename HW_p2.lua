@@ -1009,6 +1009,10 @@ end
 
 -- ==========================================
 -- ==========================================
+
+end
+
+local function __hw_B()
 -- CARGA EN 14 PARTES (~7.1% c/u) agrupadas en 4 bloques
 -- ==========================================
 -- Bloque 1/4: partes 1-4 | 2/4: 5-8 | 3/4: 9-11 | 4/4: 12-14
@@ -1355,3 +1359,5 @@ startRouteBtn.MouseButton1Click:Connect(function()
                     local mustPlant = false
                     local reach = mustPlant and 0.15 or 1
                     while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
+                        local dist = (hrp.Position - targetPos).Magnitude
+                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
