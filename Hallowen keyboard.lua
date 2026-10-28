@@ -2365,27 +2365,20 @@ TabEventsBtn.MouseButton1Click:Connect(function() updateTabs(TabEventsBtn, Event
 
 RunService.Stepped:Connect(function()
     local char = player.Character
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hum then
-            if speedEnabled then hum.WalkSpeed = customSpeed end
-            if jumpEnabled then hum.UseJumpPower = true; hum.JumpPower = customJump end
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        if speedEnabled then hum.WalkSpeed = customSpeed end
+        if jumpEnabled then
+            hum.UseJumpPower = true
+            hum.JumpPower = customJump
         end
-                if noClipEnabled then
-            for _, part in pairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
+    end
+    if noClipEnabled then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
-        end)
-            pcall(function()
-                local cam = Workspace.CurrentCamera
-                if cam then
-                    cam.CFrame = CFrame.new(cam.CFrame.Position) * (cam.CFrame - cam.CFrame.Position)
-                    for _, p in pairs(Workspace:GetPartsInPart(cam)) do
-                        if p:IsA("BasePart") and not p.IsDescendantOf(char) then p.CanCollide = false end
-                    end
-                end
-            end)
         end
     end
 end)
