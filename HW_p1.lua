@@ -241,6 +241,20 @@ end
 local btnCleanNormal = makeCleanBtn("Limpieza Normal (ruta Normal)", 1, Color3.fromRGB(40, 100, 55))
 local btnCleanFast = makeCleanBtn("Limpieza Rapida (ruta Fast)", 2, Color3.fromRGB(40, 80, 140))
 local btnCleanSuper = makeCleanBtn("Limpieza Super rapida (ruta Super)", 3, Color3.fromRGB(120, 60, 140))
+HW.btnCleanNormal = btnCleanNormal
+HW.btnCleanFast = btnCleanFast
+HW.btnCleanSuper = btnCleanSuper
+HW.CleanChoiceFrame = CleanChoiceFrame
+HW.LoadingScreen = LoadingScreen
+HW.LoadingGui = LoadingGui
+HW.LoadingText = LoadingText
+HW.LoadingSub = LoadingSub
+HW.PctLabel = PctLabel
+HW.ScreenGui = ScreenGui
+HW.setProgress = setProgress
+HW.fadeAndDestroyLoading = fadeAndDestroyLoading
+HW.runExactCleanup = runExactCleanup
+HW.waitAliveHrp = waitAliveHrp
 
 local loadProgress = 0
 local function setProgress(p, title, sub)
@@ -439,6 +453,7 @@ local MainStroke = Instance.new("UIStroke")
 MainStroke.Color = Color3.fromRGB(35, 35, 48)
 MainStroke.Thickness = 1
 MainStroke.Parent = MainFrame
+HW.MainFrame = MainFrame
 
 -- ==========================================
 -- BARRA SUPERIOR
@@ -934,3 +949,4 @@ local routeModes = {
 	[71] = { normal = true, fast = true, super = false }, -- CF 71
 	[72] = { normal = true, fast = false, super = false }, -- CF 72
 	[73] = { normal = true, fast = false, super = false }, -- CF 73
+	[74] = { normal = true, fast = true, super = false }, -- CF 74
