@@ -91,6 +91,10 @@ task.delay(1.5, function()
     end)
 end)
 
+-- Shared table para no saturar el limite de 200 locals del chunk
+local HW = getgenv().DeltaHubHW or {}
+getgenv().DeltaHubHW = HW
+
 
 local function waitAliveHrp(returnCf)
     local char = player.Character
@@ -268,6 +272,9 @@ end
 
 
 
+
+
+local function __hw_A()
 -- ==========================================
 -- SISTEMA DE NOTIFICACIONES INTERNAS
 -- ==========================================
