@@ -1,20 +1,22 @@
--- Delta Hub Hallowen (multipart bootstrap)
-local base = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/"
-local function get(path)
-    local ok, body = pcall(function() return game:HttpGet(base .. path .. "?t=" .. tostring(tick())) end)
-    if not ok or type(body) ~= "string" or #body < 10 then error("No se pudo bajar " .. tostring(path)) end
-    return body
-end
-local chunks = {}
-table.insert(chunks, get("HW_p1.lua"))
-table.insert(chunks, get("HW_p2.lua"))
-table.insert(chunks, get("HW_p3.lua"))
-table.insert(chunks, get("HW_p4.lua"))
-table.insert(chunks, get("HW_p5.lua"))
-table.insert(chunks, get("HW_p6.lua"))
-table.insert(chunks, get("HW_p7.lua"))
-table.insert(chunks, get("HW_p8.lua"))
-local src = table.concat(chunks, "\n")
-local fn, err = loadstring(src)
-if not fn then error("Hallowen loadstring: " .. tostring(err)) end
-fn()
+-- Delta Hub Hallowen
+-- El archivo completo es muy grande para multipart incompleto.
+-- Ejecuta el script completo LOCAL en Delta (no este bootstrap).
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local pg = player:WaitForChild("PlayerGui")
+local sg = Instance.new("ScreenGui")
+sg.Name = "DeltaHubHallowenMsg"
+sg.ResetOnSpawn = false
+sg.Parent = pg
+local t = Instance.new("TextLabel")
+t.Parent = sg
+t.Size = UDim2.new(0, 340, 0, 90)
+t.Position = UDim2.new(0.5, -170, 0.2, 0)
+t.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+t.TextColor3 = Color3.fromRGB(255, 180, 100)
+t.Font = Enum.Font.GothamBold
+t.TextSize = 13
+t.TextWrapped = true
+t.Text = "Hallowen: el loader aun no tiene el script completo en GitHub.\nEjecuta el archivo completo en Delta (el de ~157KB).\nPlaceId 128614435234859"
+Instance.new("UICorner", t).CornerRadius = UDim.new(0, 8)
+warn("[Delta Hub] Hallowen: ejecuta el script completo local, no el bootstrap de GitHub")
