@@ -1,3 +1,10 @@
+                    if currentIndex > closestIndex then break end
+                    local targetPos = activeRoute[currentIndex].Position
+                    local mustPlant = false
+                    local reach = mustPlant and 0.15 or 1
+                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
+                        local dist = (hrp.Position - targetPos).Magnitude
+                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
                         if dist > 0.05 then
                             bv.Velocity = (targetPos - hrp.Position).Unit * spd
                         else
@@ -1412,6 +1419,7 @@ local function buildHubUi()
     buildHubUi_PlayerEvents()
     buildHubUi_Extras()
 end
+HW.buildHubUi = buildHubUi
 
 
 task.defer(function()
