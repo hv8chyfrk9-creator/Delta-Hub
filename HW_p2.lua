@@ -1,4 +1,3 @@
-	[74] = { normal = true, fast = true, super = false }, -- CF 74
 	[75] = { normal = true, fast = true, super = false }, -- CF 75
 	[76] = { normal = true, fast = false, super = false }, -- CF 76
 	[77] = { normal = true, fast = true, super = true }, -- CF 77
@@ -103,6 +102,9 @@ local function getRouteCFramesForMode(mode)
     end
     return list, idxs
 end
+HW.getRouteCFramesForMode = getRouteCFramesForMode
+HW.routeCFrames = routeCFrames
+HW.getRouteIndicesForMode = getRouteIndicesForMode
 
 
 local selectedRealName = "WinBlock1"
@@ -1058,6 +1060,9 @@ local function finishPart(partIndex)
     setProgress(p, blockLabel(partIndex) .. "  Â·  Parte " .. partIndex .. "/14", name)
     task.wait()
 end
+HW.finishPart = finishPart
+HW.partProgress = partProgress
+HW.blockLabel = blockLabel
 
 task.spawn(function()
     local function loadFail(err)
@@ -1148,6 +1153,20 @@ task.spawn(function()
     -- 14 buildHubUi (el pesado, ya partido en 3)
     -- Antes: elecciÃ³n de limpieza + TP por ruta
     setProgress(partProgress(13), "Bloque 4/4  Â·  Parte 14/14", "Elige tipo de limpieza")
+    local CleanChoiceFrame = HW.CleanChoiceFrame or CleanChoiceFrame
+    local btnCleanNormal = HW.btnCleanNormal or btnCleanNormal
+    local btnCleanFast = HW.btnCleanFast or btnCleanFast
+    local btnCleanSuper = HW.btnCleanSuper or btnCleanSuper
+    local setProgress = HW.setProgress or setProgress
+    local partProgress = HW.partProgress or partProgress
+    local getRouteCFramesForMode = HW.getRouteCFramesForMode or getRouteCFramesForMode
+    local routeCFrames = HW.routeCFrames or routeCFrames
+    local waitAliveHrp = HW.waitAliveHrp or waitAliveHrp
+    local runExactCleanup = HW.runExactCleanup or runExactCleanup
+    local fadeAndDestroyLoading = HW.fadeAndDestroyLoading or fadeAndDestroyLoading
+    local buildHubUi = HW.buildHubUi or buildHubUi
+    local MainFrame = HW.MainFrame or MainFrame
+
     if CleanChoiceFrame then CleanChoiceFrame.Visible = true end
     local chosenMode = nil
     local bindN, bindF, bindS
@@ -1155,6 +1174,9 @@ task.spawn(function()
         bindN = btnCleanNormal.MouseButton1Click:Connect(function() chosenMode = "normal" end)
         bindF = btnCleanFast.MouseButton1Click:Connect(function() chosenMode = "fast" end)
         bindS = btnCleanSuper.MouseButton1Click:Connect(function() chosenMode = "super" end)
+    else
+        warn("[HW] botones de limpieza nil")
+        chosenMode = "normal"
     end
     local waitStart = tick()
     while not chosenMode and tick() - waitStart < 90 do
@@ -1354,10 +1376,3 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 
                 local currentIndex = 2
                 while currentIndex <= #activeRoute and routeRunning and hum.Health > 0 do
-                    if currentIndex > closestIndex then break end
-                    local targetPos = activeRoute[currentIndex].Position
-                    local mustPlant = false
-                    local reach = mustPlant and 0.15 or 1
-                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
-                        local dist = (hrp.Position - targetPos).Magnitude
-                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
