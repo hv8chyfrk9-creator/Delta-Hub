@@ -13,6 +13,13 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 print("Delta Hub Hallowen world empezando")
 
+-- Solo este PlaceId (Hallowen)
+local HALLOWEEN_PLACE_ID = 128614435234859
+if game.PlaceId ~= HALLOWEEN_PLACE_ID then
+    warn("[Delta Hub] Hallowen world: PlaceId incorrecto (" .. tostring(game.PlaceId) .. "). Esperado 128614435234859")
+    return
+end
+
 local oldGui = playerGui:FindFirstChild("DeltaHubMinimal")
 if oldGui then oldGui:Destroy() end
 local ScreenGui = Instance.new("ScreenGui")
@@ -2242,7 +2249,7 @@ startRouteBtn.MouseButton1Click:Connect(function()
                             hrpNow.CFrame = routeCFrames[1]
                             hrpNow.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
                         end
-                        continue
+                        -- reanuda el while routeRunning (sin keyword continue)
                     else
                         stopRecorridoGeneral()
                         break
