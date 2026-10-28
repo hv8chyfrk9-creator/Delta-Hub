@@ -1,35 +1,3 @@
-                    if currentIndex > closestIndex then break end
-                    local targetPos = activeRoute[currentIndex].Position
-                    local mustPlant = false
-                    local reach = mustPlant and 0.15 or 1
-                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
-                        local dist = (hrp.Position - targetPos).Magnitude
-                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
-                        if dist > 0.05 then
-                            bv.Velocity = (targetPos - hrp.Position).Unit * spd
-                        else
-                            bv.Velocity = Vector3.new(0, 0, 0)
-                        end
-                        RunService.Stepped:Wait()
-                    end
-                                        currentIndex = currentIndex + 1
-                end
-                
-                while not targetObject and routeRunning and hum.Health > 0 do
-                    targetObject = Workspace:FindFirstChild(selectedRealName, true)
-                    task.wait(0.5)
-                end
-                
-                if targetObject and routeRunning and hum.Health > 0 then
-                    local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                    if (hrp.Position - objPos).Magnitude > 4 then
-                        while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
-                            objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
-                            bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
-                            RunService.Stepped:Wait()
-                        end
-                    end
-                    if bv then bv.Velocity = Vector3.new(0, 0, 0) end
                 end
                 
                 if bv then bv:Destroy() end
@@ -127,27 +95,55 @@ end)
 -- ==========================================
 -- NAVEGACIÃN Y STEPS GENERALES
 -- ==========================================
+local MainFrame = HW.MainFrame or MainFrame
+local FloatingLogo = HW.FloatingLogo or FloatingLogo
+local Sidebar = HW.Sidebar or Sidebar
+local ScreenGui = HW.ScreenGui or ScreenGui
+local MinimizeBtn = HW.MinimizeBtn or MinimizeBtn
+local TabPlayerBtn = HW.TabPlayerBtn or TabPlayerBtn
+local TabGameBtn = HW.TabGameBtn or TabGameBtn
+local TabExtrasBtn = HW.TabExtrasBtn or TabExtrasBtn
+local TabEventsBtn = HW.TabEventsBtn or TabEventsBtn
+local PlayerPage = HW.PlayerPage or PlayerPage
+local GamePage = HW.GamePage or GamePage
+local ExtrasPage = HW.ExtrasPage or ExtrasPage
+local EventsPage = HW.EventsPage or EventsPage
+local SectionTitle = HW.SectionTitle or SectionTitle
+local ContentArea = HW.ContentArea or ContentArea
+local UIListSidebar = HW.UIListSidebar or UIListSidebar
+
 local function setHubOpen(open)
-    MainFrame.Visible = open
-    FloatingLogo.Visible = not open
+    if MainFrame then MainFrame.Visible = open end
+    if FloatingLogo then FloatingLogo.Visible = not open end
     if Sidebar then Sidebar.Visible = open end
-    local panel = ScreenGui:FindFirstChild("WinPanel")
-    if panel then panel.Visible = false end
+    if ScreenGui then
+        local panel = ScreenGui:FindFirstChild("WinPanel")
+        if panel then panel.Visible = false end
+    end
 end
-MinimizeBtn.MouseButton1Click:Connect(function() setHubOpen(false) end)
-FloatingLogo.MouseButton1Click:Connect(function() setHubOpen(true) end)
+if MinimizeBtn then
+    MinimizeBtn.MouseButton1Click:Connect(function() setHubOpen(false) end)
+end
+if FloatingLogo then
+    FloatingLogo.MouseButton1Click:Connect(function() setHubOpen(true) end)
+end
 
 local function updateTabs(btn, page, title)
-    PlayerPage.Visible = false
-    GamePage.Visible = false
-    ExtrasPage.Visible = false
+    if PlayerPage then PlayerPage.Visible = false end
+    if GamePage then GamePage.Visible = false end
+    if ExtrasPage then ExtrasPage.Visible = false end
     if EventsPage then EventsPage.Visible = false end
+    if page then page.Visible = true end
+    if SectionTitle and title then SectionTitle.Text = title end
+    if btn then
+        -- highlight simple
+    end
 end
 
-TabPlayerBtn.MouseButton1Click:Connect(function() updateTabs(TabPlayerBtn, PlayerPage, "Player") end)
-TabGameBtn.MouseButton1Click:Connect(function() updateTabs(TabGameBtn, GamePage, "Game") end)
-TabExtrasBtn.MouseButton1Click:Connect(function() updateTabs(TabExtrasBtn, ExtrasPage, "Extras") end)
-TabEventsBtn.MouseButton1Click:Connect(function() updateTabs(TabEventsBtn, EventsPage, "Events") end)
+if TabPlayerBtn then TabPlayerBtn.MouseButton1Click:Connect(function() updateTabs(TabPlayerBtn, PlayerPage, "Player") end) end
+if TabGameBtn then TabGameBtn.MouseButton1Click:Connect(function() updateTabs(TabGameBtn, GamePage, "Game") end) end
+if TabExtrasBtn then TabExtrasBtn.MouseButton1Click:Connect(function() updateTabs(TabExtrasBtn, ExtrasPage, "Extras") end) end
+if TabEventsBtn then TabEventsBtn.MouseButton1Click:Connect(function() updateTabs(TabEventsBtn, EventsPage, "Events") end) end
 
 RunService.Stepped:Connect(function()
     local char = player.Character
@@ -518,6 +514,11 @@ end
 local farmPage, playerNew, eventsNew, extrasPage
 
 local function showPage(page, title)
+    local farmPage = HW.farmPage or farmPage
+    local playerNew = HW.playerNew or playerNew
+    local eventsNew = HW.eventsNew or eventsNew
+    local extrasPage = HW.extrasPage or extrasPage
+    local SectionTitle = HW.SectionTitle or SectionTitle
     if farmPage then farmPage.Visible = false end
     if playerNew then playerNew.Visible = false end
     if eventsNew then eventsNew.Visible = false end
@@ -530,13 +531,27 @@ local function showPage(page, title)
 end
 
 local function buildHubUi_Farm()
-    MainFrame.Visible = true
-    ScreenGui.Enabled = true
+    local MainFrame = HW.MainFrame or MainFrame
+    local ScreenGui = HW.ScreenGui or ScreenGui
+    local ContentArea = HW.ContentArea or ContentArea
+    local SectionTitle = HW.SectionTitle or SectionTitle
+    local TabPlayerBtn = HW.TabPlayerBtn or TabPlayerBtn
+    local TabGameBtn = HW.TabGameBtn or TabGameBtn
+    local TabEventsBtn = HW.TabEventsBtn or TabEventsBtn
+    local TabExtrasBtn = HW.TabExtrasBtn or TabExtrasBtn
+    local Sidebar = HW.Sidebar or Sidebar
+    local MinimizeBtn = HW.MinimizeBtn or MinimizeBtn
+    HW._ui = HW._ui or {}
+    if MainFrame then MainFrame.Visible = true end
+    if ScreenGui then ScreenGui.Enabled = true end
     farmPage = createScrollingPage(ContentArea)
+    HW.farmPage = farmPage
 playerNew = createScrollingPage(ContentArea)
 playerNew.Visible = false
 eventsNew = createScrollingPage(ContentArea)
 eventsNew.Visible = false
+HW.playerNew = playerNew
+HW.eventsNew = eventsNew
 
 
 
@@ -548,9 +563,9 @@ TabGameBtn.Visible = true
 TabEventsBtn.Visible = true
 Sidebar.Visible = true
 TabExtrasBtn.Visible = false
-TabGameBtn.MouseButton1Click:Connect(function() showPage(farmPage, "Farm") end)
-TabPlayerBtn.MouseButton1Click:Connect(function() showPage(playerNew, "Player") end)
-TabEventsBtn.MouseButton1Click:Connect(function() showPage(eventsNew, "Events") end)
+if TabGameBtn then TabGameBtn.MouseButton1Click:Connect(function() showPage(farmPage, "Farm") end) end
+if TabPlayerBtn then TabPlayerBtn.MouseButton1Click:Connect(function() showPage(playerNew, "Player") end) end
+if TabEventsBtn then TabEventsBtn.MouseButton1Click:Connect(function() showPage(eventsNew, "Events") end) end
 showPage(farmPage, "Farm")
 
 local winsBody = section(farmPage, "Wins", 1)
@@ -984,8 +999,23 @@ end)
 end
 
 local function buildHubUi_Extras()
+local MainFrame = HW.MainFrame or MainFrame
+local ScreenGui = HW.ScreenGui or ScreenGui
+local ContentArea = HW.ContentArea or ContentArea
+local SectionTitle = HW.SectionTitle or SectionTitle
+local TabPlayerBtn = HW.TabPlayerBtn or TabPlayerBtn
+local TabGameBtn = HW.TabGameBtn or TabGameBtn
+local TabEventsBtn = HW.TabEventsBtn or TabEventsBtn
+local TabExtrasBtn = HW.TabExtrasBtn or TabExtrasBtn
+local Sidebar = HW.Sidebar or Sidebar
+local UIListSidebar = HW.UIListSidebar or UIListSidebar
+local MinimizeBtn = HW.MinimizeBtn or MinimizeBtn
+local farmPage = HW.farmPage or farmPage
+local playerNew = HW.playerNew or playerNew
+local eventsNew = HW.eventsNew or eventsNew
 extrasPage = createScrollingPage(ContentArea)
 extrasPage.Visible = false
+HW.extrasPage = extrasPage
 local configPage = createScrollingPage(ContentArea)
 configPage.Visible = false
 local tabNames = {
@@ -994,7 +1024,7 @@ local tabNames = {
     {btn = TabEventsBtn, name = "Events", page = eventsNew},
     {btn = TabExtrasBtn, name = "Extras", page = extrasPage},
 }
-Sidebar.Parent = ScreenGui
+if Sidebar and ScreenGui then Sidebar.Parent = ScreenGui end
 local tabCount = #tabNames
 local tabW, tabH, gap = 92, 42, 26
 local stack = tabCount * tabH + (tabCount - 1) * gap
@@ -1021,11 +1051,17 @@ for i, info in ipairs(tabNames) do
     end)
 end
 TabExtrasBtn.Visible = true
-MinimizeBtn.MouseButton1Click:Connect(function()
-    Sidebar.Visible = false
-    local panel = ScreenGui:FindFirstChild("WinPanel")
-    if panel then panel.Visible = false end
-end)
+if MinimizeBtn then
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        if MainFrame then MainFrame.Visible = false end
+        if Sidebar then Sidebar.Visible = false end
+        if HW.FloatingLogo then HW.FloatingLogo.Visible = true end
+        if ScreenGui then
+            local panel = ScreenGui:FindFirstChild("WinPanel")
+            if panel then panel.Visible = false end
+        end
+    end)
+end
 
 local antiBody = section(extrasPage, "Antilag", 1)
 antilagToggle.Visible = false
