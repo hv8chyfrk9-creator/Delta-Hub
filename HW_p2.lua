@@ -1,15 +1,3 @@
-	[75] = { normal = true, fast = true, super = false }, -- CF 75
-	[76] = { normal = true, fast = false, super = false }, -- CF 76
-	[77] = { normal = true, fast = true, super = true }, -- CF 77
-	[78] = { normal = true, fast = true, super = true }, -- CF 78
-	[79] = { normal = true, fast = true, super = true }, -- CF 79
-	[80] = { normal = true, fast = false, super = false }, -- CF 80
-	[81] = { normal = true, fast = true, super = false }, -- CF 81
-	[82] = { normal = true, fast = false, super = false }, -- CF 82
-	[83] = { normal = true, fast = true, super = false }, -- CF 83
-	[84] = { normal = true, fast = false, super = false }, -- CF 84
-	[85] = { normal = true, fast = true, super = false }, -- CF 85
-	[86] = { normal = true, fast = false, super = false }, -- CF 86
 	[87] = { normal = true, fast = true, super = false }, -- CF 87
 	[88] = { normal = true, fast = true, super = true }, -- CF 88
 	[89] = { normal = true, fast = false, super = false }, -- CF 89
@@ -1376,3 +1364,35 @@ startRouteBtn.MouseButton1Click:Connect(function()
                 
                 local currentIndex = 2
                 while currentIndex <= #activeRoute and routeRunning and hum.Health > 0 do
+                    if currentIndex > closestIndex then break end
+                    local targetPos = activeRoute[currentIndex].Position
+                    local mustPlant = false
+                    local reach = mustPlant and 0.15 or 1
+                    while hrp and (hrp.Position - targetPos).Magnitude > reach and routeRunning and hum.Health > 0 do
+                        local dist = (hrp.Position - targetPos).Magnitude
+                        local spd = approachSpeed(dist, activeRoute[currentIndex + 1] and (activeRoute[currentIndex + 1].Position - targetPos).Magnitude)
+                        if dist > 0.05 then
+                            bv.Velocity = (targetPos - hrp.Position).Unit * spd
+                        else
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                        end
+                        RunService.Stepped:Wait()
+                    end
+                                        currentIndex = currentIndex + 1
+                end
+                
+                while not targetObject and routeRunning and hum.Health > 0 do
+                    targetObject = Workspace:FindFirstChild(selectedRealName, true)
+                    task.wait(0.5)
+                end
+                
+                if targetObject and routeRunning and hum.Health > 0 then
+                    local objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
+                    if (hrp.Position - objPos).Magnitude > 4 then
+                        while hrp and (hrp.Position - objPos).Magnitude > 4 and routeRunning and hum.Health > 0 do
+                            objPos = targetObject.Position or targetObject:GetPrimaryPartCFrame().Position
+                            bv.Velocity = (objPos - hrp.Position).Unit * approachSpeed((objPos - hrp.Position).Magnitude)
+                            RunService.Stepped:Wait()
+                        end
+                    end
+                    if bv then bv.Velocity = Vector3.new(0, 0, 0) end
