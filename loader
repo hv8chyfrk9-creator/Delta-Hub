@@ -23,7 +23,6 @@ local function loadConfig()
         saveConfig(result)
         return result
     end
-
     local initialData = { autoExecute = false, visits = 1 }
     saveConfig(initialData)
     return initialData
@@ -38,9 +37,9 @@ local HALLOWEN_PLACE_ID = 128614435234859
 
 local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Mundo%203%20KeyBoard.lua"
 local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/galaxia%202%20Keyboard.lua"
-local URL_HALLOWEN = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Hallowen%20keyboard.lua"
 local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Escape%20del%20mono.lua"
 local URL_WINS = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/800BWins"
+local BASE = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/"
 
 local function guiExists(name)
     return CoreGui:FindFirstChild(name) ~= nil or PlayerGui:FindFirstChild(name) ~= nil
@@ -54,7 +53,7 @@ local function hasActiveScript()
 end
 
 local function clearActiveGuis()
-    for _, name in ipairs({"DeltaHubMinimal", "DeltaHubCustom", "DeltaHubLoader"}) do
+    for _, name in ipairs({"DeltaHubMinimal", "DeltaHubCustom", "DeltaHubLoader", "DeltaHubHWLoad", "DeltaHubBootMsg"}) do
         local a = CoreGui:FindFirstChild(name)
         local b = PlayerGui:FindFirstChild(name)
         if a then a:Destroy() end
@@ -62,26 +61,119 @@ local function clearActiveGuis()
     end
 end
 
-local function notify(msg)
+local function notify(msg, ok)
     warn("[Delta Hub] " .. tostring(msg))
     pcall(function()
         local sg = Instance.new("ScreenGui")
         sg.Name = "DeltaHubNotify"
         sg.ResetOnSpawn = false
+        sg.DisplayOrder = 300000
         sg.Parent = PlayerGui
         local t = Instance.new("TextLabel")
         t.Parent = sg
-        t.Size = UDim2.new(0, 320, 0, 60)
+        t.Size = UDim2.new(0, 320, 0, 70)
         t.Position = UDim2.new(0.5, -160, 0.12, 0)
         t.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-        t.TextColor3 = Color3.fromRGB(255, 120, 120)
+        t.TextColor3 = ok and Color3.fromRGB(120, 255, 140) or Color3.fromRGB(255, 120, 120)
         t.Font = Enum.Font.GothamBold
         t.TextSize = 12
         t.TextWrapped = true
         t.Text = tostring(msg)
         Instance.new("UICorner", t).CornerRadius = UDim.new(0, 8)
-        task.delay(6, function() if sg then sg:Destroy() end end)
+        task.delay(7, function() if sg then sg:Destroy() end end)
     end)
+end
+
+local function httpGet(pathOrUrl)
+    local url = pathOrUrl
+    if not string.find(pathOrUrl, "https://", 1, true) then
+        url = BASE .. pathOrUrl .. "?t=" .. tostring(math.floor(tick()))
+    else
+        url = pathOrUrl .. (string.find(pathOrUrl, "?", 1, true) and "&" or "?") .. "t=" .. tostring(math.floor(tick()))
+    end
+    local ok, body = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if not ok or type(body) ~= "string" or #body < 20 then
+        return nil, "HttpGet fallo: " .. tostring(body)
+    end
+    if string.sub(body, 1, 9) == "<!DOCTYPE" or string.sub(body, 1, 6) == "<html>" then
+        return nil, "GitHub HTML (archivo faltante?): " .. tostring(pathOrUrl)
+    end
+    return body, nil
+end
+
+local function loadstringRun(src, label)
+    local fn, err = loadstring(src)
+    if not fn then
+        notify("Error loadstring (" .. tostring(label) .. "): " .. tostring(err), false)
+        return false
+    end
+    local ok, runErr = pcall(fn)
+    if not ok then
+        notify("Error al correr (" .. tostring(label) .. "): " .. tostring(runErr), false)
+        return false
+    end
+    return true
+end
+
+local function loadHallowenMultipart()
+    if getgenv then
+        getgenv().DeltaHubActive = true
+        getgenv().DeltaHubForceLoad = true
+        getgenv().DeltaHubCurrentUrl = "hallowen-multipart"
+    end
+    clearActiveGuis()
+
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "DeltaHubHWLoad"
+    sg.ResetOnSpawn = false
+    sg.IgnoreGuiInset = true
+    sg.DisplayOrder = 250000
+    sg.Parent = PlayerGui
+    local lbl = Instance.new("TextLabel")
+    lbl.Parent = sg
+    lbl.Size = UDim2.new(0, 300, 0, 60)
+    lbl.Position = UDim2.new(0.5, -150, 0.12, 0)
+    lbl.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+    lbl.TextColor3 = Color3.fromRGB(120, 255, 140)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 13
+    lbl.TextWrapped = true
+    lbl.Text = "Hallowen: bajando 1/3..."
+    Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 8)
+
+    local ok, err = pcall(function()
+        local chunks = {}
+        for i = 1, 3 do
+            lbl.Text = "Hallowen: bajando " .. i .. "/3..."
+            local body, e = httpGet("HW_p" .. i .. ".lua")
+            if not body then
+                error(e or ("No se pudo bajar HW_p" .. i .. ".lua"))
+            end
+            table.insert(chunks, body)
+            task.wait(0.03)
+        end
+        lbl.Text = "Hallowen: uniendo y ejecutando..."
+        local src = table.concat(chunks, "\n")
+        local fn, e = loadstring(src)
+        if not fn then
+            error("loadstring: " .. tostring(e))
+        end
+        fn()
+    end)
+
+    if ok then
+        lbl.Text = "Hallowen: cargado"
+        lbl.TextColor3 = Color3.fromRGB(100, 255, 100)
+        task.delay(2.5, function()
+            if sg then sg:Destroy() end
+        end)
+    else
+        lbl.Text = "ERROR: " .. tostring(err)
+        lbl.TextColor3 = Color3.fromRGB(255, 120, 120)
+        notify(tostring(err), false)
+    end
 end
 
 local function loadRemote(url)
@@ -97,22 +189,16 @@ local function loadRemote(url)
     else
         clearActiveGuis()
     end
-    local okFetch, body = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not okFetch or type(body) ~= "string" or #body < 50 then
-        notify("No se pudo bajar el script. Revisa internet / GitHub.")
+    local body, e = httpGet(url)
+    if not body then
+        notify(e or "No se pudo bajar el script", false)
         return
     end
-    local fn, err = loadstring(body)
-    if not fn then
-        notify("Error de script (loadstring): " .. tostring(err))
-        return
-    end
-    local okRun, runErr = pcall(fn)
-    if not okRun then
-        notify("Error al correr: " .. tostring(runErr))
-    end
+    loadstringRun(body, "remote")
+end
+
+local function isHallowen()
+    return game.PlaceId == HALLOWEN_PLACE_ID
 end
 
 local function keyboardUrl()
@@ -122,7 +208,7 @@ local function keyboardUrl()
     elseif placeId == MUNDO_3_PLACE_ID then
         return URL_MUNDO3
     elseif placeId == HALLOWEN_PLACE_ID then
-        return URL_HALLOWEN
+        return "hallowen-multipart"
     end
     return nil
 end
@@ -134,7 +220,7 @@ local function autoUrl()
     elseif placeId == MUNDO_3_PLACE_ID then
         return URL_MUNDO3
     elseif placeId == HALLOWEN_PLACE_ID then
-        return URL_HALLOWEN
+        return "hallowen-multipart"
     elseif placeId == ID_MONO then
         return URL_MONO
     end
@@ -285,8 +371,16 @@ local function openSelector()
     Title.Text = selectorTitle()
     MainFrame.Size = UDim2.new(0, 310, 0, showWins and 280 or 230)
 
-    local teclado = makeButton("Teclado", 1)
+    local tecladoLabel = isHallowen() and "Teclado (Hallowen)" or "Teclado"
+    local teclado = makeButton(tecladoLabel, 1)
     teclado.MouseButton1Click:Connect(function()
+        if isHallowen() then
+            teclado.Text = "Cargando Hallowen..."
+            task.wait(0.2)
+            ScreenGui:Destroy()
+            loadHallowenMultipart()
+            return
+        end
         local url = keyboardUrl()
         if not url then
             openUnsupported()
@@ -386,13 +480,16 @@ elseif config.autoExecute then
             openSelector()
             return
         end
-        local url = autoUrl()
         ScreenGui:Destroy()
-        if url then
-            loadRemote(url)
+        if isHallowen() then
+            loadHallowenMultipart()
         else
-            warn("Delta Hub: no hay script para este PlaceId " .. tostring(game.PlaceId))
-            notify("No hay script para PlaceId " .. tostring(game.PlaceId))
+            local url = autoUrl()
+            if url and url ~= "hallowen-multipart" then
+                loadRemote(url)
+            else
+                notify("No hay script para PlaceId " .. tostring(game.PlaceId), false)
+            end
         end
     end)
 else
