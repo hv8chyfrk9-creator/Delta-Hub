@@ -1,497 +1,320 @@
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
+-- ==========================================
+-- DELTA HUB - LOADER PRINCIPAL EN CASCADA
+-- ==========================================
+
 local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local configFileName = "DeltaHub_Data.json"
+-- Archivo de configuración local para guardar "Ejecución Rápida"
+local CONFIG_FILE = "DeltaHub_LoaderConfig.json"
+local fastExecutionEnabled = false
 
-local function saveConfig(data)
-    pcall(function()
-        writefile(configFileName, HttpService:JSONEncode(data))
-    end)
+pcall(function()
+	if isfile and isfile(CONFIG_FILE) then
+		local data = HttpService:JSONDecode(readfile(CONFIG_FILE))
+		if data and data.fastExecution ~= nil then
+			fastExecutionEnabled = data.fastExecution
+		end
+	end
+end)
+
+local function saveConfig()
+	pcall(function()
+		if writefile then
+			writefile(CONFIG_FILE, HttpService:JSONEncode({ fastExecution = fastExecutionEnabled }))
+		end
+	end)
 end
 
-local function loadConfig()
-    local success, result = pcall(function()
-        if isfile and isfile(configFileName) then
-            return HttpService:JSONDecode(readfile(configFileName))
-        end
-    end)
-    if success and result then
-        result.visits = (result.visits or 0) + 1
-        saveConfig(result)
-        return result
-    end
-    local initialData = { autoExecute = false, visits = 1 }
-    saveConfig(initialData)
-    return initialData
+-- Destruir loader previo si existe
+if playerGui:FindFirstChild("DeltaHubLoaderGui") then
+	playerGui.DeltaHubLoaderGui:Destroy()
 end
 
-local config = loadConfig()
-
-local ID_MONO = 10144280947
-local GALAXIA_2_PLACE_ID = 75012837977315
-local MUNDO_3_PLACE_ID = 93411036959889
-local HALLOWEN_PLACE_ID = 128614435234859
-
-local URL_MUNDO3 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Mundo%203%20KeyBoard.lua"
-local URL_GALAXIA2 = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/galaxia%202%20Keyboard.lua"
-local URL_MONO = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/Escape%20del%20mono.lua"
-local URL_WINS = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/800BWins"
-local BASE = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Delta-Hub/refs/heads/main/"
-
-local function guiExists(name)
-    return CoreGui:FindFirstChild(name) ~= nil or PlayerGui:FindFirstChild(name) ~= nil
-end
-
-local function hasActiveScript()
-    if getgenv and getgenv().DeltaHubActive then
-        return true
-    end
-    return guiExists("DeltaHubMinimal") or guiExists("DeltaHubCustom")
-end
-
-local function clearActiveGuis()
-    for _, name in ipairs({"DeltaHubMinimal", "DeltaHubCustom", "DeltaHubLoader", "DeltaHubHWLoad", "DeltaHubBootMsg"}) do
-        local a = CoreGui:FindFirstChild(name)
-        local b = PlayerGui:FindFirstChild(name)
-        if a then a:Destroy() end
-        if b then b:Destroy() end
-    end
-end
-
-local function notify(msg, ok)
-    warn("[Delta Hub] " .. tostring(msg))
-    pcall(function()
-        local sg = Instance.new("ScreenGui")
-        sg.Name = "DeltaHubNotify"
-        sg.ResetOnSpawn = false
-        sg.DisplayOrder = 300000
-        sg.Parent = PlayerGui
-        local t = Instance.new("TextLabel")
-        t.Parent = sg
-        t.Size = UDim2.new(0, 320, 0, 70)
-        t.Position = UDim2.new(0.5, -160, 0.12, 0)
-        t.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-        t.TextColor3 = ok and Color3.fromRGB(120, 255, 140) or Color3.fromRGB(255, 120, 120)
-        t.Font = Enum.Font.GothamBold
-        t.TextSize = 12
-        t.TextWrapped = true
-        t.Text = tostring(msg)
-        Instance.new("UICorner", t).CornerRadius = UDim.new(0, 8)
-        task.delay(7, function() if sg then sg:Destroy() end end)
-    end)
-end
-
-local function httpGet(pathOrUrl)
-    local url = pathOrUrl
-    if not string.find(pathOrUrl, "https://", 1, true) then
-        url = BASE .. pathOrUrl .. "?t=" .. tostring(math.floor(tick()))
-    else
-        url = pathOrUrl .. (string.find(pathOrUrl, "?", 1, true) and "&" or "?") .. "t=" .. tostring(math.floor(tick()))
-    end
-    local ok, body = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not ok or type(body) ~= "string" or #body < 20 then
-        return nil, "HttpGet fallo: " .. tostring(body)
-    end
-    if string.sub(body, 1, 9) == "<!DOCTYPE" or string.sub(body, 1, 6) == "<html>" then
-        return nil, "GitHub HTML (archivo faltante?): " .. tostring(pathOrUrl)
-    end
-    return body, nil
-end
-
-local function loadstringRun(src, label)
-    local fn, err = loadstring(src)
-    if not fn then
-        notify("Error loadstring (" .. tostring(label) .. "): " .. tostring(err), false)
-        return false
-    end
-    local ok, runErr = pcall(fn)
-    if not ok then
-        notify("Error al correr (" .. tostring(label) .. "): " .. tostring(runErr), false)
-        return false
-    end
-    return true
-end
-
-local function loadHallowenMultipart()
-    if getgenv then
-        getgenv().DeltaHubActive = true
-        getgenv().DeltaHubForceLoad = true
-        getgenv().DeltaHubCurrentUrl = "hallowen-multipart"
-    end
-    clearActiveGuis()
-
-    local sg = Instance.new("ScreenGui")
-    sg.Name = "DeltaHubHWLoad"
-    sg.ResetOnSpawn = false
-    sg.IgnoreGuiInset = true
-    sg.DisplayOrder = 250000
-    sg.Parent = PlayerGui
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = sg
-    lbl.Size = UDim2.new(0, 300, 0, 60)
-    lbl.Position = UDim2.new(0.5, -150, 0.12, 0)
-    lbl.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
-    lbl.TextColor3 = Color3.fromRGB(120, 255, 140)
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 13
-    lbl.TextWrapped = true
-    lbl.Text = "Hallowen: bajando 1/3..."
-    Instance.new("UICorner", lbl).CornerRadius = UDim.new(0, 8)
-
-    local ok, err = pcall(function()
-        local chunks = {}
-        for i = 1, 3 do
-            lbl.Text = "Hallowen: bajando " .. i .. "/3..."
-            local body, e = httpGet("HW_p" .. i .. ".lua")
-            if not body then
-                error(e or ("No se pudo bajar HW_p" .. i .. ".lua"))
-            end
-            table.insert(chunks, body)
-            task.wait(0.03)
-        end
-        lbl.Text = "Hallowen: uniendo y ejecutando..."
-        local src = table.concat(chunks, "\n")
-        local fn, e = loadstring(src)
-        if not fn then
-            error("loadstring: " .. tostring(e))
-        end
-        fn()
-    end)
-
-    if ok then
-        lbl.Text = "Hallowen: cargado"
-        lbl.TextColor3 = Color3.fromRGB(100, 255, 100)
-        task.delay(2.5, function()
-            if sg then sg:Destroy() end
-        end)
-    else
-        lbl.Text = "ERROR: " .. tostring(err)
-        lbl.TextColor3 = Color3.fromRGB(255, 120, 120)
-        notify(tostring(err), false)
-    end
-end
-
-local function loadRemote(url)
-    if getgenv then
-        getgenv().DeltaHubActive = true
-        local same = getgenv().DeltaHubCurrentUrl == url and (guiExists("DeltaHubMinimal") or guiExists("DeltaHubCustom"))
-        getgenv().DeltaHubSkipAssets = same and true or false
-        getgenv().DeltaHubAntilagWasOn = same and getgenv().DeltaHubAntilagOn or false
-        if same then
-            clearActiveGuis()
-        end
-        getgenv().DeltaHubCurrentUrl = url
-    else
-        clearActiveGuis()
-    end
-    local body, e = httpGet(url)
-    if not body then
-        notify(e or "No se pudo bajar el script", false)
-        return
-    end
-    loadstringRun(body, "remote")
-end
-
-local function isHallowen()
-    return game.PlaceId == HALLOWEN_PLACE_ID
-end
-
-local function keyboardUrl()
-    local placeId = game.PlaceId
-    if placeId == GALAXIA_2_PLACE_ID then
-        return URL_GALAXIA2
-    elseif placeId == MUNDO_3_PLACE_ID then
-        return URL_MUNDO3
-    elseif placeId == HALLOWEN_PLACE_ID then
-        return "hallowen-multipart"
-    end
-    return nil
-end
-
-local function autoUrl()
-    local placeId = game.PlaceId
-    if placeId == GALAXIA_2_PLACE_ID then
-        return URL_GALAXIA2
-    elseif placeId == MUNDO_3_PLACE_ID then
-        return URL_MUNDO3
-    elseif placeId == HALLOWEN_PLACE_ID then
-        return "hallowen-multipart"
-    elseif placeId == ID_MONO then
-        return URL_MONO
-    end
-    return nil
-end
-
-if CoreGui:FindFirstChild("DeltaHubLoader") then
-    CoreGui.DeltaHubLoader:Destroy()
-end
-if PlayerGui:FindFirstChild("DeltaHubLoader") then
-    PlayerGui.DeltaHubLoader:Destroy()
-end
-
+-- ==========================================
+-- INTERFAZ GRÁFICA DEL LOADER
+-- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "DeltaHubLoader"
+ScreenGui.Name = "DeltaHubLoaderGui"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = PlayerGui
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 100000
+ScreenGui.Parent = playerGui
 
+-- Logo flotante (cuando se minimiza)
+local FloatingLogo = Instance.new("TextButton")
+FloatingLogo.Name = "FloatingLogo"
+FloatingLogo.Parent = ScreenGui
+FloatingLogo.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+FloatingLogo.Position = UDim2.new(0.05, 0, 0.15, 0)
+FloatingLogo.Size = UDim2.new(0, 45, 0, 45)
+FloatingLogo.Font = Enum.Font.GothamBold
+FloatingLogo.Text = "DH"
+FloatingLogo.TextColor3 = Color3.fromRGB(100, 220, 255)
+FloatingLogo.TextSize = 15
+FloatingLogo.Visible = false
+FloatingLogo.Active = true
+FloatingLogo.Draggable = true
+Instance.new("UICorner", FloatingLogo).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", FloatingLogo).Color = Color3.fromRGB(50, 50, 75)
+
+-- Ventana Principal del Loader
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ScreenGui
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-MainFrame.BorderSizePixel = 0
-MainFrame.Position = UDim2.new(0.5, -155, 0.5, -140)
-MainFrame.Size = UDim2.new(0, 310, 0, 250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+MainFrame.Position = UDim2.new(0.5, -180, 0.5, -110)
+MainFrame.Size = UDim2.new(0, 360, 0, 220)
 MainFrame.Active = true
 MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(40, 40, 55)
 
+-- Barra Superior
 local TopBar = Instance.new("Frame")
-TopBar.Name = "TopBar"
 TopBar.Parent = MainFrame
-TopBar.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
-TopBar.BorderSizePixel = 0
-TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+TopBar.Size = UDim2.new(1, 0, 0, 32)
 Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
-
-local TopBarFix = Instance.new("Frame")
-TopBarFix.Parent = TopBar
-TopBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
-TopBarFix.BorderSizePixel = 0
-TopBarFix.Position = UDim2.new(0, 0, 1, -5)
-TopBarFix.Size = UDim2.new(1, 0, 0, 5)
 
 local Title = Instance.new("TextLabel")
 Title.Parent = TopBar
 Title.BackgroundTransparency = 1
-Title.Position = UDim2.new(0, 12, 0, 0)
-Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Size = UDim2.new(0, 200, 1, 0)
 Title.Font = Enum.Font.GothamBold
-Title.TextSize = 12
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-Title.Text = "Delta Hub | Loader"
+Title.Text = "Delta Hub Loader"
+Title.TextColor3 = Color3.fromRGB(230, 230, 240)
+Title.TextSize, Title.TextXAlignment = 12, Enum.TextXAlignment.Left
 
+-- Botón Cerrar (X)
 local CloseBtn = Instance.new("TextButton")
 CloseBtn.Parent = TopBar
-CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-CloseBtn.Position = UDim2.new(1, -30, 0, 6)
-CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.Size = UDim2.new(0, 30, 1, 0)
 CloseBtn.Font = Enum.Font.GothamBold
 CloseBtn.Text = "X"
-CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-CloseBtn.TextSize = 12
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 4)
-CloseBtn.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+CloseBtn.TextColor3 = Color3.fromRGB(255, 90, 90)
+CloseBtn.TextSize = 14
+
+-- Botón Minimizar (-)
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Parent = TopBar
+MinimizeBtn.BackgroundTransparency = 1
+MinimizeBtn.Position = UDim2.new(1, -60, 0, 0)
+MinimizeBtn.Size = UDim2.new(0, 30, 1, 0)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Text = "-"
+MinimizeBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+MinimizeBtn.TextSize = 16
+
+-- Botón Configuración (Engranaje)
+local ConfigBtn = Instance.new("TextButton")
+ConfigBtn.Parent = TopBar
+ConfigBtn.BackgroundTransparency = 1
+ConfigBtn.Position = UDim2.new(1, -90, 0, 0)
+ConfigBtn.Size = UDim2.new(0, 30, 1, 0)
+ConfigBtn.Font = Enum.Font.GothamBold
+ConfigBtn.Text = "⚙"
+ConfigBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+ConfigBtn.TextSize = 14
+
+-- Panel de Estado Principal
+local StatusContainer = Instance.new("Frame")
+StatusContainer.Parent = MainFrame
+StatusContainer.BackgroundTransparency = 1
+StatusContainer.Position = UDim2.new(0, 15, 0, 45)
+StatusContainer.Size = UDim2.new(1, -30, 1, -55)
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Parent = StatusContainer
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Size = UDim2.new(1, 0, 0, 30)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.Text = "Iniciando sistema..."
+StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+StatusLabel.TextSize = 14
+
+local SubStatusLabel = Instance.new("TextLabel")
+SubStatusLabel.Parent = StatusContainer
+SubStatusLabel.BackgroundTransparency = 1
+SubStatusLabel.Position = UDim2.new(0, 0, 0, 30)
+SubStatusLabel.Size = UDim2.new(1, 0, 0, 20)
+SubStatusLabel.Font = Enum.Font.Gotham
+SubStatusLabel.Text = "Verificando entorno de ejecución..."
+SubStatusLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
+SubStatusLabel.TextSize = 11
+
+-- Barra de Progreso Visual
+local BarBg = Instance.new("Frame")
+BarBg.Parent = StatusContainer
+BarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+BarBg.Position = UDim2.new(0, 0, 0, 75)
+BarBg.Size = UDim2.new(1, 0, 0, 12)
+Instance.new("UICorner", BarBg).CornerRadius = UDim.new(0, 6)
+
+local BarFill = Instance.new("Frame")
+BarFill.Parent = BarBg
+BarFill.BackgroundColor3 = Color3.fromRGB(80, 160, 255)
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+Instance.new("UICorner", BarFill).CornerRadius = UDim.new(0, 6)
+
+-- Panel de Configuración (Oculto por defecto)
+local ConfigPanel = Instance.new("Frame")
+ConfigPanel.Parent = MainFrame
+ConfigPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+ConfigPanel.Position = UDim2.new(0, 0, 0, 32)
+ConfigPanel.Size = UDim2.new(1, 0, 1, -32)
+ConfigPanel.Visible = false
+Instance.new("UICorner", ConfigPanel).CornerRadius = UDim.new(0, 8)
+
+local ConfigTitle = Instance.new("TextLabel")
+ConfigTitle.Parent = ConfigPanel
+ConfigTitle.BackgroundTransparency = 1
+ConfigTitle.Position = UDim2.new(0, 15, 0, 15)
+ConfigTitle.Size = UDim2.new(1, -30, 0, 24)
+ConfigTitle.Font = Enum.Font.GothamBold
+ConfigTitle.Text = "Configuración del Loader"
+ConfigTitle.TextColor3 = Color3.fromRGB(240, 240, 250)
+ConfigTitle.TextSize = 13
+ConfigTitle.TextXAlignment = Enum.TextXAlignment.Left
+
+local FastExecToggle = Instance.new("TextButton")
+FastExecToggle.Parent = ConfigPanel
+FastExecToggle.BackgroundColor3 = Color3.fromRGB(32, 32, 44)
+FastExecToggle.Position = UDim2.new(0, 15, 0, 50)
+FastExecToggle.Size = UDim2.new(1, -30, 0, 35)
+FastExecToggle.Font = Enum.Font.GothamBold
+FastExecToggle.Text = "Ejecución Rápida: " .. (fastExecutionEnabled and "ON" or "OFF")
+FastExecToggle.TextColor3 = fastExecutionEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+FastExecToggle.TextSize = 12
+Instance.new("UICorner", FastExecToggle).CornerRadius = UDim.new(0, 6)
+
+FastExecToggle.MouseButton1Click:Connect(function()
+	fastExecutionEnabled = not fastExecutionEnabled
+	saveConfig()
+	FastExecToggle.Text = "Ejecución Rápida: " .. (fastExecutionEnabled and "ON" or "OFF")
+	FastExecToggle.TextColor3 = fastExecutionEnabled and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
 end)
 
-local function selectorTitle()
-    if config.visits == 1 then
-        return "Delta Hub | Loader"
-    elseif config.visits == 2 then
-        return "Hola de nuevo, " .. LocalPlayer.Name
-    end
-    return "Delta Hub | Visita #" .. config.visits
-end
+local BackConfigBtn = Instance.new("TextButton")
+BackConfigBtn.Parent = ConfigPanel
+BackConfigBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+BackConfigBtn.Position = UDim2.new(0, 15, 1, -45)
+BackConfigBtn.Size = UDim2.new(1, -30, 0, 30)
+BackConfigBtn.Font = Enum.Font.GothamBold
+BackConfigBtn.Text = "Volver"
+BackConfigBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+BackConfigBtn.TextSize = 12
+Instance.new("UICorner", BackConfigBtn).CornerRadius = UDim.new(0, 6)
 
-local Body = Instance.new("Frame")
-Body.Parent = MainFrame
-Body.BackgroundTransparency = 1
-Body.Position = UDim2.new(0, 16, 0, 48)
-Body.Size = UDim2.new(1, -32, 1, -60)
+BackConfigBtn.MouseButton1Click:Connect(function()
+	ConfigPanel.Visible = false
+end)
 
-local function clearBody()
-    for _, child in ipairs(Body:GetChildren()) do
-        child:Destroy()
-    end
-end
+ConfigBtn.MouseButton1Click:Connect(function()
+	ConfigPanel.Visible = not ConfigPanel.Visible
+end)
 
-local function makeList()
-    local layout = Instance.new("UIListLayout")
-    layout.Parent = Body
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Padding = UDim.new(0, 8)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    return layout
-end
+-- Botones de Control de la Interfaz
+local loaderDestroyed = false
 
-local function makeButton(text, order, color)
-    local btn = Instance.new("TextButton")
-    btn.Parent = Body
-    btn.BackgroundColor3 = color or Color3.fromRGB(45, 45, 55)
-    btn.Size = UDim2.new(1, 0, 0, 36)
-    btn.Font = Enum.Font.GothamBold
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.TextSize = 13
-    btn.TextWrapped = true
-    btn.LayoutOrder = order
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    return btn
-end
+CloseBtn.MouseButton1Click:Connect(function()
+	loaderDestroyed = true
+	ScreenGui:Destroy()
+end)
 
-local function makeLabel(text, order, height)
-    local lbl = Instance.new("TextLabel")
-    lbl.Parent = Body
-    lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(1, 0, 0, height or 48)
-    lbl.Font = Enum.Font.Gotham
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(230, 230, 235)
-    lbl.TextSize = 13
-    lbl.TextWrapped = true
-    lbl.LayoutOrder = order
-    return lbl
-end
+MinimizeBtn.MouseButton1Click:Connect(function()
+	MainFrame.Visible = false
+	FloatingLogo.Visible = true
+end)
 
-local showWins = false
+FloatingLogo.MouseButton1Click:Connect(function()
+	MainFrame.Visible = true
+	FloatingLogo.Visible = false
+end)
 
-local function openUnsupported()
-    clearBody()
-    makeList()
-    Title.Text = "Mundo no soportado"
-    MainFrame.Size = UDim2.new(0, 310, 0, 200)
-    makeLabel("No hay script de Delta Hub para este mundo / PlaceId.\nPlaceId: " .. tostring(game.PlaceId), 1, 70)
-    local ok = makeButton("Entendido", 2, Color3.fromRGB(55, 55, 65))
-    ok.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
-end
+-- ==========================================
+-- LÓGICA DE SECUENCIA Y CARGA DE REPOS
+-- ==========================================
+task.spawn(function()
+	local t1, t2, t3, t4, t5, t6, t7, t8 = 1, 0.5, 1, 0.5, 1, 0.5, 1, 0.5
+	if fastExecutionEnabled then
+		local scale = 2.0 / (t1 + t2 + t3 + t4 + t5 + t6 + t7 + t8)
+		t1, t2, t3, t4, t5, t6, t7, t8 = t1 * scale, t2 * scale, t3 * scale, t4 * scale, t5 * scale, t6 * scale, t7 * scale, t8 * scale
+	end
 
-local function openSelector()
-    clearBody()
-    makeList()
-    Title.Text = selectorTitle()
-    MainFrame.Size = UDim2.new(0, 310, 0, showWins and 280 or 230)
+	local function updateStep(progress, text, subText, waitTime)
+		if loaderDestroyed then
+			return false
+		end
+		StatusLabel.Text = text
+		SubStatusLabel.Text = subText
+		BarFill.Size = UDim2.new(progress, 0, 1, 0)
+		task.wait(waitTime)
+		return not loaderDestroyed
+	end
 
-    local tecladoLabel = isHallowen() and "Teclado (Hallowen)" or "Teclado"
-    local teclado = makeButton(tecladoLabel, 1)
-    teclado.MouseButton1Click:Connect(function()
-        if isHallowen() then
-            teclado.Text = "Cargando Hallowen..."
-            task.wait(0.2)
-            ScreenGui:Destroy()
-            loadHallowenMultipart()
-            return
-        end
-        local url = keyboardUrl()
-        if not url then
-            openUnsupported()
-            return
-        end
-        teclado.Text = "Cargando..."
-        task.wait(0.3)
-        ScreenGui:Destroy()
-        loadRemote(url)
-    end)
+	if not updateStep(0.12, "Buscando Juego", "Verificando GameId...", t1) then return end
+	if not updateStep(0.25, "Juego encontrado", "GameId validado con éxito.", t2) then return end
+	if not updateStep(0.37, "Buscando mundo", "Identificando PlaceId actual...", t3) then return end
+	if not updateStep(0.50, "Mundo encontrado", "PlaceId reconocido en el sistema.", t4) then return end
+	if not updateStep(0.62, "Buscando script", "Localizando repositorio en GitHub...", t5) then return end
+	if not updateStep(0.75, "Script encontrado", "Conexión con el repositorio establecida.", t6) then return end
+	if not updateStep(0.87, "Cargando script", "Descargando código fuente...", t7) then return end
+	if not updateStep(1.00, "Script cargado completamente", "Iniciando interfaz...", t8) then return end
 
-    local mono = makeButton("Escape del mono", 2)
-    mono.MouseButton1Click:Connect(function()
-        mono.Text = "Cargando..."
-        task.wait(0.3)
-        ScreenGui:Destroy()
-        loadRemote(URL_MONO)
-    end)
+	if loaderDestroyed then return end
 
-    if showWins then
-        local wins = makeButton("800 Billones de Wins", 3, Color3.fromRGB(70, 55, 30))
-        wins.MouseButton1Click:Connect(function()
-            wins.Text = "Cargando..."
-            task.wait(0.3)
-            ScreenGui:Destroy()
-            loadRemote(URL_WINS)
-        end)
-    end
+	local TARGET_GAME_ID = 9584852943
+	if tostring(game.GameId) ~= tostring(TARGET_GAME_ID) then
+		StatusLabel.Text = "Error: GameId no compatible"
+		SubStatusLabel.Text = "Este script no pertenece a este juego."
+		BarFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		return
+	end
 
-    local ajustes = makeButton("Ajustes", 4, Color3.fromRGB(55, 55, 65))
-    ajustes.MouseButton1Click:Connect(function()
-        openSettings()
-    end)
-end
+	-- Solo 3 mundos: Hallowen, Galaxia 2 (G2), Mundo 3
+	local placeToRepoUrl = {
+		[128614435234859] = "https://raw.githubusercontent.com/hv8chyfrk9-creator/Event-Hallowen/main/init.lua",
+		[75012837977315] = "https://raw.githubusercontent.com/hv8chyfrk9-creator/mundo-1-G2/main/init.lua",
+		[93411036959889] = "https://raw.githubusercontent.com/hv8chyfrk9-creator/mundo-3/main/init.lua",
+	}
 
-function openSettings()
-    clearBody()
-    makeList()
-    Title.Text = "Delta Hub | Ajustes"
-    MainFrame.Size = UDim2.new(0, 310, 0, 200)
+	local targetUrl = placeToRepoUrl[game.PlaceId]
 
-    local auto = makeButton(config.autoExecute and "Auto Execute: ON" or "Auto Execute: OFF", 1, config.autoExecute and Color3.fromRGB(40, 80, 40) or Color3.fromRGB(45, 45, 55))
-    auto.TextColor3 = config.autoExecute and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
-    auto.MouseButton1Click:Connect(function()
-        config.autoExecute = not config.autoExecute
-        saveConfig(config)
-        openSettings()
-    end)
+	if not targetUrl then
+		StatusLabel.Text = "Mundo no registrado"
+		SubStatusLabel.Text = "PlaceId actual (" .. tostring(game.PlaceId) .. ") no tiene script asignado."
+		BarFill.BackgroundColor3 = Color3.fromRGB(255, 160, 50)
+		return
+	end
 
-    local back = makeButton("Volver", 2, Color3.fromRGB(55, 55, 65))
-    back.MouseButton1Click:Connect(openSelector)
-end
+	StatusLabel.Text = "Inyectando script..."
+	SubStatusLabel.Text = "Ejecutando módulo del mundo..."
 
-local function openActivePrompt()
-    clearBody()
-    makeList()
-    Title.Text = "Script activo"
-    MainFrame.Size = UDim2.new(0, 310, 0, 230)
-    makeLabel("Ya estas usando un script activo de Delta Hub. Quieres cerrar esta pestaña o cargar otro?", 1, 56)
+	local success, scriptContent = pcall(function()
+		return game:HttpGet(targetUrl)
+	end)
 
-    local cerrar = makeButton("Cerrar pestaña", 2, Color3.fromRGB(90, 50, 50))
-    cerrar.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
+	if success and scriptContent then
+		local runSuccess, runErr = pcall(function()
+			loadstring(scriptContent)()
+		end)
 
-    local otro = makeButton("Cargar otro", 3, Color3.fromRGB(40, 80, 40))
-    otro.MouseButton1Click:Connect(function()
-        showWins = true
-        openSelector()
-    end)
-end
-
-local active = hasActiveScript()
-if config.autoExecute and active then
-    openActivePrompt()
-elseif config.autoExecute then
-    clearBody()
-    Title.Text = "Auto Execute"
-    local status = makeLabel("Buscando juego...", 1, 40)
-    task.spawn(function()
-        local steps = {
-            {1, "Buscando juego..."},
-            {1, "Juego encontrado"},
-            {2, "Cargando script..."},
-            {1, "Script cargado completamente"},
-        }
-        for _, step in ipairs(steps) do
-            status.Text = step[2]
-            local elapsed = 0
-            while elapsed < step[1] do
-                if not ScreenGui.Parent then return end
-                elapsed = elapsed + 0.1
-                task.wait(0.1)
-            end
-        end
-        if not config.autoExecute then
-            openSelector()
-            return
-        end
-        ScreenGui:Destroy()
-        if isHallowen() then
-            loadHallowenMultipart()
-        else
-            local url = autoUrl()
-            if url and url ~= "hallowen-multipart" then
-                loadRemote(url)
-            else
-                notify("No hay script para PlaceId " .. tostring(game.PlaceId), false)
-            end
-        end
-    end)
-else
-    openSelector()
-end
+		if runSuccess then
+			ScreenGui:Destroy()
+		else
+			StatusLabel.Text = "Error al ejecutar script"
+			SubStatusLabel.Text = tostring(runErr):sub(1, 50)
+			BarFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+		end
+	else
+		StatusLabel.Text = "Error de descarga"
+		SubStatusLabel.Text = "No se pudo conectar con GitHub (revisa el archivo init.lua)."
+		BarFill.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+	end
+end)
